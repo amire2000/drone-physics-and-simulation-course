@@ -192,11 +192,11 @@ individual motor thrust will create the roll, pitch, and yaw commands.
 </form>
 
 <form class="quiz" data-answer="a" data-explanation="At 90 degrees yaw, the body forward X direction points along world positive Y.">
-  <fieldset><legend>2. At 90° yaw, where does body forward `[1, 0]` point in the world?</legend><label><input type="radio" name="q2" value="a"> `[0, 1]`</label><br><label><input type="radio" name="q2" value="b"> `[1, 0]`</label><br><label><input type="radio" name="q2" value="c"> `[0, −1]`</label></fieldset><button type="button" class="quiz-check">Check answer</button><p class="quiz-result" aria-live="polite"></p>
+  <fieldset><legend>2. At 90° yaw, where does body forward <span class="arithmatex">\(\begin{bmatrix}1 \\ 0\end{bmatrix}\)</span> point in the world?</legend><label><input type="radio" name="q2" value="a"> <span class="arithmatex">\(\begin{bmatrix}0 \\ 1\end{bmatrix}\)</span></label><br><label><input type="radio" name="q2" value="b"> <span class="arithmatex">\(\begin{bmatrix}1 \\ 0\end{bmatrix}\)</span></label><br><label><input type="radio" name="q2" value="c"> <span class="arithmatex">\(\begin{bmatrix}0 \\ -1\end{bmatrix}\)</span></label></fieldset><button type="button" class="quiz-check">Check answer</button><p class="quiz-result" aria-live="polite"></p>
 </form>
 
 <form class="quiz" data-answer="c" data-explanation="Torque is the turning effect caused by a force with a nonzero lever arm.">
-  <fieldset><legend>3. What equation describes torque from a force location?</legend><label><input type="radio" name="q3" value="a"> `τ = m / F`</label><br><label><input type="radio" name="q3" value="b"> `τ = F / r`</label><br><label><input type="radio" name="q3" value="c"> `τ = r × F`</label></fieldset><button type="button" class="quiz-check">Check answer</button><p class="quiz-result" aria-live="polite"></p>
+  <fieldset><legend>3. What equation describes torque from a force location?</legend><label><input type="radio" name="q3" value="a"> <span class="arithmatex">\(\tau = m / F\)</span></label><br><label><input type="radio" name="q3" value="b"> <span class="arithmatex">\(\tau = F / r\)</span></label><br><label><input type="radio" name="q3" value="c"> <span class="arithmatex">\(\boldsymbol{\tau} = \mathbf{r} \times \mathbf{F}\)</span></label></fieldset><button type="button" class="quiz-check">Check answer</button><p class="quiz-result" aria-live="polite"></p>
 </form>
 
 <form class="quiz" data-answer="b" data-explanation="A force through the center of mass has zero lever arm and therefore no torque.">
@@ -204,7 +204,7 @@ individual motor thrust will create the roll, pitch, and yaw commands.
 </form>
 
 <form class="quiz" data-answer="a" data-explanation="Moment of inertia measures resistance to changes in rotational motion.">
-  <fieldset><legend>5. What do `Ixx`, `Iyy`, and `Izz` describe?</legend><label><input type="radio" name="q5" value="a"> Resistance to rotation about body axes</label><br><label><input type="radio" name="q5" value="b"> The drone's GPS position</label><br><label><input type="radio" name="q5" value="c"> Motor battery voltage</label></fieldset><button type="button" class="quiz-check">Check answer</button><p class="quiz-result" aria-live="polite"></p>
+  <fieldset><legend>5. What do <span class="arithmatex">\(I_{xx}\)</span>, <span class="arithmatex">\(I_{yy}\)</span>, and <span class="arithmatex">\(I_{zz}\)</span> describe?</legend><label><input type="radio" name="q5" value="a"> Resistance to rotation about body axes</label><br><label><input type="radio" name="q5" value="b"> The drone's GPS position</label><br><label><input type="radio" name="q5" value="c"> Motor battery voltage</label></fieldset><button type="button" class="quiz-check">Check answer</button><p class="quiz-result" aria-live="polite"></p>
 </form>
 
 ---
@@ -216,7 +216,7 @@ individual motor thrust will create the roll, pitch, and yaw commands.
 </form>
 
 <form class="quiz" data-answer="b" data-explanation="The body visual geometry and the inertial properties are separate concepts in URDF.">
-  <fieldset><legend>2. Which URDF block defines mass and inertia?</legend><label><input type="radio" name="advanced-q2" value="a"> `<visual>`</label><br><label><input type="radio" name="advanced-q2" value="b"> `<inertial>`</label><br><label><input type="radio" name="advanced-q2" value="c"> `<material>`</label></fieldset><button type="button" class="quiz-check">Check answer</button><p class="quiz-result" aria-live="polite"></p>
+  <fieldset><legend>2. Which URDF block defines mass and inertia?</legend><label><input type="radio" name="advanced-q2" value="a"> &lt;visual&gt;</label><br><label><input type="radio" name="advanced-q2" value="b"> &lt;inertial&gt;</label><br><label><input type="radio" name="advanced-q2" value="c"> &lt;material&gt;</label></fieldset><button type="button" class="quiz-check">Check answer</button><p class="quiz-result" aria-live="polite"></p>
 </form>
 
 <form class="quiz" data-answer="a" data-explanation="The force creates translation, while the nonzero lever arm separately creates torque and rotation.">
