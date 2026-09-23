@@ -1,0 +1,19 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "MkDocs: build",
+      "type": "shell",
+      "command": "uv run mkdocs build --strict",
+      "group": "build",
+      "problemMatcher": []
+    },
+    {
+      "label": "MkDocs: serve",
+      "type": "shell",
+      "command": "uv run mkdocs serve",
+      "isBackground": true,
+      "problemMatcher": []
+    }
+  ]
+}

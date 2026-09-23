@@ -1,0 +1,43 @@
+# Syllabus
+
+## [0. PyBullet setup and GUI](modules/00-pybullet-setup/index.md)
+
+- Install the project's PyBullet environment with `uv`.
+- Run a plane-and-cube scene in the GUI or headless mode.
+- Learn the essential GUI controls before adding drone physics.
+
+## [1. Mass and external forces](modules/01-mass-and-forces/index.md)
+
+- Initialize a PyBullet world with gravity `(0, 0, -9.81)` and a 240 Hz tick.
+- Measure free fall and verify gravitational acceleration.
+- Apply upward force and calculate the equilibrium needed to hover.
+
+## [2. Physical asset blueprint (URDF)](modules/02-urdf-engine/index.md)
+
+- Define a 650 g, 5-inch quadcopter frame in URDF.
+- Derive `Ixx`, `Iyy`, and `Izz` from a central body and four motor masses.
+- Spawn the asset and observe its response to off-axis torque.
+
+## [3. Propeller dynamics and aerodynamics](modules/03-propeller-aerodynamics/index.md)
+
+- Relate propeller diameter, pitch, and blade count to performance.
+- Map PWM to quadratic thrust using a thrust coefficient (`Kt`).
+- Model alternating CW/CCW yaw torque and velocity-opposing air drag.
+
+## [4. Motor mixer and PID control](modules/04-motor-mixer-pid/index.md)
+
+- Build an X-frame motor mixer.
+- Implement a rate PID controller for attitude stabilization.
+- Convert high-level commands into safe 1000–2000 PWM motor signals.
+
+## [5. Battery profiles and voltage sag](modules/05-battery-voltage-sag/index.md)
+
+- Track LiPo state of charge from 4.2 V to the 3.7 V nominal floor per cell.
+- Use internal resistance and Ohm's law to model voltage sag under load.
+- Scale maximum thrust as the battery depletes.
+
+## [6. Capstone: autonomous takeoff and precision hover](modules/06-autonomous-hover/index.md)
+
+- Turn altitude error into continuous high-level decision inputs.
+- Map model outputs through the mixer to motor PWM signals.
+- Balance battery, drag, and inertia to hold a stable 5 m hover.

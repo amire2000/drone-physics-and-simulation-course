@@ -1,0 +1,12 @@
+[project]
+name = "drone-physics-and-simulation"
+version = "0.1.0"
+description = "A MkDocs course for building a quadcopter simulator with PyBullet"
+keywords = ["drone", "pybullet", "quadcopter", "robotics", "simulation"]
+requires-python = ">=3.11"
+dependencies = [
+    "mkdocs>=1.6.1",
+    "mkdocs-material>=9.7.7",
+    "numpy>=1.26",
+    "pybullet>=3.2.7",
+]
