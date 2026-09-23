@@ -24,6 +24,7 @@ When adding a lesson:
 6. Link prerequisites and the next topic.
 7. Start with a short “By the end, you will be able to” list.
 8. Separate major lesson sections with a Markdown horizontal rule (`---`).
+9. Keep MkDocs Material's code-copy control enabled for every code block.
 
 Use MkDocs Material. Keep each lesson in `docs/modules/<module>/`, its images
 in `docs/modules/<module>/images/`, and its runnable code in the matching

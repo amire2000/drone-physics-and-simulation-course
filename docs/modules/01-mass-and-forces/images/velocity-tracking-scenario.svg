@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="760" height="360" viewBox="0 0 760 360" role="img" aria-labelledby="title desc">
+  <title id="title">Velocity tracking during free fall</title>
+  <desc id="desc">Three blue cubes at increasingly lower positions have progressively longer downward velocity arrows. A line graph shows vertical velocity becoming more negative over time.</desc>
+  <rect width="760" height="360" fill="#f8fafc" rx="18"/>
+  <text x="40" y="48" font-family="sans-serif" font-size="24" font-weight="700" fill="#1e293b">Velocity tracking: measure the change each step</text>
+  <g fill="#2684ff" stroke="#155eae" stroke-width="3">
+    <rect x="85" y="90" width="55" height="55" rx="6"/><rect x="245" y="145" width="55" height="55" rx="6"/><rect x="405" y="220" width="55" height="55" rx="6"/>
+  </g>
+  <g stroke="#dc2626" stroke-width="8" stroke-linecap="round" fill="none">
+    <path d="M112 155v30m-14-14 14 18 14-18"/><path d="M272 210v50m-14-14 14 18 14-18"/><path d="M432 285v65m-14-14 14 18 14-18"/>
+  </g>
+  <g font-family="sans-serif" font-size="17" fill="#334155">
+    <text x="70" y="82">t₀: v = 0</text><text x="226" y="137">t₁: v &lt; 0</text><text x="386" y="212">t₂: more negative v</text>
+  </g>
+  <g transform="translate(550 100)">
+    <line x1="0" y1="170" x2="160" y2="170" stroke="#64748b" stroke-width="3"/><line x1="0" y1="0" x2="0" y2="170" stroke="#64748b" stroke-width="3"/>
+    <path d="M12 25 L70 75 L145 145" fill="none" stroke="#7c3aed" stroke-width="7"/>
+    <text x="35" y="200" font-family="sans-serif" font-size="16" fill="#334155">time</text><text x="-4" y="-10" font-family="sans-serif" font-size="16" fill="#334155">vᶻ</text>
+  </g>
+  <text x="40" y="335" font-family="sans-serif" font-size="18" fill="#475569">The slope of vertical velocity over time is acceleration: a = Δv / Δt ≈ −9.81 m/s².</text>
+</svg>

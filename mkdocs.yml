@@ -2,6 +2,8 @@ site_name: Drone Physics & Simulation
 site_description: Build a quadcopter physics engine from first principles
 theme:
   name: material
+  features:
+    - content.code.copy
 extra_javascript:
   - javascripts/quiz.js
   - javascripts/mermaid.mjs

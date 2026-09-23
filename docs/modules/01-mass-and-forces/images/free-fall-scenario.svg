@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="760" height="360" viewBox="0 0 760 360" role="img" aria-labelledby="title desc">
+  <title id="title">Free-fall cube scenario</title>
+  <desc id="desc">A blue cube falls toward a ground plane under a red gravity arrow. The ground produces a green reaction force after contact.</desc>
+  <rect width="760" height="360" fill="#f8fafc" rx="18"/>
+  <text x="40" y="48" font-family="sans-serif" font-size="24" font-weight="700" fill="#1e293b">Free fall: gravity changes velocity</text>
+  <line x1="180" y1="90" x2="180" y2="275" stroke="#94a3b8" stroke-width="4" stroke-dasharray="9 9"/>
+  <rect x="125" y="100" width="110" height="110" rx="8" fill="#2684ff" stroke="#155eae" stroke-width="4"/>
+  <text x="145" y="160" font-family="sans-serif" font-size="20" font-weight="700" fill="white">cube</text>
+  <path d="M290 115v105m-20-24 20 28 20-28" fill="none" stroke="#dc2626" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="315" y="172" font-family="sans-serif" font-size="20" fill="#991b1b">weight W = mg</text>
+  <rect x="55" y="280" width="650" height="25" rx="5" fill="#64748b"/>
+  <text x="585" y="335" font-family="sans-serif" font-size="18" fill="#334155">ground plane</text>
+  <path d="M540 270v-80m-20 25 20-30 20 30" fill="none" stroke="#16a34a" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="560" y="235" font-family="sans-serif" font-size="19" fill="#166534">contact reaction</text>
+  <text x="40" y="335" font-family="sans-serif" font-size="18" fill="#475569">Before contact: net force is downward → the cube accelerates downward.</text>
+</svg>

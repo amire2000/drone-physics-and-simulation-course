@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="760" height="360" viewBox="0 0 760 360" role="img" aria-labelledby="title desc">
+  <title id="title">Under, hover, and over force scenarios</title>
+  <desc id="desc">Three cubes show upward green thrust arrows smaller than, equal to, and greater than a red downward weight arrow.</desc>
+  <rect width="760" height="360" fill="#f8fafc" rx="18"/>
+  <text x="40" y="48" font-family="sans-serif" font-size="24" font-weight="700" fill="#1e293b">Compare upward force with weight</text>
+  <g font-family="sans-serif" text-anchor="middle">
+    <text x="145" y="87" font-size="21" font-weight="700" fill="#1e293b">UNDER</text><text x="145" y="110" font-size="17" fill="#475569">T &lt; W</text>
+    <text x="380" y="87" font-size="21" font-weight="700" fill="#1e293b">HOVER</text><text x="380" y="110" font-size="17" fill="#475569">T = W</text>
+    <text x="615" y="87" font-size="21" font-weight="700" fill="#1e293b">OVER</text><text x="615" y="110" font-size="17" fill="#475569">T &gt; W</text>
+  </g>
+  <g fill="#2684ff" stroke="#155eae" stroke-width="3"><rect x="110" y="190" width="70" height="70" rx="7"/><rect x="345" y="190" width="70" height="70" rx="7"/><rect x="580" y="190" width="70" height="70" rx="7"/></g>
+  <g stroke-linecap="round" fill="none">
+    <path d="M145 185v-35m-14 14 14-20 14 20" stroke="#16a34a" stroke-width="8"/><path d="M145 265v60m-14-14 14 20 14-20" stroke="#dc2626" stroke-width="10"/>
+    <path d="M380 185v-60m-14 14 14-20 14 20" stroke="#16a34a" stroke-width="10"/><path d="M380 265v60m-14-14 14 20 14-20" stroke="#dc2626" stroke-width="10"/>
+    <path d="M615 185v-90m-14 14 14-20 14 20" stroke="#16a34a" stroke-width="12"/><path d="M615 265v60m-14-14 14 20 14-20" stroke="#dc2626" stroke-width="10"/>
+  </g>
+  <g font-family="sans-serif" font-size="18" font-weight="700" text-anchor="middle"><text x="145" y="345" fill="#991b1b">descends</text><text x="380" y="345" fill="#166534">stays level</text><text x="615" y="345" fill="#166534">ascends</text></g>
+</svg>
