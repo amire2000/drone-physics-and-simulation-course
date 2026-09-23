@@ -4,11 +4,20 @@ theme:
   name: material
 extra_javascript:
   - javascripts/quiz.js
+  - javascripts/mermaid.mjs
 extra_css:
   - stylesheets/quiz.css
 markdown_extensions:
   - admonition
   - pymdownx.details
+  - pymdownx.snippets:
+      base_path:
+        - .
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
 nav:
   - Home: index.md
   - Roadmap: roadmap.md

@@ -23,7 +23,9 @@ When adding a lesson:
 5. Add a hands-on exercise and 3–5 review questions.
 6. Link prerequisites and the next topic.
 7. Start with a short “By the end, you will be able to” list.
+8. Separate major lesson sections with a Markdown horizontal rule (`---`).
 
-Use MkDocs Material. Keep each lesson in `docs/modules/<module>/` and its
-runnable code in the matching `examples/<module>/` folder. After documentation
-changes, run `uv run mkdocs build --strict`.
+Use MkDocs Material. Keep each lesson in `docs/modules/<module>/`, its images
+in `docs/modules/<module>/images/`, and its runnable code in the matching
+`examples/<module>/` folder. After documentation changes, run
+`uv run mkdocs build --strict`.
