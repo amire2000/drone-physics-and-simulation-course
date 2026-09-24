@@ -27,7 +27,7 @@ from red_target_detector import detect_red_box
 from .config import SceneConfig, StrikeConfig
 from .guidance import FlightPhase, GuidanceCommand, GuidanceInput, StrikeGuidance
 from .sensing import Barometer, BarometerReading
-from .telemetry import FlightLog, make_plot, move_plot_window, refresh_plot, save_csv, save_plot
+from .telemetry import FlightLog, build_summary, make_plot, move_plot_window, refresh_plot, save_csv, save_plot, save_summary
 from .ttc import BboxTtcTracker, TtcObservation
 from .views import annotate, environment_rgb
 
@@ -41,6 +41,7 @@ class StrikeResult:
     video: Path | None
     plot: Path | None
     csv: Path | None
+    summary: Path | None
 
 
 class StrikeSimulation:
@@ -50,7 +51,7 @@ class StrikeSimulation:
         self.config = config or StrikeConfig()
         self.scene = scene or SceneConfig()
 
-    def run(self, gui: bool, max_seconds: float, video: Path | None, plot: Path | None, csv: Path | None = None) -> StrikeResult:
+    def run(self, gui: bool, max_seconds: float, video: Path | None, plot: Path | None, csv: Path | None = None, summary: Path | None = None) -> StrikeResult:
         config = self.config
         drone = create_world()
         p.resetBasePositionAndOrientation(drone, config.launch_position, (0, 0, 0, 1))
@@ -83,8 +84,11 @@ class StrikeSimulation:
                 save_csv(log, csv)
             if live_plot:
                 refresh_plot(live_plot, log)
-            result = StrikeResult(success, phase, now_s, impact_speed, video, plot, csv)
-            self._print_summary(result)
+            result = StrikeResult(success, phase, now_s, impact_speed, video, plot, csv, summary)
+            summary_data = build_summary(log, config, self.scene, success, phase, now_s, {"video": video, "plot": plot, "csv": csv, "summary": summary})
+            if summary:
+                save_summary(summary_data, summary)
+            self._print_summary(result, summary_data)
             return result
 
         try:
@@ -144,6 +148,7 @@ class StrikeSimulation:
                 # mapping force to a PWM signal for the four motors.
                 collective = 0.0 if stop_at_s is not None else command.thrust_n
                 pwm = pwm_from_thrust(clamp(collective / 4, 0.0, MASS * 9.81))
+                incoming_velocity = p.getBaseVelocity(drone)[0]
                 motor_rpms, motor_thrusts, _ = step_drone(drone, pwm, torque, motor_rpms)
                 position, _ = p.getBasePositionAndOrientation(drone)
                 velocity, _ = p.getBaseVelocity(drone)
@@ -155,7 +160,8 @@ class StrikeSimulation:
                     refresh_plot(live_plot, log)
 
                 if not impact_speed and p.getContactPoints(drone, cube):
-                    impact_speed = sqrt(sum(component**2 for component in velocity))
+                    impact_speed = sqrt(sum(component**2 for component in incoming_velocity))
+                    log.mark_collision(now_s, position, incoming_velocity)
                     stop_at_s = now_s + config.post_impact_seconds
                     print(f"Impact: {impact_speed:.1f} m/s; recording aftermath for {config.post_impact_seconds:.0f} s")
                 if stop_at_s is not None and now_s >= stop_at_s:
@@ -202,10 +208,19 @@ class StrikeSimulation:
         return live_plot
 
     @staticmethod
-    def _print_summary(result: StrikeResult) -> None:
+    def _print_summary(result: StrikeResult, summary: dict[str, object]) -> None:
         print("\n--- TTC strike summary ---")
         print(f"result: {'target contacted' if result.success else 'no valid contact'}")
         print(f"final phase: {result.phase}; simulated time: {result.simulated_time_s:.1f} s")
+        collision = summary["collision"]
+        metrics = summary["flight_metrics"]
+        print(f"starting pose: {summary['starting_pose']['position_m']}")
+        print(f"target: center {summary['target']['center_m']}, size {summary['target']['size_m']:.2f} m")
+        print(f"collision time: {collision['time_s']}")
+        print(f"collision position: {collision['position_m']}")
+        print(f"hitting velocity: {collision['velocity_mps']}")
+        print(f"maximum altitude: {metrics['maximum_altitude_m']}")
+        print(f"maximum forward speed: {metrics['maximum_forward_speed_mps']}")
         if result.impact_speed_mps:
             print(f"impact speed: {result.impact_speed_mps:.1f} m/s")
         if result.video:
@@ -214,4 +229,6 @@ class StrikeSimulation:
             print(f"trajectory plot: {result.plot}")
         if result.csv:
             print(f"telemetry CSV: {result.csv}")
+        if result.summary:
+            print(f"run summary: {result.summary}")
         print("environment: red target cube and 3 static buildings")

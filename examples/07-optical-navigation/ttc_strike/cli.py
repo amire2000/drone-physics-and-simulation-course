@@ -73,7 +73,8 @@ def main() -> None:
             video = args.video or run_dir / "environment.mp4"
             plot = args.plot or run_dir / "telemetry.png"
             csv = args.csv or run_dir / "telemetry.csv"
-            result = StrikeSimulation(config, scene).run(not args.headless, args.max_seconds, None if args.no_video else video, None if args.no_plot else plot, None if args.no_csv else csv)
+            summary = run_dir / "summary.json"
+            result = StrikeSimulation(config, scene).run(not args.headless, args.max_seconds, None if args.no_video else video, None if args.no_plot else plot, None if args.no_csv else csv, summary)
             print(f"run folder: {run_dir}")
             if args.headless:
                 assert result.success, f"Strike failed; impact speed was {result.impact_speed_mps:.1f} m/s"

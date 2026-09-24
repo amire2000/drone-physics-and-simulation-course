@@ -74,7 +74,9 @@ Each run creates a folder under `outputs/ttc_runs/` containing `settings.json`,
 `telemetry.csv`, and `telemetry.png` (plus the environment video unless
 disabled). The CSV includes phase, measured velocity, pitch target/measured
 pitch, TTC, bbox growth, and thrust. Use it to separate the initial
-forward-acceleration interval from the later TTC descent.
+forward-acceleration interval from the later TTC descent. The folder also
+contains `summary.json` with the starting pose, target pose, collision position,
+incoming hitting velocity, and flight extrema.
 
 ---
 
@@ -91,7 +93,9 @@ with actual `vx`/`vz`, world `x`–`z` path, `TrajectoryCommand` targets, and
 `z` as its vertical axis, so the path is the physical equivalent of an
 `x`–vertical-position plot. In a GUI run, the same graph opens in a separate
 Matplotlib window at startup and updates while the simulation runs. When the
-flight ends, the application exits normally and leaves the final PNG behind.
+flight ends, the tracking shade stops at the collision marker; the
+`TrajectoryCommand` panel remains unshaded. The application exits normally and
+leaves the final PNG and JSON summary behind.
 
 ```bash
 uv run python examples/07-optical-navigation/ttc_diagonal_strike.py --video outputs/my-strike.mp4

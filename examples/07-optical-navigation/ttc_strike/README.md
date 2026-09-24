@@ -125,6 +125,13 @@ to select another comparison directory. Use `--csv path` or `--no-csv`; columns 
 trajectory velocity targets, altitude target, thrust, and pitch. This makes the
 initial forward-pitch/altitude-hold interval easy to inspect before tuning.
 
+The same folder contains `summary.json` and the console prints its key values:
+starting pose, target pose and size, collision time and position, incoming
+hitting velocity, impact speed, altitude extrema, and maximum forward speed.
+The velocity and guidance plots shade the tracking interval only up to the
+collision marker. The `TrajectoryCommand` plot is intentionally left unshaded
+so its command curves remain easy to read.
+
 ## TTC-to-drone-step flow
 
 ```mermaid
