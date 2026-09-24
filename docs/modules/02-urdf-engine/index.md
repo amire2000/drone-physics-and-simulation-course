@@ -32,6 +32,34 @@ The **world frame** is fixed to the room: `+X`, `+Y`, and `+Z` never move. The
 turn with it. A motor force described as “forward” in the body frame must be
 converted to the world frame before PyBullet can move the drone correctly.
 
+![The fixed world origin with red positive X, green positive Y, and blue positive Z axes.](images/world-frame-axes.svg)
+
+### ENU, NED, and FLU conventions
+
+A frame name tells you the direction assigned to each axis. **ENU** and **NED**
+are world-frame conventions; **FLU** is attached to the drone and rotates with
+it. The arrow colors always identify axes: red is positive X, green is positive
+Y, and blue is positive Z.
+
+![ENU, NED, and FLU coordinate frames shown side by side.](images/coordinate-conventions.svg)
+
+| Frame | Positive X | Positive Y | Positive Z | Use here |
+| --- | --- | --- | --- | --- |
+| ENU | East | North | Up | A convenient world frame for PyBullet's Z-up scene. |
+| NED | North | East | Down | Common in flight-control and navigation systems. |
+| FLU | Forward | Left | Up | A drone body frame for forces, sensors, and commands. |
+
+For the same physical vector, convert ENU values to NED values by swapping the
+horizontal components and reversing vertical direction:
+
+\[
+\begin{bmatrix}x\\y\\z\end{bmatrix}_{NED} =
+\begin{bmatrix}y\\x\\-z\end{bmatrix}_{ENU}
+\]
+
+Always label the frame with a vector. A value of `z = 2` means two metres up in
+ENU or FLU, but two metres down in NED.
+
 ![Top view of world axes remaining fixed while a drone body frame turns through 90 degrees of yaw.](images/frames-yaw.svg)
 
 For a level drone yawed by angle `ψ`, transform a horizontal body vector into a
@@ -117,8 +145,9 @@ flowchart LR
 
 ## Experiment 1: frames and state
 
-Run a level drone with `90°` yaw. In GUI mode, world axes and the transformed
-body-forward direction are drawn around the drone.
+Run a level drone with `45°` clockwise yaw at world position `(1.0, -0.75, 1.0)`. In GUI
+mode, the world axes remain at the world origin while the yellow body-forward
+arrow is drawn on the drone. Press **Q** to exit the simulation.
 
 ```bash
 uv run python examples/02-urdf-engine/frames_state.py
@@ -129,8 +158,10 @@ uv run python examples/02-urdf-engine/frames_state.py
 ```
 
 The headless check verifies that body forward `[1, 0, 0]` becomes world
-`[0, 1, 0]` at `90°` yaw.
+`[√0.5, −√0.5, 0]` at `45°` clockwise yaw.
 
+
+![alt text](images/drone_world_frames.png)
 ---
 
 ## Experiment 2: load the drone and inspect inertia
@@ -174,7 +205,7 @@ individual motor thrust will create the roll, pitch, and yaw commands.
 
 ## Hands-on: rotate and twist the drone
 
-1. Change `YAW_DEGREES` in `frames_state.py` from `90` to `45`. Predict the
+1. Change `YAW_DEGREES` in `frames_state.py` from `-45` to `45`. Predict the
    world direction of body forward, then run the headless example after updating
    its expected assertion.
 2. In `off_axis_torque.py`, change `ARM_OFFSET` from `0.12` to `0.06`. Predict

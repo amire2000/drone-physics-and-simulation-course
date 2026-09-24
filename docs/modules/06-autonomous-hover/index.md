@@ -75,6 +75,25 @@ Run the motor-lag and equal-force check with:
 uv run python examples/06-autonomous-hover/manual_takeoff.py --self-check
 ```
 
+---
+
+## Automatic takeoff, yaw, and landing
+
+The automatic example uses the shared `pid.py` controller for altitude, roll,
+pitch, and yaw. It climbs to `3 m`, hovers for two seconds, turns `180°`, and
+then lands. Its vertical gains are deliberately conservative: the headless
+check limits the peak altitude to `3.25 m`.
+
+```bash
+uv run python examples/06-autonomous-hover/auto_takeoff_and_hover.py
+```
+
+Use `--headless` for the repeatable check:
+
+```bash
+uv run python examples/06-autonomous-hover/auto_takeoff_and_hover.py --headless
+```
+
 Later modules will replace collective throttle with individual motor commands,
 add battery and wind effects, and close the loop with altitude control.
 

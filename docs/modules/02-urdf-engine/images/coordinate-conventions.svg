@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="350" viewBox="0 0 900 350" role="img" aria-labelledby="title desc">
+  <title id="title">ENU, NED, and FLU coordinate conventions</title>
+  <desc id="desc">Three diagrams compare East North Up, North East Down, and Forward Left Up axes. Red is X, green is Y, blue is Z.</desc>
+  <defs>
+    <marker id="r" markerUnits="userSpaceOnUse" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto"><path d="M0 0L10 5L0 10z" fill="#dc2626"/></marker>
+    <marker id="g" markerUnits="userSpaceOnUse" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto"><path d="M0 0L10 5L0 10z" fill="#16a34a"/></marker>
+    <marker id="b" markerUnits="userSpaceOnUse" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto"><path d="M0 0L10 5L0 10z" fill="#2563eb"/></marker>
+  </defs>
+  <rect width="900" height="350" rx="18" fill="#f8fafc"/>
+  <text x="36" y="42" font-family="sans-serif" font-size="24" font-weight="700" fill="#1e293b">Coordinate conventions name each axis</text>
+  <g transform="translate(25 65)">
+    <rect width="270" height="250" rx="14" fill="#fff" stroke="#cbd5e1" stroke-width="2"/>
+    <text x="22" y="35" font-family="sans-serif" font-size="22" font-weight="700" fill="#1e293b">ENU world frame</text>
+    <text x="22" y="59" font-family="sans-serif" font-size="15" fill="#64748b">East · North · Up</text>
+    <g transform="translate(130 170)" stroke-linecap="round">
+      <circle r="9" fill="#0f172a"/><path d="M0 0H92" stroke="#dc2626" stroke-width="7" marker-end="url(#r)"/><path d="M0 0L-60 42" stroke="#16a34a" stroke-width="7" marker-end="url(#g)"/><path d="M0 0V-78" stroke="#2563eb" stroke-width="7" marker-end="url(#b)"/>
+      <text x="100" y="6" font-family="sans-serif" font-size="17" font-weight="700" fill="#b91c1c">+X East</text><text x="-105" y="60" font-family="sans-serif" font-size="17" font-weight="700" fill="#15803d">+Y North</text><text x="10" y="-68" font-family="sans-serif" font-size="17" font-weight="700" fill="#1d4ed8">+Z Up</text>
+    </g>
+  </g>
+  <g transform="translate(315 65)">
+    <rect width="270" height="250" rx="14" fill="#fff" stroke="#cbd5e1" stroke-width="2"/>
+    <text x="22" y="35" font-family="sans-serif" font-size="22" font-weight="700" fill="#1e293b">NED world frame</text>
+    <text x="22" y="59" font-family="sans-serif" font-size="15" fill="#64748b">North · East · Down</text>
+    <g transform="translate(130 125)" stroke-linecap="round">
+      <circle r="9" fill="#0f172a"/><path d="M0 0H92" stroke="#dc2626" stroke-width="7" marker-end="url(#r)"/><path d="M0 0L-60 42" stroke="#16a34a" stroke-width="7" marker-end="url(#g)"/><path d="M0 0V78" stroke="#2563eb" stroke-width="7" marker-end="url(#b)"/>
+      <text x="100" y="6" font-family="sans-serif" font-size="17" font-weight="700" fill="#b91c1c">+X North</text><text x="-100" y="60" font-family="sans-serif" font-size="17" font-weight="700" fill="#15803d">+Y East</text><text x="10" y="98" font-family="sans-serif" font-size="17" font-weight="700" fill="#1d4ed8">+Z Down</text>
+    </g>
+  </g>
+  <g transform="translate(605 65)">
+    <rect width="270" height="250" rx="14" fill="#fff" stroke="#cbd5e1" stroke-width="2"/>
+    <text x="22" y="35" font-family="sans-serif" font-size="22" font-weight="700" fill="#1e293b">FLU body frame</text>
+    <text x="22" y="59" font-family="sans-serif" font-size="15" fill="#64748b">Forward · Left · Up</text>
+    <g transform="translate(130 170)" stroke-linecap="round">
+      <path d="M-55 0H55M0-38V38" stroke="#334155" stroke-width="15"/><circle r="9" fill="#f59e0b"/>
+      <path d="M0 0H92" stroke="#dc2626" stroke-width="7" marker-end="url(#r)"/><path d="M0 0L-60 42" stroke="#16a34a" stroke-width="7" marker-end="url(#g)"/><path d="M0 0V-78" stroke="#2563eb" stroke-width="7" marker-end="url(#b)"/>
+      <text x="100" y="6" font-family="sans-serif" font-size="17" font-weight="700" fill="#b91c1c">+X Forward</text><text x="-93" y="60" font-family="sans-serif" font-size="17" font-weight="700" fill="#15803d">+Y Left</text><text x="10" y="-68" font-family="sans-serif" font-size="17" font-weight="700" fill="#1d4ed8">+Z Up</text>
+    </g>
+  </g>
+</svg>

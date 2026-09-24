@@ -1,13 +1,14 @@
 """Manual collective control with a stable four-motor quadcopter model."""
 
 import argparse
-from dataclasses import dataclass
 from math import pi, sqrt
 from pathlib import Path
 import time
 
 import pybullet as p
 import pybullet_data
+
+from pid import PID
 
 MASS = 0.65
 GRAVITY_Z = -9.81
@@ -28,22 +29,6 @@ MOTOR_YAW_SIGNS = (1, -1, -1, 1)
 URDF_PATH = Path(__file__).parent / "assets" / "full_drone.urdf"
 
 
-@dataclass
-class PID:
-    kp: float
-    ki: float
-    kd: float
-    integral_limit: float = 0.2
-    integral: float = 0.0
-
-    def reset(self) -> None:
-        self.integral = 0.0
-
-    def update(self, error: float, rate: float) -> float:
-        self.integral = max(-self.integral_limit, min(self.integral_limit, self.integral + error / CONTROL_HZ))
-        return self.kp * error + self.ki * self.integral - self.kd * rate
-
-
 def clamp(value: float, low: float, high: float) -> float:
     return max(low, min(high, value))
 
@@ -56,6 +41,10 @@ def thrust_from_pwm(pwm: float) -> float:
 
 def rpm_from_thrust(thrust: float) -> float:
     return sqrt(clamp(thrust, 0.0, MAX_THRUST_PER_MOTOR) / KF)
+
+
+def pwm_from_thrust(thrust: float) -> float:
+    return PWM_MIN + (PWM_MAX - PWM_MIN) * sqrt(clamp(thrust, 0.0, MAX_THRUST_PER_MOTOR) / MAX_THRUST_PER_MOTOR)
 
 
 def body_vector(drone: int, world_vector: tuple[float, float, float]) -> tuple[float, float, float]:
