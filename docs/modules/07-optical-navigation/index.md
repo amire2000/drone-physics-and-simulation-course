@@ -9,15 +9,106 @@
 
 ---
 
+## Forward RGB camera
+
+`forward_camera.py` adds a camera 18 cm ahead of the drone in its body-frame
+`+X` direction. It holds the vehicle near 3 m with the familiar Module 6 PID
+loop and uses OpenCV to show the camera's RGB frame in a separate window.
+
+The scene contains a static red cube centered at world position `(20, 0, 1)`.
+Its `2 × 2 × 2 m` body makes a clear visual target ahead of the drone.
+
+```bash
+uv run python examples/07-optical-navigation/forward_camera.py
+```
+
+Press `q` or `Esc` in the OpenCV camera window to stop the example. The
+PyBullet window shows the same drone physics and green rotor-force arrows.
+
+```mermaid
+flowchart LR
+    pose[Drone position and orientation] --> mount[Camera mount in body +X]
+    mount --> render[PyBullet RGB render]
+    cube[Red cube at 20, 0, 1] --> render
+    render --> opencv[OpenCV camera window]
+```
+
+---
+
+## HSV red-target detector
+
+`red_target_detector.py` uses the same camera and cube, but converts each RGB
+frame to HSV. Red wraps around the hue scale, so the detector combines a low
+red hue range with a high red hue range. It selects the largest red contour and
+draws a yellow bounding box around it.
+
+```bash
+uv run python examples/07-optical-navigation/red_target_detector.py
+```
+
+The label reports the bounding-box width and height in pixels. Those values are
+image measurements, not the cube's distance or world size.
+
+---
+
+## TTC diagonal-strike POC
+
+`ttc_diagonal_strike.py` takes the drone to 15 m, then uses red-bbox scale
+growth to estimate time to contact and forward speed. Pitch commands the
+forward path; a simulated barometer supplies altitude and vertical velocity for
+the throttle loop. Roll and yaw remain fixed at zero.
+
+```bash
+uv run python examples/07-optical-navigation/ttc_diagonal_strike.py
+```
+
+The display labels the current takeoff, track, commit, or abort phase with the
+latest TTC, range, velocity commands, pitch, and thrust. During commit, the
+last valid pitch and throttle are deliberately held after a large target leaves
+the image. This first diagonal-strike POC uses a stabilized target-facing camera
+so steep pitch does not remove the box from view. The complete design is recorded in
+`design/ttc_bbox_diagonal_strike.md`.
+
+---
+
+## Flight summary and environment video
+
+The strike example starts PyBullet in a wide view so the launch point, diagonal
+path, and target are visible together. A fixed environment camera records that
+same full scene to `outputs/ttc_diagonal_strike.mp4` by default. After its first
+cube contact, the motors stop, physics continues for three simulated seconds,
+then the program prints the contact result, final phase, simulated duration,
+impact speed, and video path.
+
+```bash
+uv run python examples/07-optical-navigation/ttc_diagonal_strike.py --video outputs/my-strike.mp4
+```
+
+Use `--no-video` when only the live PyBullet and forward-camera views are
+needed.
+
+---
+
 ## Module achievement
 
-This planned module extends the simulator with a body-mounted RGB camera. The
-drone will produce consecutive images, and an optical-flow algorithm will turn
-their changing pixels into a motion estimate. Learners will compare this image
-motion with known simulated movement and identify where scale is lost.
+This first camera example establishes the visual sensor path: body pose to RGB
+frame. The next lesson will compare consecutive images with optical flow and
+turn changing pixels into a relative-motion estimate. That signal can later
+support navigation without directly reading perfect world position from
+PyBullet.
 
-The result is a visual-navigation signal that can later support navigation
-without directly reading perfect world position from PyBullet.
+## Hands-on
+
+Move the cube farther along `+X`, then change the drone's yaw target in the
+example. Observe how the cube moves across the camera image while the world
+object itself remains fixed.
+
+## Review questions
+
+1. Why must the camera pose rotate with the drone body?
+2. Which world position and size define the red cube?
+3. Why does the HSV detector use two hue ranges for red?
+4. Why can an RGB frame show relative motion without revealing metric distance?
 
 ---
 

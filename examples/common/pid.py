@@ -1,4 +1,4 @@
-"""Small reusable PID controller for the flight examples."""
+"""Small reusable PID controller for the course flight examples."""
 
 from dataclasses import dataclass
 

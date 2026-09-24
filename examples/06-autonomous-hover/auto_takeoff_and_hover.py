@@ -1,11 +1,17 @@
 """Take off to 3 m, turn 180 degrees, then land with shared PID controllers."""
 
 import argparse
+from pathlib import Path
+import sys
 import time
 
 import pybullet as p
 
-from drone_control import (
+EXAMPLES_ROOT = Path(__file__).resolve().parents[1]
+if str(EXAMPLES_ROOT) not in sys.path:
+    sys.path.insert(0, str(EXAMPLES_ROOT))
+
+from common.drone_control import (
     CONTROL_STEPS,
     MASS,
     START_HEIGHT,
@@ -21,7 +27,7 @@ from drone_control import (
     step_drone,
     wrap_angle,
 )
-from pid import PID
+from common.pid import PID
 
 TARGET_ALTITUDE = 3.0
 HOVER_SECONDS = 2.0

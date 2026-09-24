@@ -6,11 +6,16 @@ import json
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
+import sys
 
 import numpy as np
 import pybullet as p
 
-from drone_control import (
+EXAMPLES_ROOT = Path(__file__).resolve().parents[1]
+if str(EXAMPLES_ROOT) not in sys.path:
+    sys.path.insert(0, str(EXAMPLES_ROOT))
+
+from common.drone_control import (
     CONTROL_STEPS,
     MASS,
     START_HEIGHT,
@@ -23,7 +28,7 @@ from drone_control import (
     pwm_from_thrust,
     step_drone,
 )
-from pid import PID
+from common.pid import PID
 
 TARGET_ALTITUDE = 3.0
 DEFAULT_GAINS = (0.7, 0.05, 1.1)

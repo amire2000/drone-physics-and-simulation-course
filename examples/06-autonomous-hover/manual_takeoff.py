@@ -1,11 +1,17 @@
 """Manual collective control using the shared quadcopter control module."""
 
 import argparse
+from pathlib import Path
+import sys
 import time
 
 import pybullet as p
 
-from drone_control import (
+EXAMPLES_ROOT = Path(__file__).resolve().parents[1]
+if str(EXAMPLES_ROOT) not in sys.path:
+    sys.path.insert(0, str(EXAMPLES_ROOT))
+
+from common.drone_control import (
     CONTROL_STEPS,
     MASS,
     MAX_THRUST_PER_MOTOR,

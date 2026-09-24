@@ -6,7 +6,7 @@ from pathlib import Path
 import pybullet as p
 import pybullet_data
 
-from pid import PID
+from .pid import PID
 
 MASS = 0.65
 GRAVITY_Z = -9.81
@@ -110,10 +110,20 @@ def reset_controllers(controllers: tuple[PID, PID, PID]) -> None:
         controller.reset()
 
 
-def attitude_torque(drone: int, controllers: tuple[PID, PID, PID], yaw_target: float) -> tuple[float, float, float]:
+def attitude_torque(
+    drone: int,
+    controllers: tuple[PID, PID, PID],
+    yaw_target: float,
+    roll_target: float = 0.0,
+    pitch_target: float = 0.0,
+) -> tuple[float, float, float]:
     (roll, pitch, yaw), rates = read_imu(drone)
     roll_pid, pitch_pid, yaw_pid = controllers
-    return roll_pid.update(-roll, rates[0]), pitch_pid.update(-pitch, rates[1]), yaw_pid.update(wrap_angle(yaw_target - yaw), rates[2])
+    return (
+        roll_pid.update(roll_target - roll, rates[0]),
+        pitch_pid.update(pitch_target - pitch, rates[1]),
+        yaw_pid.update(wrap_angle(yaw_target - yaw), rates[2]),
+    )
 
 
 def create_world() -> int:
