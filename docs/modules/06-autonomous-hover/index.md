@@ -99,6 +99,65 @@ add battery and wind effects, and close the loop with altitude control.
 
 ---
 
+## One control step: altitude to motor forces
+
+The physics engine advances at **240 Hz**, but the controller makes a new
+decision every two physics ticks: **120 Hz**. On each control step, the program
+reads the current vertical state, calculates the force needed to correct the
+altitude error, and lets the lower-level attitude loop keep the body level.
+
+```mermaid
+flowchart LR
+    state[Read current altitude z<br/>and vertical velocity vz]
+    target[Choose target altitude]
+    error[Altitude error<br/>e = z_target - z]
+    altitude_pid[Altitude PID<br/>force correction in N]
+    weight[Add hover force<br/>mg + PID output]
+    pwm[Split force across 4 motors<br/>and convert N to PWM us]
+    attitude[Read IMU attitude and rates<br/>attitude PID → body torque]
+    step[step_drone]
+    physics[PyBullet physics tick]
+    state --> error
+    target --> error
+    error --> altitude_pid --> weight --> pwm --> step --> physics --> state
+    attitude --> step
+```
+
+The altitude calculation is:
+
+\[
+F_{\text{total}} = mg + F_{\text{PID}}
+\]
+
+`F_PID` is a correction force in newtons. At hover it is near zero, so the
+total is near the drone weight `mg`. The example divides this total by four,
+converts the requested force for one motor to PWM, and uses the attitude PID's
+torque request to make the small motor-to-motor differences needed to stay
+level.
+
+### What `step_drone()` does
+
+`step_drone(drone, pwm, torque, motor_rpms)` receives a collective PWM command,
+a body-torque request `(roll, pitch, yaw)`, and the motors' actual RPM from the
+previous physics tick. It performs the actuator and force part of the loop:
+
+1. Convert the collective PWM to a requested thrust per motor.
+2. Mix the roll, pitch, and yaw torque corrections into four bounded motor
+   thrust requests.
+3. Convert each requested thrust to target RPM using \(T=K_f\,\mathrm{RPM}^2\).
+4. Apply first-order motor lag, so actual RPM cannot jump instantly to target
+   RPM.
+5. Apply each rotor's upward thrust, reaction yaw torque, and rotor-dependent
+   body drag as PyBullet external forces and torques.
+6. Call `p.stepSimulation()` once to integrate the new motion at 240 Hz.
+
+It returns the new actual motor RPM, the four applied motor thrusts, and their
+total. That returned RPM is essential: it becomes the next tick's motor state,
+which is why a sudden PWM change produces a smooth force response instead of
+an impossible instantaneous jump.
+
+---
+
 ## Live altitude PID tuning
 
 `pid_tuning_hover.py` is a separate tuning tool. It keeps the automatic

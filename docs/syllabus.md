@@ -42,7 +42,7 @@
 - Map model outputs through the mixer to motor PWM signals.
 - Balance battery, drag, and inertia to hold a stable 5 m hover.
 
-## 7. Forward camera and monocular optical navigation
+## [7. Forward camera and monocular optical navigation](modules/07-optical-navigation/index.md)
 
 - Attach a forward-facing RGB camera to the drone body and render synchronized
   PyBullet frames.
@@ -51,7 +51,7 @@
 - Explain why monocular flow is measured in pixels per frame and cannot recover
   metric distance without an additional scale source.
 
-## 8. Betaflight SITL control bridge
+## [8. Betaflight SITL control bridge](modules/08-betaflight-sitl/index.md)
 
 - Build and pin a verified Betaflight SITL revision for reproducible lessons.
 - Send simulated IMU/FDM state and virtual RC input over the current UDP bridge,
@@ -60,7 +60,7 @@
 
 The bridge will follow the current [Betaflight SITL harness](https://github.com/betaflight/betaflight/blob/master/src/test/sitl/sitl_harness.py) packet roles while keeping the tested revision pinned in the module setup instructions.
 
-## 9. Learned vertical hover with an MLP
+## [9. Learned vertical hover with an MLP](modules/09-mlp-hover/index.md)
 
 - Train a small NumPy MLP to imitate the altitude PID for a fixed 3 m hover.
 - Keep the existing attitude PID, motor mixer, and PyBullet physics responsible

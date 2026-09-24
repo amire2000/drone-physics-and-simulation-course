@@ -39,3 +39,6 @@ nav:
   - "Module 4: Motor mixer and PID": modules/04-motor-mixer-pid/index.md
   - "Module 5: Battery voltage sag": modules/05-battery-voltage-sag/index.md
   - "Module 6: Autonomous hover": modules/06-autonomous-hover/index.md
+  - "Module 7: Optical navigation": modules/07-optical-navigation/index.md
+  - "Module 8: Betaflight SITL bridge": modules/08-betaflight-sitl/index.md
+  - "Module 9: Learned vertical hover": modules/09-mlp-hover/index.md
