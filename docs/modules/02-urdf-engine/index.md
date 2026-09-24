@@ -6,6 +6,7 @@
 - Distinguish the fixed world frame from the rotating drone body frame.
 - Explain center of mass, force, torque, and diagonal inertia.
 - Load a 650 g quadcopter URDF and observe off-axis rotation.
+- Relate torque, angular velocity, and inertia in a six-DOF rigid-body model.
 
 ---
 
@@ -149,6 +150,52 @@ flowchart LR
 | `p.applyExternalForce()` | Apply a force at a specified point. |
 | `p.applyExternalTorque()` | Apply a direct turning effect. |
 | `p.getQuaternionFromEuler()` | Create an orientation from roll, pitch, yaw angles. |
+
+---
+
+---
+
+## Six-DOF rigid-body state
+
+The translational state from Module 1 is only half of a drone model. A rigid
+quadrotor also rotates, giving six degrees of freedom:
+
+```text
+position:       p = [x, y, z]
+linear velocity: v = [vx, vy, vz]
+attitude:       q  (or roll, pitch, yaw for simple lessons)
+angular rate:   ω = [p, q, r]
+torque:         τ = [τx, τy, τz]
+```
+
+The rotational equivalent of `F = ma` is Euler's rigid-body equation:
+
+```text
+I · dω/dt + ω × (I · ω) = τ
+```
+
+Here `I` is the inertia tensor. For slow, single-axis experiments the coupling
+term can be ignored, giving `angular_acceleration = torque / inertia`. The full
+equation explains why fast, simultaneous roll, pitch, and yaw motion is more
+complicated than three independent scalar equations.
+
+Rotation matrices convert body-frame directions into world-frame directions.
+Quaternions store the same attitude without Euler-angle singularities; PyBullet
+returns quaternions even when we display roll, pitch, and yaw for readability.
+
+### Hands-on: constant-torque response
+
+Run `off_axis_torque.py` with gravity disabled. Apply one known torque for
+`0.5 s`, record angular rate and attitude, and compare the measured angular
+acceleration with `α = I⁻¹τ`. Repeat with the force applied through the center
+of mass and explain why translation remains but torque disappears.
+
+### Review check
+
+1. Which state replaces linear velocity in the rotational model? (`ω`.)
+2. What determines angular acceleration? (Torque and the inverse inertia tensor.)
+3. Why does a body-frame thrust vector need a rotation transform? (The body
+   axes rotate while the world axes remain fixed.)
 
 ---
 

@@ -5,6 +5,7 @@
 - Explain Newton's three laws with drone examples.
 - Measure free fall and estimate Earth gravity from vertical velocity.
 - Calculate the upward force needed to hover with `T = mg`.
+- Describe a drone state with 3-D position, velocity, and acceleration vectors.
 
 ---
 
@@ -46,6 +47,37 @@ A newton is a derived unit:
 
 That definition is why `F = ma` produces force in newtons when mass is in
 kilograms and acceleration is in metres per second squared.
+
+---
+
+## From one dimension to the drone state
+
+The first experiments use only altitude, but a drone moves in three dimensions.
+We describe its translational state with vectors:
+
+```text
+p = [x, y, z]          position (m)
+v = [vx, vy, vz]       velocity (m/s)
+a = [ax, ay, az]       acceleration (m/s²)
+```
+
+Newton's law applies component by component:
+
+```text
+F = [Fx, Fy, Fz]
+a = F / m
+```
+
+The free-fall experiment is therefore the special case `Fx = Fy = 0` and
+`Fz = -mg`. Later, tilting the thrust vector creates horizontal components and
+changes `vx` or `vy` as well as altitude.
+
+### Mini-lab: a configurable 1-D state update
+
+Use the free-fall example as a starting point and add a configurable constant
+upward force. Record `[time, z, vz, az]` at every step, then compare the three
+cases `T < mg`, `T = mg`, and `T > mg`. Explain which state variable changes
+first: acceleration, then velocity, then position.
 
 ---
 

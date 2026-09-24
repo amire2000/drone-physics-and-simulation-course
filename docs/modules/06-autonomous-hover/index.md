@@ -5,12 +5,14 @@
 - Convert altitude error into high-level control inputs.
 - Map PID control output to motor PWM.
 - Hold a stable 5 m hover under simulated physical limits.
+- Validate gravity, hover, attitude torque, and wind responses before tuning control.
 
 ## Lessons
 
 1. Build closed-loop altitude tracking from spatial displacement.
 2. Map PID corrections through the mixer to safe motor commands.
 3. Verify hover while balancing drag, inertia, and battery depletion.
+4. Validate the complete force, torque, and integration pipeline.
 
 ---
 
@@ -214,6 +216,58 @@ Run the repeatable controller and noise check with:
 ```bash
 uv run python examples/06-autonomous-hover/pid_tuning_hover.py --self-check
 ```
+
+---
+
+## Physics-engine capstone and validation
+
+Before tuning an autonomous controller, the simulator must expose a complete
+state and pass controlled physics checks. The combined state is:
+
+```text
+x = [position, linear_velocity, attitude_quaternion, angular_velocity]
+```
+
+Keep the model responsibilities separate:
+
+```text
+DroneModel
+ ├── mass and inertia
+ ├── four motors and propellers
+ ├── aerodynamics
+ └── physical state
+
+PhysicsEngine
+ ├── gravity and thrust
+ ├── motor reaction torque
+ ├── drag and wind
+ ├── force/torque accumulation
+ └── numerical integration
+```
+
+### Validation checklist
+
+Run each test with one change at a time and compare the measured state with the
+prediction:
+
+| Test | Setup | Expected result |
+| --- | --- | --- |
+| Gravity | Motors off | Free fall near `−9.81 m/s²`. |
+| Hover | Equal thrust with `ΣT = mg` | Nearly constant altitude. |
+| Vertical acceleration | Increase all four motors equally | Positive vertical acceleration. |
+| Roll | Change left/right thrust pair | Roll acceleration in the predicted direction. |
+| Pitch | Change front/rear thrust pair | Pitch acceleration in the predicted direction. |
+| Yaw | Change CW/CCW pair balance | Yaw acceleration without changing collective much. |
+| Wind | Add a lateral relative-air velocity | Lateral drift and drag-limited motion. |
+
+The manual takeoff, force-vector display, automatic hover, and PID tuning
+examples provide the first four practical checks. The propeller and mixer
+lessons provide the motor-force checks; the wind experiment from Module 4
+provides the final environmental check.
+
+Only after these tests pass should the altitude PID be judged. A controller can
+hide a physics error for one scenario, while independent force and torque tests
+reveal whether the engine itself is correct.
 
 ---
 

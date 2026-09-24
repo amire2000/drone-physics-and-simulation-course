@@ -19,17 +19,18 @@ motor mixing, PID stabilization, and battery voltage sag.
 
 0. **PyBullet setup and GUI** — install the environment and run the first
    plane-and-cube sandbox.
-1. **Mass and external forces** — gravity, free fall, and
+1. **Mass and external forces** — state vectors, gravity, free fall, and
    hover equilibrium.
-2. **Physical asset blueprint** — quadcopter URDF design and inertia tensors.
-3. **Propeller dynamics and aerodynamics** — PWM-to-thrust, yaw torque, and
-   air drag.
-4. **Motor mixer and PID control** — X-frame mixing, stabilization, and PWM
-   command mapping.
-5. **Battery profiles and voltage sag** — LiPo discharge, internal resistance,
-   and reduced thrust.
-6. **Autonomous takeoff and precision hover** — altitude tracking, live PID
-   tuning, noisy altitude measurements, and integrated flight verification.
+2. **Physical asset blueprint** — world/body frames, six-DOF rotation,
+   URDF design, and inertia tensors.
+3. **Propeller dynamics and aerodynamics** — rotor thrust, reaction torque,
+   lever-arm torque, PWM mapping, and air drag.
+4. **Motor mixer and PID control** — X-frame mixing, roll/pitch/yaw prediction,
+   stabilization, wind-relative drag, and PWM command mapping.
+5. **Battery profiles and voltage sag** — numerical integration, timestep
+   stability, LiPo discharge, and reduced thrust.
+6. **Autonomous takeoff and precision hover** — complete engine validation,
+   altitude tracking, live PID tuning, and integrated flight verification.
 7. **Forward camera and monocular optical navigation** — render a
    body-mounted RGB camera and estimate relative image motion with optical flow.
 8. **Betaflight SITL control bridge** *(planned)* — route simulated sensors and
