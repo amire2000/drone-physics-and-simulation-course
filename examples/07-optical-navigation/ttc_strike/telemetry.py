@@ -24,6 +24,8 @@ class FlightLog:
     command_altitude_m: list[float] = field(default_factory=list)
     command_thrust_n: list[float] = field(default_factory=list)
     command_pitch_deg: list[float] = field(default_factory=list)
+    pitch_error_deg: list[float] = field(default_factory=list)
+    pitch_torque: list[float] = field(default_factory=list)
     phase: list[str] = field(default_factory=list)
     measured_pitch_deg: list[float] = field(default_factory=list)
     ttc_s: list[float] = field(default_factory=list)
@@ -33,7 +35,7 @@ class FlightLog:
     collision_position_m: tuple[float, float, float] | None = None
     collision_velocity_mps: tuple[float, float, float] | None = None
 
-    def append(self, now_s: float, position: tuple[float, float, float], velocity: tuple[float, float, float], command: GuidanceCommand, measured_pitch_rad: float = 0.0, observation: TtcObservation | None = None) -> None:
+    def append(self, now_s: float, position: tuple[float, float, float], velocity: tuple[float, float, float], command: GuidanceCommand, measured_pitch_rad: float = 0.0, pitch_torque: float = 0.0, observation: TtcObservation | None = None) -> None:
         self.time_s.append(now_s)
         self.x_m.append(position[0])
         self.z_m.append(position[2])
@@ -48,6 +50,8 @@ class FlightLog:
         self.command_pitch_deg.append(degrees(command.pitch_target_rad))
         self.phase.append(command.phase.value)
         self.measured_pitch_deg.append(degrees(measured_pitch_rad))
+        self.pitch_error_deg.append(degrees(command.pitch_target_rad - measured_pitch_rad))
+        self.pitch_torque.append(pitch_torque)
         self.ttc_s.append(observation.ttc_s if observation else float("nan"))
         self.bbox_scale_px.append(observation.scale_px if observation else float("nan"))
         self.bbox_growth_px_s.append(observation.scale_growth_px_s if observation else float("nan"))
@@ -212,7 +216,7 @@ def save_csv(log: FlightLog, output: Path) -> None:
     output.parent.mkdir(parents=True, exist_ok=True)
     fields = ("time_s", "phase", "x_m", "y_m", "z_m", "vx_mps", "vz_mps", "command_vx_mps",
               "command_vz_mps", "command_altitude_m", "command_thrust_n", "command_pitch_deg",
-              "measured_pitch_deg", "ttc_s", "bbox_scale_px", "bbox_growth_px_s")
+              "measured_pitch_deg", "pitch_error_deg", "pitch_torque", "ttc_s", "bbox_scale_px", "bbox_growth_px_s")
     with output.open("w", newline="") as stream:
         writer = csv.writer(stream)
         writer.writerow(fields)

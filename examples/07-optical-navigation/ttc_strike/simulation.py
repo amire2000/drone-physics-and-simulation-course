@@ -58,7 +58,7 @@ class StrikeSimulation:
         cube = add_red_cube(self.scene.target_center, self.scene.target_size_m)
         add_environment_buildings()
         barometer, tracker, guidance = Barometer(config), BboxTtcTracker(config), StrikeGuidance(config)
-        attitude_pids = make_controllers()
+        attitude_pids = make_controllers(config.pitch_attitude_pid_gains)
         motor_rpms = (0.0, 0.0, 0.0, 0.0)
         motor_thrusts = (0.0, 0.0, 0.0, 0.0)
         torque = (0.0, 0.0, 0.0)
@@ -119,7 +119,17 @@ class StrikeSimulation:
                 if step % CONTROL_STEPS == 0:
                     if stop_at_s is None:
                         current_velocity = p.getBaseVelocity(drone)[0]
-                        command = guidance.update(GuidanceInput(now_s, baro, observation, tracker.last_observation, target_visible, tracker.commit_ready, current_velocity[0]))
+                        measured_pitch = p.getEulerFromQuaternion(p.getBasePositionAndOrientation(drone)[1])[1]
+                        command = guidance.update(GuidanceInput(
+                            now_s,
+                            baro,
+                            observation,
+                            tracker.last_observation,
+                            target_visible,
+                            tracker.commit_ready,
+                            current_velocity[0],
+                            measured_pitch,
+                        ))
                         if command.reset_ttc:
                             # This flag belongs to the takeoff-to-track handoff:
                             # ignore bbox scale accumulated during vertical climb.
@@ -157,9 +167,10 @@ class StrikeSimulation:
                 position, _ = p.getBasePositionAndOrientation(drone)
                 velocity, _ = p.getBaseVelocity(drone)
                 pitch_rad = p.getEulerFromQuaternion(p.getBasePositionAndOrientation(drone)[1])[1]
+                pitch_torque = torque[1]
                 # trajectory is observational here: FlightLog plots its vx,
                 # vz, and altitude target beside measured vehicle state.
-                log.append(now_s, position, velocity, command, pitch_rad, observation)
+                log.append(now_s, position, velocity, command, pitch_rad, pitch_torque, observation)
                 if live_plot and step % (PHYSICS_HZ // config.camera_hz) == 0:
                     refresh_plot(live_plot, log)
 

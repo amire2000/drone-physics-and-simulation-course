@@ -46,6 +46,7 @@ class StrikeConfig:
     altitude_integral_limit: float = 0.5
     forward_speed_pid_gains: tuple[float, float, float] = (0.03, 0.0, 0.002)
     forward_pitch_integral_limit: float = 0.2
+    pitch_attitude_pid_gains: tuple[float, float, float] = (0.008, 0.0, 0.006)
     max_pitch_deg: float = 20.0
     vertical_velocity_pid_gains: tuple[float, float, float] = (1.0, 0.0, 0.0)
     vertical_position_correction: float = 0.8

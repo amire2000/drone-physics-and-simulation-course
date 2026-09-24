@@ -28,6 +28,7 @@ class GuidanceInput:
     target_visible: bool
     commit_ready: bool
     forward_velocity_mps: float = 0.0
+    measured_pitch_rad: float = 0.0
 
 
 @dataclass(frozen=True)
@@ -120,7 +121,9 @@ class StrikeGuidance:
             0.0,
         )
         # Keep world-vertical lift constant while the rotor disk tilts forward.
-        thrust = vertical_force / max(cos(pitch), 0.5)
+        # Compensate for the attitude the vehicle actually has, not only the
+        # target attitude. This preserves vertical lift during pitch lag.
+        thrust = vertical_force / max(cos(data.measured_pitch_rad), 0.5)
         command = GuidanceCommand(self.phase, thrust, pitch, trajectory)
         self.last_command = command
         return command

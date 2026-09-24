@@ -101,8 +101,13 @@ def wrap_angle(angle: float) -> float:
     return (angle + pi) % (2 * pi) - pi
 
 
-def make_controllers() -> tuple[PID, PID, PID]:
-    return (PID(0.002, 0.0, 0.001), PID(0.002, 0.0, 0.001), PID(0.001, 0.0, 0.0005))
+def make_controllers(pitch_gains: tuple[float, float, float] | None = None) -> tuple[PID, PID, PID]:
+    """Create attitude controllers, with an optional example-specific pitch tune."""
+    return (
+        PID(0.002, 0.0, 0.001),
+        PID(*(pitch_gains or (0.002, 0.0, 0.001))),
+        PID(0.001, 0.0, 0.0005),
+    )
 
 
 def reset_controllers(controllers: tuple[PID, PID, PID]) -> None:

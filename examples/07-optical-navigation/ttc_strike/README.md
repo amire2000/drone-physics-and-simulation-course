@@ -74,7 +74,7 @@ plain typed data, which keeps TTC and trajectory math easy to test.
 ```mermaid
 classDiagram
     class SceneConfig { +target_center +target_size_m }
-    class StrikeConfig { +takeoff_altitude_m +impact_altitude_m +forward_speed_mps +max_descent_velocity_mps +hover_thrust_n }
+    class StrikeConfig { +takeoff_altitude_m +impact_altitude_m +forward_speed_mps +pitch_attitude_pid_gains +hover_thrust_n }
     class Barometer { +sample(true_altitude_m, now_s) BarometerReading }
     class BarometerReading { +altitude_m +vertical_velocity_mps }
     class BboxTtcTracker { +update(box, now_s) TtcObservation +reset() }
@@ -82,9 +82,9 @@ classDiagram
     class TtcDescentPlanner { +command(ttc_s, altitude_m) TrajectoryCommand }
     class TrajectoryCommand { +forward_velocity_mps +vertical_velocity_mps +altitude_target_m }
     class StrikeGuidance { +update(GuidanceInput) GuidanceCommand }
-    class GuidanceInput { +barometer +observation +target_visible +commit_ready }
+    class GuidanceInput { +barometer +observation +measured_pitch_rad +target_visible +commit_ready }
     class GuidanceCommand { +phase +thrust_n +pitch_target_rad }
-    class FlightLog { +append(now_s, position, velocity, command) }
+    class FlightLog { +append(now_s, position, velocity, command, pitch_torque) }
     class StrikeSimulation { +run(gui, max_seconds, video, plot) StrikeResult }
     SceneConfig --> StrikeSimulation : spawns target
     StrikeConfig --> Barometer : configures
@@ -146,10 +146,13 @@ change the controller equations.
 | `commit_timeout_margin_s` | `5.0` | Extra time after the last TTC during commit. |
 | `post_impact_seconds` | `3.0` | Time recorded after contact. |
 
+`pitch_attitude_pid_gains` is tuned for this strike example as
+`(0.008, 0.0, 0.006)`. It is separate from the shared attitude defaults used
+by the other examples. Collective thrust uses measured pitch so attitude lag
+does not silently remove vertical lift.
+
 `forward_speed_pid_gains` controls the pitch response that tracks the forward
-velocity target; `max_pitch_deg` limits the requested tilt. Collective thrust is
-divided by `cos(pitch)` so forward acceleration does not silently remove the
-vertical lift component.
+velocity target; `max_pitch_deg` limits the requested tilt.
 
 The remaining fields tune mass/gravity, barometer noise, PID gains, window
 placement, video resolution, and output paths. Contact is the headless success
@@ -160,8 +163,9 @@ Every run creates a unique folder under `outputs/ttc_runs/` containing
 `settings.json`, `telemetry.csv`, and `telemetry.png` (plus `environment.mp4`
 unless disabled). Use `--run-name name` for a readable folder or `--output-root`
 to select another comparison directory. Use `--csv path` or `--no-csv`; columns include phase, measured position/velocity,
-trajectory velocity targets, altitude target, thrust, and pitch. This makes the
-initial forward-pitch/altitude-hold interval easy to inspect before tuning.
+trajectory velocity targets, altitude target, thrust, commanded/measured pitch,
+pitch error, and pitch torque. This makes the initial forward-pitch/altitude-
+hold interval easy to inspect before tuning.
 
 The same folder contains `summary.json` and the console prints its key values:
 starting pose, target pose and size, collision time and position, incoming
