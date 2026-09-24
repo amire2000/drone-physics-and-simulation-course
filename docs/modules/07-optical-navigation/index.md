@@ -82,9 +82,10 @@ environment camera records that same full scene to
 motors stop, physics continues for three simulated seconds, then the program
 prints the contact result, final phase, simulated duration, impact speed, video
 path, and environment contents. It also saves `outputs/ttc_diagonal_strike.png`
-with `vx` and `vz` against time, followed by the diagonal world `x`–`z` path.
-PyBullet uses `z` as its vertical axis, so this is the physical equivalent of
-an `x`–vertical-position plot. In a GUI run, the same graph opens in a separate
+with actual `vx`/`vz`, world `x`–`z` path, `TrajectoryCommand` targets, and
+`GuidanceCommand` collective thrust plus pitch target in degrees. PyBullet uses
+`z` as its vertical axis, so the path is the physical equivalent of an
+`x`–vertical-position plot. In a GUI run, the same graph opens in a separate
 Matplotlib window at startup and updates while the simulation runs. When the
 flight ends, the application exits normally and leaves the final PNG behind.
 

@@ -39,6 +39,8 @@ class StrikeConfig:
     post_impact_seconds: float = 3.0
     accepted_impact_speed_mps: tuple[float, float] = (10.0, 20.0)
     environment_size_px: tuple[int, int] = (960, 540)
+    opencv_window_position_px: tuple[int, int] = (20, 80)
+    plot_window_position_px: tuple[int, int] = (700, 80)
 
     @property
     def target_face_x_m(self) -> float:

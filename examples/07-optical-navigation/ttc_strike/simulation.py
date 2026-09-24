@@ -27,7 +27,7 @@ from red_target_detector import detect_red_box
 from .config import StrikeConfig
 from .guidance import FlightPhase, GuidanceCommand, GuidanceInput, StrikeGuidance
 from .sensing import Barometer, BarometerReading
-from .telemetry import FlightLog, make_plot, refresh_plot, save_plot
+from .telemetry import FlightLog, make_plot, move_plot_window, refresh_plot, save_plot
 from .ttc import BboxTtcTracker, TtcObservation
 from .views import annotate, environment_rgb
 
@@ -70,6 +70,8 @@ class StrikeSimulation:
         writer = self._video_writer(video, config)
         live_plot = self._live_plot(gui, plot, config)
         if gui:
+            cv2.namedWindow("TTC diagonal strike", cv2.WINDOW_NORMAL)
+            cv2.moveWindow("TTC diagonal strike", *config.opencv_window_position_px)
             p.resetDebugVisualizerCamera(36.0, 48.0, -25.0, (7.0, 0.0, 7.0))
 
         def finish(success: bool, phase: str, now_s: float) -> StrikeResult:
@@ -110,25 +112,39 @@ class StrikeSimulation:
                     if stop_at_s is None:
                         command = guidance.update(GuidanceInput(now_s, baro, observation, tracker.last_observation, target_visible, tracker.commit_ready))
                         if command.reset_ttc:
+                            # This flag belongs to the takeoff-to-track handoff:
+                            # ignore bbox scale accumulated during vertical climb.
                             tracker.reset()
                             observation = None
                         if command.commit_expired:
+                            # The held terminal command exceeded its predicted
+                            # TTC window without contacting the cube.
                             print("Commit deadline expired without contact")
                             return finish(False, command.phase.value, now_s)
                         if command.phase == FlightPhase.ABORT:
+                            # Guidance has already neutralized its pitch request;
+                            # stop before applying another flight-control cycle.
                             last_height = tracker.last_observation.box[3] if tracker.last_observation else 0
                             print(f"Aborted: target lost before commit; last bbox height {last_height} px")
                             return finish(False, command.phase.value, now_s)
+                        # pitch_target_rad is a high-level attitude request.
+                        # attitude_torque compares it with the IMU attitude and
+                        # returns the body torque needed by the motor mixer.
                         torque = attitude_torque(drone, attitude_pids, yaw_target=0.0, pitch_target=command.pitch_target_rad)
                     else:
+                        # Post-impact: do not keep steering or accelerating.
                         torque = (0.0, 0.0, 0.0)
 
+                # thrust_n is the collective force. Split it evenly before
+                # mapping force to a PWM signal for the four motors.
                 collective = 0.0 if stop_at_s is not None else command.thrust_n
                 pwm = pwm_from_thrust(clamp(collective / 4, 0.0, MASS * 9.81))
                 motor_rpms, motor_thrusts, _ = step_drone(drone, pwm, torque, motor_rpms)
                 position, _ = p.getBasePositionAndOrientation(drone)
                 velocity, _ = p.getBaseVelocity(drone)
-                log.append(now_s, position, velocity)
+                # trajectory is observational here: FlightLog plots its vx,
+                # vz, and altitude target beside measured vehicle state.
+                log.append(now_s, position, velocity, command)
                 if live_plot and step % (PHYSICS_HZ // config.camera_hz) == 0:
                     refresh_plot(live_plot, log)
 
@@ -171,8 +187,9 @@ class StrikeSimulation:
 
         plt.ion()
         live_plot = make_plot(config)
-        live_plot[0].canvas.manager.set_window_title("Live TTC strike telemetry")
+        live_plot.figure.canvas.manager.set_window_title("Live TTC strike telemetry")
         plt.show(block=False)
+        move_plot_window(live_plot, config.plot_window_position_px)
         return live_plot
 
     @staticmethod

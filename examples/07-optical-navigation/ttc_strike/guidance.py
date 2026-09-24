@@ -30,6 +30,18 @@ class GuidanceInput:
 
 @dataclass(frozen=True)
 class GuidanceCommand:
+    """High-level command consumed by ``StrikeSimulation``.
+
+    | Field | Simulation use | Effect |
+    | --- | --- | --- |
+    | ``thrust_n`` | Divided across four motors, converted to PWM, then passed to ``step_drone``. | Supplies collective lift. |
+    | ``pitch_target_rad`` | Passed to ``attitude_torque``. | The attitude PID tilts the drone along the path. |
+    | ``phase`` | Checked for abort and shown in the camera/summary. | Selects normal, commit, or safe-stop behavior. |
+    | ``trajectory`` | Sent to annotations and telemetry only. | Makes desired ``vx``, ``vz``, and altitude observable. |
+    | ``reset_ttc`` | Resets the bbox tracker after takeoff. | Removes vertical-ascent image scale. |
+    | ``commit_expired`` | Ends a missed terminal approach. | Prevents indefinite command holding. |
+    """
+
     phase: FlightPhase
     thrust_n: float
     pitch_target_rad: float

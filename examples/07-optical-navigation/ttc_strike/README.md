@@ -129,7 +129,7 @@ classDiagram
 | `StrikeGuidance` | Selects takeoff, track, commit, or abort and produces high-level pitch/thrust commands. | PyBullet, OpenCV, and per-motor mixing. |
 | `GuidanceInput` | Groups the current barometer/TTC/visibility inputs for guidance. | Calculations or mutable state. |
 | `GuidanceCommand` | Carries the selected phase, collective thrust, pitch target, and trajectory. | Applying forces or rendering. |
-| `FlightLog` | Stores world `x`/`z` and `vx`/`vz` samples for live/final plots. | Flight control or simulator state. |
+| `FlightLog` | Stores measured state plus trajectory and guidance commands for live/final plots. | Flight control or simulator state. |
 | `StrikeSimulation` | Concrete PyBullet adapter that orchestrates sensing, guidance, motor helpers, contact, video, and plots. | TTC math details or PID policy internals. |
 | `StrikeResult` | Final success, phase, timing, impact-speed, and output-path summary. | Simulation cleanup or plotting. |
 
@@ -181,6 +181,12 @@ future experiment; values marked **derived** are read-only properties.
 | `post_impact_seconds` | `3.0` | s | Physics/video time retained after first collision. |
 | `accepted_impact_speed_mps` | `(10, 20)` | m/s | Inclusive headless-pass impact-speed range. |
 | `environment_size_px` | `(960, 540)` | px | Fixed wide-camera video resolution. |
+| `opencv_window_position_px` | `(20, 80)` | screen px | Top-left position of the forward-camera OpenCV window. |
+| `plot_window_position_px` | `(700, 80)` | screen px | Top-left position of the live telemetry plot window. |
+
+The default positions place the 640 px-wide camera window at the left and the
+telemetry plot beside it. Change these two fields in `StrikeConfig` for a
+different monitor arrangement.
 
 | Derived property | Calculation | Description |
 | --- | --- | --- |
