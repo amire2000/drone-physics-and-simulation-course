@@ -34,11 +34,23 @@ CAMERA_WIDTH, CAMERA_HEIGHT = 640, 480
 CAMERA_HZ = 30
 
 
-def add_red_cube() -> int:
-    """Add a 2 m static visual target centered at world position (20, 0, 1)."""
-    shape = p.createCollisionShape(p.GEOM_BOX, halfExtents=(1, 1, 1))
-    visual = p.createVisualShape(p.GEOM_BOX, halfExtents=(1, 1, 1), rgbaColor=(0.9, 0.05, 0.05, 1))
-    return p.createMultiBody(baseMass=0, baseCollisionShapeIndex=shape, baseVisualShapeIndex=visual, basePosition=(20, 0, 1))
+def add_red_cube(center: tuple[float, float, float] = (20, 0, 1), size_m: float = 2.0) -> int:
+    """Add a static red cube target; defaults preserve the Module 7 scene."""
+    half_extent = size_m / 2
+    shape = p.createCollisionShape(p.GEOM_BOX, halfExtents=(half_extent, half_extent, half_extent))
+    visual = p.createVisualShape(p.GEOM_BOX, halfExtents=(half_extent, half_extent, half_extent), rgbaColor=(0.9, 0.05, 0.05, 1))
+    return p.createMultiBody(baseMass=0, baseCollisionShapeIndex=shape, baseVisualShapeIndex=visual, basePosition=center)
+
+
+def add_environment_buildings() -> None:
+    """Add distant static buildings for context without blocking the flight path."""
+    for position, half_extents, color in (
+        ((8, -9, 4), (3, 2, 4), (0.15, 0.35, 0.7, 1)),
+        ((17, 8, 6), (2, 2, 6), (0.15, 0.5, 0.7, 1)),
+        ((28, -7, 3), (3, 2, 3), (0.2, 0.4, 0.55, 1)),
+    ):
+        visual = p.createVisualShape(p.GEOM_BOX, halfExtents=half_extents, rgbaColor=color)
+        p.createMultiBody(baseMass=0, baseCollisionShapeIndex=-1, baseVisualShapeIndex=visual, basePosition=position)
 
 
 def forward_rgb(
@@ -47,6 +59,9 @@ def forward_rgb(
     look_down_degrees: float = 0.0,
     mount_forward_m: float = 0.18,
     world_target: tuple[float, float, float] | None = None,
+    width_px: int = CAMERA_WIDTH,
+    height_px: int = CAMERA_HEIGHT,
+    fov_deg: float = 60.0,
 ) -> np.ndarray:
     """Render a body camera, optionally with a stabilized optical axis."""
     position, orientation = p.getBasePositionAndOrientation(drone)
@@ -55,14 +70,15 @@ def forward_rgb(
     up_point, _ = p.multiplyTransforms(position, orientation, (0.0, 0.0, 1.0), (0, 0, 0, 1))
     up = tuple(axis - origin for axis, origin in zip(up_point, eye))
     view = p.computeViewMatrix(eye, world_target or target, (0, 0, 1) if world_target else up)
-    projection = p.computeProjectionMatrixFOV(fov=60, aspect=CAMERA_WIDTH / CAMERA_HEIGHT, nearVal=0.05, farVal=50.0)
-    _, _, rgba, _, _ = p.getCameraImage(CAMERA_WIDTH, CAMERA_HEIGHT, view, projection, renderer=renderer)
-    return np.reshape(rgba, (CAMERA_HEIGHT, CAMERA_WIDTH, 4))[:, :, :3]
+    projection = p.computeProjectionMatrixFOV(fov=fov_deg, aspect=width_px / height_px, nearVal=0.05, farVal=50.0)
+    _, _, rgba, _, _ = p.getCameraImage(width_px, height_px, view, projection, renderer=renderer)
+    return np.reshape(rgba, (height_px, width_px, 4))[:, :, :3]
 
 
 def run(gui: bool, max_seconds: float) -> None:
     drone = create_world()
     add_red_cube()
+    add_environment_buildings()
     altitude_pid = PID(kp=0.7, ki=0.05, kd=1.1, integral_limit=0.4)
     attitude_pids = make_controllers()
     motor_rpms = (0.0, 0.0, 0.0, 0.0)
@@ -95,6 +111,7 @@ def run(gui: bool, max_seconds: float) -> None:
 def self_check() -> None:
     drone = create_world()
     add_red_cube()
+    add_environment_buildings()
     image = forward_rgb(drone, p.ER_TINY_RENDERER)
     red_pixels = (image[:, :, 0] > 120) & (image[:, :, 0] > image[:, :, 1] * 2) & (image[:, :, 0] > image[:, :, 2] * 2)
     assert image.shape == (CAMERA_HEIGHT, CAMERA_WIDTH, 3), "Forward camera must return an RGB image"

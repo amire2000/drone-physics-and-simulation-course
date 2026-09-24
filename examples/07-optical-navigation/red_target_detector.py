@@ -27,7 +27,7 @@ from common.drone_control import (
     step_drone,
 )
 from common.pid import PID
-from forward_camera import CAMERA_HZ, TARGET_ALTITUDE, add_red_cube, forward_rgb
+from forward_camera import CAMERA_HZ, TARGET_ALTITUDE, add_environment_buildings, add_red_cube, forward_rgb
 
 
 def detect_red_box(rgb: np.ndarray) -> tuple[np.ndarray, tuple[int, int, int, int] | None]:
@@ -52,6 +52,7 @@ def detect_red_box(rgb: np.ndarray) -> tuple[np.ndarray, tuple[int, int, int, in
 def run(gui: bool, max_seconds: float) -> None:
     drone = create_world()
     add_red_cube()
+    add_environment_buildings()
     altitude_pid = PID(kp=0.7, ki=0.05, kd=1.1, integral_limit=0.4)
     attitude_pids = make_controllers()
     motor_rpms = (0.0, 0.0, 0.0, 0.0)

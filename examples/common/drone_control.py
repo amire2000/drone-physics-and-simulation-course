@@ -127,6 +127,11 @@ def attitude_torque(
 
 
 def create_world() -> int:
+    # Enabled / Disabled camera's viewer
+
+    p.configureDebugVisualizer(p.COV_ENABLE_RGB_BUFFER_PREVIEW, 0)
+    p.configureDebugVisualizer(p.COV_ENABLE_DEPTH_BUFFER_PREVIEW, 0)
+    p.configureDebugVisualizer(p.COV_ENABLE_SEGMENTATION_MARK_PREVIEW, 0)
     p.resetSimulation()
     p.setAdditionalSearchPath(pybullet_data.getDataPath())
     p.setGravity(0, 0, GRAVITY_Z)

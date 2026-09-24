@@ -42,19 +42,28 @@ pretending that an uncalibrated pixel measurement is exact world distance.
 ## Command flow
 
 ```mermaid
-flowchart LR
+flowchart TD
     camera[Forward RGB camera] --> hsv[HSV red detector]
     hsv --> bbox[Bounding box]
-    bbox --> ttc[TTC and range tracker]
-    ttc --> path[30 degree trajectory planner]
-    path --> pitch[Forward speed PID to pitch]
-    barometer[Barometer altitude and vertical rate] --> throttle[Vertical velocity PID to thrust]
-    path --> throttle
-    pitch --> mixer[Attitude PID and motor mixer]
-    throttle --> mixer
-    mixer --> physics[PyBullet motors and physics]
-    physics --> camera
-    physics --> barometer
+    bbox --> ttc[TTC tracker: range, TTC, visual vx]
+    ttc --> path[Diagonal trajectory: desired vx, vz, altitude]
+    physics[PyBullet state] --> barometer[Barometer: altitude and vz]
+    physics --> imu[IMU: attitude and body rates]
+    path --> guidance[Strike guidance]
+    ttc --> guidance
+    barometer --> guidance
+    guidance --> collective[Collective thrust command]
+    guidance --> pitch[Pitch target]
+    pitch --> attitude[Attitude PID]
+    imu --> attitude
+    attitude --> torque[Body torque]
+    collective --> pwm[Per-motor PWM]
+    pwm --> step[step_drone]
+    torque --> step
+    step --> mixer[Thrust-to-RPM and motor mixer]
+    mixer --> forces[Apply rotor thrust, yaw torque, drag]
+    forces --> next[p.stepSimulation]
+    next --> physics
 ```
 
 ## Flight phases
@@ -73,13 +82,17 @@ early target loss.
 
 ## Code boundaries
 
-- `Barometer` owns sampled altitude, configurable noise/bias, and filtered
-  vertical velocity.
-- `BboxTtcTracker` owns HSV-bbox temporal state and never commands motors.
-- `DiagonalTrajectory` owns the terminal-speed path only.
-- `run()` owns phase transitions and connects the narrow components to existing
-  shared PID, mixer, actuator, and PyBullet functions.
+- `ttc_strike/sensing.py`: `Barometer` owns sampled altitude, configurable
+  noise/bias, and filtered vertical velocity.
+- `ttc_strike/ttc.py`: `BboxTtcTracker` owns HSV-bbox temporal state and never
+  commands motors.
+- `ttc_strike/trajectory.py`: `DiagonalTrajectory` owns the terminal-speed
+  path only.
+- `ttc_strike/guidance.py`: `StrikeGuidance` owns phase transitions and emits
+  pitch/thrust commands.
+- `ttc_strike/simulation.py`: `StrikeSimulation` is the PyBullet adapter that
+  connects the narrow components to shared PID, mixer, actuator, and camera
+  functions.
 
-These responsibilities keep the POC readable without adding a framework of
-single-use interfaces. Each class has one reason to change and receives plain,
-typed data records.
+See `examples/07-optical-navigation/ttc_strike/README.md` for the package tree,
+complete configuration reference, and control-flow diagrams.

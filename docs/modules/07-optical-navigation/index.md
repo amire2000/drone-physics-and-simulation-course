@@ -67,25 +67,34 @@ latest TTC, range, velocity commands, pitch, and thrust. During commit, the
 last valid pitch and throttle are deliberately held after a large target leaves
 the image. This first diagonal-strike POC uses a stabilized target-facing camera
 so steep pitch does not remove the box from view. The complete design is recorded in
-`design/ttc_bbox_diagonal_strike.md`.
+`design/ttc_bbox_diagonal_strike.md`. The implementation guide, full
+configuration reference, and TTC-to-control diagrams live beside the code in
+`examples/07-optical-navigation/ttc_strike/README.md`.
 
 ---
 
 ## Flight summary and environment video
 
 The strike example starts PyBullet in a wide view so the launch point, diagonal
-path, and target are visible together. A fixed environment camera records that
-same full scene to `outputs/ttc_diagonal_strike.mp4` by default. After its first
-cube contact, the motors stop, physics continues for three simulated seconds,
-then the program prints the contact result, final phase, simulated duration,
-impact speed, and video path.
+path, target, and three distant static buildings are visible together. A fixed
+environment camera records that same full scene to
+`outputs/ttc_diagonal_strike.mp4` by default. After its first cube contact, the
+motors stop, physics continues for three simulated seconds, then the program
+prints the contact result, final phase, simulated duration, impact speed, video
+path, and environment contents. It also saves `outputs/ttc_diagonal_strike.png`
+with `vx` and `vz` against time, followed by the diagonal world `x`–`z` path.
+PyBullet uses `z` as its vertical axis, so this is the physical equivalent of
+an `x`–vertical-position plot. In a GUI run, the same graph opens in a separate
+Matplotlib window at startup and updates while the simulation runs. When the
+flight ends, the application exits normally and leaves the final PNG behind.
 
 ```bash
 uv run python examples/07-optical-navigation/ttc_diagonal_strike.py --video outputs/my-strike.mp4
 ```
 
 Use `--no-video` when only the live PyBullet and forward-camera views are
-needed.
+needed. Use `--plot outputs/my-strike.png` to choose the plot location, or
+`--no-plot` to skip it.
 
 ---
 
