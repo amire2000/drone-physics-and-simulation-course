@@ -54,22 +54,27 @@ image measurements, not the cube's distance or world size.
 ## TTC diagonal-strike POC
 
 `ttc_diagonal_strike.py` takes the drone to 15 m, then uses red-bbox scale
-growth to estimate time to contact and forward speed. Pitch commands the
-forward path; a simulated barometer supplies altitude and vertical velocity for
-the throttle loop. Roll and yaw remain fixed at zero.
+growth to estimate time to contact. A simulated barometer supplies altitude and
+vertical velocity; TTC synchronises the descent to the known impact altitude.
+Roll and yaw remain fixed at zero.
 
 ```bash
 uv run python examples/07-optical-navigation/ttc_diagonal_strike.py
 ```
 
 The display labels the current takeoff, track, commit, or abort phase with the
-latest TTC, range, velocity commands, pitch, and thrust. During commit, the
-last valid pitch and throttle are deliberately held after a large target leaves
-the image. This first diagonal-strike POC uses a stabilized target-facing camera
-so steep pitch does not remove the box from view. The complete design is recorded in
+latest TTC, bbox growth, velocity commands, pitch, and thrust. During commit,
+the last valid pitch and throttle are deliberately held after a large target
+leaves the image. The complete design is recorded in
 `design/ttc_bbox_diagonal_strike.md`. The implementation guide, full
 configuration reference, and TTC-to-control diagrams live beside the code in
 `examples/07-optical-navigation/ttc_strike/README.md`.
+
+Each run creates a folder under `outputs/ttc_runs/` containing `settings.json`,
+`telemetry.csv`, and `telemetry.png` (plus the environment video unless
+disabled). The CSV includes phase, measured velocity, pitch target/measured
+pitch, TTC, bbox growth, and thrust. Use it to separate the initial
+forward-acceleration interval from the later TTC descent.
 
 ---
 
@@ -77,11 +82,10 @@ configuration reference, and TTC-to-control diagrams live beside the code in
 
 The strike example starts PyBullet in a wide view so the launch point, diagonal
 path, target, and three distant static buildings are visible together. A fixed
-environment camera records that same full scene to
-`outputs/ttc_diagonal_strike.mp4` by default. After its first cube contact, the
+environment camera records that same full scene in the run folder. After its first cube contact, the
 motors stop, physics continues for three simulated seconds, then the program
 prints the contact result, final phase, simulated duration, impact speed, video
-path, and environment contents. It also saves `outputs/ttc_diagonal_strike.png`
+path, and environment contents. It also saves `telemetry.png`
 with actual `vx`/`vz`, world `x`–`z` path, `TrajectoryCommand` targets, and
 `GuidanceCommand` collective thrust plus pitch target in degrees. PyBullet uses
 `z` as its vertical axis, so the path is the physical equivalent of an

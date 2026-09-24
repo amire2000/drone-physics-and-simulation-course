@@ -14,7 +14,7 @@ from .ttc import TtcObservation
 def annotate(frame: np.ndarray, command: GuidanceCommand, observation: TtcObservation | None) -> np.ndarray:
     lines = [f"phase: {command.phase.value}", f"pitch: {degrees(command.pitch_target_rad):.1f} deg", f"thrust: {command.thrust_n:.2f} N"]
     if observation:
-        lines.extend((f"range: {observation.range_m:.1f} m", f"TTC: {observation.ttc_s:.2f} s", f"vx visual: {observation.forward_velocity_mps:.1f} m/s"))
+        lines.extend((f"scale: {observation.scale_px:.1f} px", f"growth: {observation.scale_growth_px_s:.1f} px/s", f"TTC: {observation.ttc_s:.2f} s"))
     if command.trajectory:
         lines.extend((f"vx command: {command.trajectory.forward_velocity_mps:.1f} m/s", f"vz command: {command.trajectory.vertical_velocity_mps:.1f} m/s"))
     for index, text in enumerate(lines):

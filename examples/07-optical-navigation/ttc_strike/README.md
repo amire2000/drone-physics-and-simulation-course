@@ -1,12 +1,13 @@
 # TTC diagonal-strike package
 
-This package is the implementation of the Module 7 proof of concept. A drone
-takes off to 15 m, estimates the red cube's time to contact (TTC) from bounding
-box growth, follows a 30-degree diagonal path, then intentionally collides with
-the cube. Roll and yaw stay at zero. The camera is stabilized on the target so
-body pitch does not remove the cube from view in this first exercise.
+This Module 7 proof of concept takes off to 15 m, detects a red cube, estimates
+time-to-contact (TTC) from bounding-box growth, synchronises its descent to the
+known impact altitude, and records the contact. The controller does **not** need
+the cube's metric size, image centre, focal length, or world position. Those
+values exist only in `SceneConfig` so the simulator can spawn and draw a target.
+Roll and yaw remain zero in this first exercise.
 
-Run it through the compatibility wrapper:
+Run it with:
 
 ```bash
 uv run python examples/07-optical-navigation/ttc_diagonal_strike.py
@@ -16,252 +17,159 @@ uv run python examples/07-optical-navigation/ttc_diagonal_strike.py
 
 ```text
 ttc_strike/
-├── config.py       StrikeConfig: values and derived geometry
+├── config.py       StrikeConfig + scene-only SceneConfig
 ├── sensing.py      Barometer: altitude and vertical velocity
-├── ttc.py          BboxTtcTracker: image scale to TTC/range
-├── trajectory.py   DiagonalTrajectory: range to vx/vz/altitude target
-├── guidance.py     StrikeGuidance: phases plus pitch/thrust command
+├── ttc.py          BboxTtcTracker: bbox scale growth to TTC
+├── trajectory.py   TtcDescentPlanner: TTC + altitude to vx/vz target
+├── guidance.py     StrikeGuidance: takeoff, track, commit, abort
 ├── telemetry.py    FlightLog: live graph and final PNG
 ├── views.py        camera overlays and wide environment rendering
 ├── simulation.py   StrikeSimulation: the PyBullet adapter
 └── cli.py          command-line options and self-check
 ```
 
-The calculation modules receive typed data and configuration; they do not call
-PyBullet or OpenCV. `StrikeSimulation` is the one concrete adapter that joins
-camera, detector, sensor, guidance, motor mixer, video, and physics. This keeps
-the TTC math testable and gives each module one reason to change without adding
-unused abstract interfaces.
+Only `simulation.py` knows PyBullet/OpenCV. The calculation modules receive
+plain typed data, which keeps TTC and trajectory math easy to test.
 
 ## Class relationships
 
 ```mermaid
 classDiagram
-    class StrikeConfig {
-        +target_center
-        +target_size_m
-        +takeoff_altitude_m
-        +terminal_speed_mps
-        +camera_hz
-        +hover_thrust_n
-        +terminal_vx_mps
-        +terminal_vz_mps
-    }
-    class Barometer {
-        +sample(true_altitude_m, now_s) BarometerReading
-    }
-    class BarometerReading {
-        +altitude_m
-        +vertical_velocity_mps
-    }
-    class BboxTtcTracker {
-        +update(box, now_s) TtcObservation
-        +reset()
-    }
-    class TtcObservation {
-        +range_m
-        +ttc_s
-        +forward_velocity_mps
-    }
-    class DiagonalTrajectory {
-        +command(remaining_range_m) TrajectoryCommand
-    }
-    class TrajectoryCommand {
-        +forward_velocity_mps
-        +vertical_velocity_mps
-        +altitude_target_m
-    }
-    class StrikeGuidance {
-        +update(GuidanceInput) GuidanceCommand
-    }
-    class GuidanceInput {
-        +barometer
-        +observation
-        +target_visible
-        +commit_ready
-    }
-    class GuidanceCommand {
-        +phase
-        +thrust_n
-        +pitch_target_rad
-    }
-    class FlightLog {
-        +append(now_s, position, velocity)
-    }
-    class StrikeSimulation {
-        +run(gui, max_seconds, video, plot) StrikeResult
-    }
-    class StrikeResult {
-        +success
-        +phase
-        +impact_speed_mps
-    }
-
+    class SceneConfig { +target_center +target_size_m }
+    class StrikeConfig { +takeoff_altitude_m +impact_altitude_m +forward_speed_mps +max_descent_velocity_mps +hover_thrust_n }
+    class Barometer { +sample(true_altitude_m, now_s) BarometerReading }
+    class BarometerReading { +altitude_m +vertical_velocity_mps }
+    class BboxTtcTracker { +update(box, now_s) TtcObservation +reset() }
+    class TtcObservation { +box +scale_px +scale_growth_px_s +ttc_s }
+    class TtcDescentPlanner { +command(ttc_s, altitude_m) TrajectoryCommand }
+    class TrajectoryCommand { +forward_velocity_mps +vertical_velocity_mps +altitude_target_m }
+    class StrikeGuidance { +update(GuidanceInput) GuidanceCommand }
+    class GuidanceInput { +barometer +observation +target_visible +commit_ready }
+    class GuidanceCommand { +phase +thrust_n +pitch_target_rad }
+    class FlightLog { +append(now_s, position, velocity, command) }
+    class StrikeSimulation { +run(gui, max_seconds, video, plot) StrikeResult }
+    SceneConfig --> StrikeSimulation : spawns target
     StrikeConfig --> Barometer : configures
     StrikeConfig --> BboxTtcTracker : configures
-    StrikeConfig --> DiagonalTrajectory : configures
+    StrikeConfig --> TtcDescentPlanner : configures
     StrikeConfig --> StrikeGuidance : configures
-    Barometer --> BarometerReading : creates
     BboxTtcTracker --> TtcObservation : creates
-    DiagonalTrajectory --> TrajectoryCommand : creates
-    StrikeGuidance *-- DiagonalTrajectory
-    StrikeGuidance --> GuidanceInput : reads
-    StrikeGuidance --> GuidanceCommand : creates
-    GuidanceInput --> BarometerReading
-    GuidanceInput --> TtcObservation
-    GuidanceCommand --> TrajectoryCommand
+    TtcDescentPlanner --> TrajectoryCommand : creates
+    StrikeGuidance *-- TtcDescentPlanner
     StrikeSimulation *-- Barometer
     StrikeSimulation *-- BboxTtcTracker
     StrikeSimulation *-- StrikeGuidance
     StrikeSimulation *-- FlightLog
-    StrikeSimulation --> StrikeResult : returns
 ```
 
-| Class | Role | Does not own |
-| --- | --- | --- |
-| `StrikeConfig` | Immutable scenario settings and derived flight geometry. | Runtime state, rendering, or motor commands. |
-| `Barometer` | Fixed-rate altitude sampling, optional noise/bias, and filtered `vz`. | PyBullet state access or guidance decisions. |
-| `BarometerReading` | Typed altitude and vertical-velocity measurement passed between modules. | Sensor filtering or control logic. |
-| `BboxTtcTracker` | Converts bbox scale growth into range, TTC, visual `vx`, and commit readiness. | Flight phases, PID, or actuation. |
-| `TtcObservation` | Typed visual TTC/range result from the tracker. | Image processing or command generation. |
-| `DiagonalTrajectory` | Turns remaining visual range into the desired diagonal `vx`, `vz`, and altitude. | Camera handling, phase transitions, or motor output. |
-| `TrajectoryCommand` | Typed desired trajectory point for one control update. | PID state or physics stepping. |
-| `StrikeGuidance` | Selects takeoff, track, commit, or abort and produces high-level pitch/thrust commands. | PyBullet, OpenCV, and per-motor mixing. |
-| `GuidanceInput` | Groups the current barometer/TTC/visibility inputs for guidance. | Calculations or mutable state. |
-| `GuidanceCommand` | Carries the selected phase, collective thrust, pitch target, and trajectory. | Applying forces or rendering. |
-| `FlightLog` | Stores measured state plus trajectory and guidance commands for live/final plots. | Flight control or simulator state. |
-| `StrikeSimulation` | Concrete PyBullet adapter that orchestrates sensing, guidance, motor helpers, contact, video, and plots. | TTC math details or PID policy internals. |
-| `StrikeResult` | Final success, phase, timing, impact-speed, and output-path summary. | Simulation cleanup or plotting. |
+| Class | Role |
+| --- | --- |
+| `SceneConfig` | Simulator-only cube position and size; never enters TTC or thrust math. |
+| `StrikeConfig` | Immutable control, sensor, camera, and output settings. |
+| `Barometer` | Samples altitude and filters vertical velocity. |
+| `BboxTtcTracker` | Converts bbox scale growth into TTC and commit readiness. |
+| `TtcObservation` | Typed visual measurement: box, scale, growth, and TTC. |
+| `TtcDescentPlanner` | Uses TTC as time-to-go for the known impact altitude. |
+| `StrikeGuidance` | Selects takeoff, track, commit, or abort and emits high-level commands. |
+| `StrikeSimulation` | Connects sensing, guidance, motor helpers, rendering, and contact. |
 
-## TTC math
+## TTC and altitude math
 
-| Quantity | Calculation | Meaning |
-| --- | --- | --- |
-| Box scale | `sqrt(width_px * height_px)` | One size value from the red bbox. |
-| Scale growth | `(scale_now - scale_previous) / dt` | Positive when the drone approaches. |
-| Range | `focal_pixels * target_size_m / scale` | Monocular range estimate using known cube size. |
-| TTC | `scale / filtered_growth` | Estimated seconds to visual contact. |
-| Visual forward speed | `range / TTC` | Estimated closing speed along camera forward. |
+The detector supplies only a rectangle. Let `s = sqrt(width_px * height_px)`.
+Approach is the positive filtered growth `g = (s_now - s_previous) / dt`, and
+`TTC = s / g`.
+
+No target size or camera calibration is required. During tracking the planner
+uses barometer altitude `h` and known impact altitude `h*`:
+
+`v_z* = clamp((h* - h) / max(TTC, min_TTC), -max_descent, max_climb)`.
+
+Before a valid TTC exists, the drone keeps nominal forward velocity and holds
+altitude while moving forward to create measurable bbox growth.
 
 ## Configuration reference
 
-`StrikeConfig` is immutable. Change values by constructing a new instance in a
-future experiment; values marked **derived** are read-only properties.
+`StrikeConfig` contains control settings. `SceneConfig.target_center` and
+`SceneConfig.target_size_m` are fixture values only; changing them must not
+change the controller equations.
 
-| Field | Default | Unit | Description |
-| --- | --- | --- | --- |
-| `target_center` | `(20, 0, 1)` | m | World position of the red cube center. |
-| `target_size_m` | `2.0` | m | Red cube edge length used by TTC range estimation. |
-| `launch_position` | `(-5.25, 0, 0.05)` | m | Initial world position of the drone. |
-| `vehicle_mass_kg` | `0.65` | kg | Vehicle mass used by high-level hover-thrust calculations; keep it aligned with the URDF. |
-| `gravity_mps2` | `9.81` | m/s² | Positive gravity magnitude used for hover thrust. |
-| `takeoff_altitude_m` | `15.0` | m | Height reached before diagonal tracking starts. |
-| `descent_angle_deg` | `30.0` | deg | Downward angle of the desired path. |
-| `terminal_speed_mps` | `15.0` | m/s | Desired total speed at target contact. |
-| `camera_width_px` | `640` | px | Forward-camera image width. |
-| `camera_height_px` | `480` | px | Forward-camera image height and TTC focal basis. |
-| `camera_hz` | `30` | Hz | Camera, barometer, video, and live-plot update rate. |
-| `camera_fov_deg` | `60.0` | deg | Forward-camera vertical field of view. |
-| `commit_box_height_fraction` | `0.5` | fraction | Bbox-height fraction that arms terminal command hold. |
-| `ttc_growth_old_weight` | `0.65` | fraction | Weight retained from the prior bbox-growth estimate. |
-| `min_growth_px_per_s` | `0.01` | px/s | Minimum positive growth accepted as approach motion. |
-| `barometer_noise_sigma_m` | `0.0` | m | Standard deviation of deterministic altitude noise. |
-| `barometer_bias_m` | `0.0` | m | Constant altitude-measurement offset. |
-| `barometer_velocity_old_weight` | `0.7` | fraction | Weight retained from prior filtered vertical velocity. |
-| `random_seed` | `7` | — | Seed for repeatable barometer noise. |
-| `altitude_pid_gains` | `(0.7, 0.05, 1.1)` | N/m, N/(m·s), N·s/m | Takeoff altitude PID `(Kp, Ki, Kd)`. |
-| `altitude_integral_limit` | `0.5` | controller units | Clamp for altitude PID integral state. |
-| `forward_pid_gains` | `(0.08, 0, 0)` | rad/(m/s) | Forward-speed-error PID used as pitch correction. |
-| `vertical_velocity_pid_gains` | `(0.7, 0, 0)` | N/(m/s) | Vertical-velocity-error PID gains. |
-| `vertical_position_correction` | `0.8` | 1/s | Altitude error contribution added to desired vertical velocity. |
-| `max_pitch_deg` | `30.0` | deg | Maximum forward pitch command. |
-| `takeoff_altitude_tolerance_m` | `0.2` | m | How close to takeoff target before tracking can begin. |
-| `takeoff_velocity_tolerance_mps` | `0.5` | m/s | Required vertical-speed magnitude before tracking can begin. |
-| `commit_timeout_margin_s` | `0.5` | s | Extra time allowed after predicted TTC in commit phase. |
-| `post_impact_seconds` | `3.0` | s | Physics/video time retained after first collision. |
-| `accepted_impact_speed_mps` | `(10, 20)` | m/s | Inclusive headless-pass impact-speed range. |
-| `environment_size_px` | `(960, 540)` | px | Fixed wide-camera video resolution. |
-| `opencv_window_position_px` | `(20, 80)` | screen px | Top-left position of the forward-camera OpenCV window. |
-| `plot_window_position_px` | `(700, 80)` | screen px | Top-left position of the live telemetry plot window. |
-
-The default positions place the 640 px-wide camera window at the left and the
-telemetry plot beside it. Change these two fields in `StrikeConfig` for a
-different monitor arrangement.
-
-| Derived property | Calculation | Description |
+| Field | Default | Meaning |
 | --- | --- | --- |
-| `target_face_x_m` | `target_center.x - target_size_m / 2` | Near face used for the planned strike range. |
-| `hover_thrust_n` | `vehicle_mass_kg * gravity_mps2` | Collective force that balances gravity. |
-| `descent_angle_rad` | radians of `descent_angle_deg` | Internal trigonometric angle. |
-| `terminal_vx_mps`, `terminal_vz_mps` | speed resolved along path | Expected terminal forward and down velocities. |
-| `path_length_m`, `path_acceleration_mps2` | target geometry and terminal speed | Constant-acceleration diagonal-path quantities. |
-| `initial_range_m` | target face minus launch `x` | Fallback visual range before TTC becomes valid. |
-| `commit_box_height_px` | image height × commit fraction | Pixel threshold that arms commit. |
-| `max_pitch_rad` | radians of max pitch | Internal attitude-command limit. |
+| `takeoff_altitude_m` | `15.0` | Height at which tracking starts. |
+| `impact_altitude_m` | `1.0` | Desired altitude at contact. |
+| `forward_speed_mps` | `13.0` | Nominal body-forward command. |
+| `nominal_pitch_deg` | `20.0` | Initial forward pitch while altitude is held. |
+| `max_descent_velocity_mps` | `4.5` | Downward velocity limit used after TTC becomes valid. |
+| `max_climb_velocity_mps` | `3.0` | Upward velocity limit. |
+| `camera_fov_deg` | `90.0` | Rendering FOV only; not a TTC range scale. |
+| `commit_box_height_fraction` | `0.1` | Image-height threshold that arms commit. |
+| `ttc_growth_old_weight` | `0.65` | Smoothing weight for bbox growth. |
+| `min_growth_px_per_s` | `0.01` | Rejects zero/negative approach growth. |
+| `commit_timeout_margin_s` | `5.0` | Extra time after the last TTC during commit. |
+| `post_impact_seconds` | `3.0` | Time recorded after contact. |
+
+`forward_speed_pid_gains` controls the pitch response that tracks the forward
+velocity target; `max_pitch_deg` limits the requested tilt. Collective thrust is
+divided by `cos(pitch)` so forward acceleration does not silently remove the
+vertical lift component.
+
+The remaining fields tune mass/gravity, barometer noise, PID gains, window
+placement, video resolution, and output paths. Contact is the headless success
+condition; impact speed is reported for analysis rather than used as a hidden
+pass/fail gate.
+
+Every run creates a unique folder under `outputs/ttc_runs/` containing
+`settings.json`, `telemetry.csv`, and `telemetry.png` (plus `environment.mp4`
+unless disabled). Use `--run-name name` for a readable folder or `--output-root`
+to select another comparison directory. Use `--csv path` or `--no-csv`; columns include phase, measured position/velocity,
+trajectory velocity targets, altitude target, thrust, and pitch. This makes the
+initial forward-pitch/altitude-hold interval easy to inspect before tuning.
 
 ## TTC-to-drone-step flow
-
-The TTC module only estimates visual motion. `StrikeGuidance` converts that
-estimate and barometer data into high-level commands. The existing shared motor
-helpers then convert those commands into forces before PyBullet advances one
-physics step.
 
 ```mermaid
 flowchart TD
     camera[forward_rgb: RGB frame] --> detect[detect_red_box: bbox or lost]
     detect --> ttc[BboxTtcTracker.update]
-    ttc --> observation[TtcObservation: range, TTC, visual vx]
-    observation --> trajectory[DiagonalTrajectory.command]
-    physics[PyBullet state after previous step] --> barometer[Barometer.sample: altitude, vz]
-    physics --> imu[read_imu: roll, pitch, yaw, body rates]
-
-    barometer --> guidance[StrikeGuidance.update]
-    trajectory --> guidance
+    ttc --> observation[TtcObservation: scale, growth, TTC]
+    observation --> planner[TtcDescentPlanner.command]
+    physics[PyBullet state] --> barometer[Barometer: altitude, vz]
+    barometer --> planner
+    planner --> guidance[StrikeGuidance.update]
     observation --> guidance
-    guidance --> phase[Flight phase: takeoff, track, commit, abort]
-    guidance --> collective[GuidanceCommand: collective thrust N]
-    guidance --> pitch_target[GuidanceCommand: pitch target rad]
-
-    pitch_target --> attitude[attitude_torque: attitude PID]
-    imu --> attitude
-    attitude --> torque[roll, pitch, yaw torque]
-    collective --> per_motor[collective / 4]
-    per_motor --> pwm[pwm_from_thrust: PWM microseconds]
-
-    pwm --> step[step_drone]
-    torque --> step
-    step --> thrust_from_pwm[thrust_from_pwm: collective rotor thrust]
-    thrust_from_pwm --> mixer[mix_motor_thrusts: four motor thrusts]
-    mixer --> rpm[rpm_from_thrust plus motor lag]
-    rpm --> forces[apply_flight_forces: thrust, yaw torque, drag]
-    forces --> next_step[p.stepSimulation]
-    next_step --> physics
+    guidance --> command[GuidanceCommand: pitch, collective thrust]
+    command --> attitude[attitude_torque]
+    command --> pwm[pwm_from_thrust]
+    attitude --> step[step_drone]
+    pwm --> step
+    step --> physics
 ```
 
-`commit` deliberately bypasses fresh vision commands and reuses the last valid
-pitch and collective-thrust command until contact or the TTC deadline. After
-contact, the simulation sets collective thrust and torque to zero, records the
-three-second aftermath, and stops.
+`commit` holds the last valid pitch/thrust command until contact or its TTC
+deadline. After contact, thrust and torque are set to zero for the configured
+aftermath window. The wide PyBullet camera is only a scene view; the controller
+uses the body-fixed forward camera.
 
-## One control cycle
+## Guidance phase flow
 
 ```mermaid
-sequenceDiagram
-    participant Cam as Forward camera
-    participant Detect as HSV detector
-    participant TTC as TTC tracker
-    participant Baro as Barometer
-    participant Guide as Strike guidance
-    participant Ctrl as PID and mixer
-    participant Sim as PyBullet
-
-    Sim->>Cam: Render RGB frame
-    Cam->>Detect: RGB image
-    Detect->>TTC: Bounding box or target lost
-    Sim->>Baro: True altitude
-    TTC->>Guide: TTC observation
-    Baro->>Guide: Altitude and vertical velocity
-    Guide->>Ctrl: Pitch and thrust command
-    Ctrl->>Sim: Motor forces and torque
-    Sim->>Sim: Step physics and test cube contact
+flowchart TD
+    start[barometer + bbox/TTC + visibility] --> phase{phase}
+    phase -->|takeoff| takeoff[Altitude PID]
+    takeoff --> ready{height and vz stable?}
+    ready -->|no| takeoff_out[level command]
+    ready -->|yes| reset[reset TTC history]
+    reset --> track
+    phase -->|track| visible{target visible?}
+    visible -->|yes| ttc{valid TTC?}
+    ttc -->|yes| planner[TTC + altitude planner]
+    ttc -->|no| hold_alt[forward motion, hold altitude]
+    planner --> track[fixed pitch + vertical velocity PID]
+    hold_alt --> track
+    visible -->|no| armed{commit armed?}
+    armed -->|no| abort[abort and hold altitude]
+    armed -->|yes| commit[hold last command]
+    phase -->|commit| commit
+    commit --> deadline{deadline passed?}
+    deadline -->|yes| expired[report timeout]
 ```

@@ -1,26 +1,37 @@
-"""Immutable configuration and derived geometry for the strike scenario."""
+"""Control configuration and simulator-only scene configuration."""
 
 from dataclasses import dataclass
-from math import cos, radians, sin
+from math import radians
+
+
+@dataclass(frozen=True)
+class SceneConfig:
+    """Demo geometry used to spawn and render the simulated target only."""
+
+    target_center: tuple[float, float, float] = (20.0, 0.0, 1.0)
+    target_size_m: float = 2.0
 
 
 @dataclass(frozen=True)
 class StrikeConfig:
-    """All tunable values for one TTC diagonal-strike scenario."""
+    """Control, sensor, and output settings with no target geometry."""
 
-    target_center: tuple[float, float, float] = (20.0, 0.0, 1.0)
-    target_size_m: float = 2.0
     launch_position: tuple[float, float, float] = (-5.25, 0.0, 0.05)
     vehicle_mass_kg: float = 0.65
     gravity_mps2: float = 9.81
     takeoff_altitude_m: float = 15.0
-    descent_angle_deg: float = 30.0
-    terminal_speed_mps: float = 15.0
+    impact_altitude_m: float = 1.0
+    forward_speed_mps: float = 13.0
+    nominal_pitch_deg: float = 20.0
+    max_descent_velocity_mps: float = 4.5
+    max_climb_velocity_mps: float = 3.0
+    min_ttc_s: float = 0.2
     camera_width_px: int = 640
     camera_height_px: int = 480
     camera_hz: int = 30
-    camera_fov_deg: float = 60.0
-    commit_box_height_fraction: float = 0.5
+    camera_fov_deg: float = 90.0
+    camera_look_down_deg: float = 0.0
+    commit_box_height_fraction: float = 0.1
     ttc_growth_old_weight: float = 0.65
     min_growth_px_per_s: float = 0.01
     barometer_noise_sigma_m: float = 0.0
@@ -29,55 +40,31 @@ class StrikeConfig:
     random_seed: int = 7
     altitude_pid_gains: tuple[float, float, float] = (0.7, 0.05, 1.1)
     altitude_integral_limit: float = 0.5
-    forward_pid_gains: tuple[float, float, float] = (0.08, 0.0, 0.0)
-    vertical_velocity_pid_gains: tuple[float, float, float] = (0.7, 0.0, 0.0)
+    forward_speed_pid_gains: tuple[float, float, float] = (0.03, 0.0, 0.002)
+    forward_pitch_integral_limit: float = 0.2
+    max_pitch_deg: float = 20.0
+    vertical_velocity_pid_gains: tuple[float, float, float] = (1.0, 0.0, 0.0)
     vertical_position_correction: float = 0.8
-    max_pitch_deg: float = 30.0
     takeoff_altitude_tolerance_m: float = 0.2
     takeoff_velocity_tolerance_mps: float = 0.5
-    commit_timeout_margin_s: float = 0.5
+    commit_timeout_margin_s: float = 5.0
     post_impact_seconds: float = 3.0
-    accepted_impact_speed_mps: tuple[float, float] = (10.0, 20.0)
     environment_size_px: tuple[int, int] = (960, 540)
     opencv_window_position_px: tuple[int, int] = (20, 80)
     plot_window_position_px: tuple[int, int] = (700, 80)
-
-    @property
-    def target_face_x_m(self) -> float:
-        return self.target_center[0] - self.target_size_m / 2
 
     @property
     def hover_thrust_n(self) -> float:
         return self.vehicle_mass_kg * self.gravity_mps2
 
     @property
-    def descent_angle_rad(self) -> float:
-        return radians(self.descent_angle_deg)
-
-    @property
-    def terminal_vx_mps(self) -> float:
-        return self.terminal_speed_mps * cos(self.descent_angle_rad)
-
-    @property
-    def terminal_vz_mps(self) -> float:
-        return -self.terminal_speed_mps * sin(self.descent_angle_rad)
-
-    @property
-    def path_length_m(self) -> float:
-        return (self.takeoff_altitude_m - self.target_center[2]) / sin(self.descent_angle_rad)
-
-    @property
-    def path_acceleration_mps2(self) -> float:
-        return self.terminal_speed_mps**2 / (2 * self.path_length_m)
-
-    @property
-    def initial_range_m(self) -> float:
-        return self.target_face_x_m - self.launch_position[0]
-
-    @property
-    def commit_box_height_px(self) -> float:
-        return self.camera_height_px * self.commit_box_height_fraction
+    def nominal_pitch_rad(self) -> float:
+        return radians(self.nominal_pitch_deg)
 
     @property
     def max_pitch_rad(self) -> float:
         return radians(self.max_pitch_deg)
+
+    @property
+    def commit_box_height_px(self) -> float:
+        return self.camera_height_px * self.commit_box_height_fraction
