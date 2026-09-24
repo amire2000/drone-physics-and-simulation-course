@@ -219,7 +219,7 @@ def save_csv(log: FlightLog, output: Path) -> None:
         writer.writerows(zip(*(getattr(log, field) for field in fields)))
 
 
-def build_summary(log: FlightLog, config: StrikeConfig, scene: SceneConfig, success: bool, final_phase: str, simulated_time_s: float, outputs: dict[str, Path | None]) -> dict[str, object]:
+def build_summary(log: FlightLog, config: StrikeConfig, scene: SceneConfig, success: bool, final_phase: str, simulated_time_s: float, outputs: dict[str, Path | None], abort_reason: str | None = None) -> dict[str, object]:
     """Build JSON-safe scene and collision metrics for one completed run."""
     def finite(values: list[float]) -> list[float]:
         return [value for value in values if value == value]
@@ -240,6 +240,7 @@ def build_summary(log: FlightLog, config: StrikeConfig, scene: SceneConfig, succ
     return {
         "success": success,
         "final_phase": final_phase,
+        "abort_reason": abort_reason,
         "simulated_time_s": simulated_time_s,
         "starting_pose": {"position_m": list(config.launch_position), "orientation_xyzw": [0.0, 0.0, 0.0, 1.0]},
         "target": {"center_m": list(scene.target_center), "size_m": scene.target_size_m},

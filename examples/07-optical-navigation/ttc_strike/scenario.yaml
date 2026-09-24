@@ -1,0 +1,9 @@
+# Initial conditions for the TTC diagonal-strike example.
+drone:
+  position: [-5.25, 0.0, 0.05]
+
+box:
+  position: [20.0, 0.0, 1.0]
+
+flight:
+  takeoff_altitude_m: 15.0

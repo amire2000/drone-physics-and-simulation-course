@@ -9,7 +9,7 @@ from pathlib import Path
 import cv2
 import pybullet as p
 
-from .config import SceneConfig, StrikeConfig
+from .config import SceneConfig, StrikeConfig, load_yaml_config
 from .guidance import FlightPhase, GuidanceInput, StrikeGuidance
 from .sensing import BarometerReading
 from .simulation import StrikeSimulation
@@ -53,6 +53,7 @@ def main() -> None:
     parser.add_argument("--max-seconds", type=float, default=35.0)
     parser.add_argument("--output-root", type=Path, default=Path("outputs/ttc_runs"))
     parser.add_argument("--run-name", type=str)
+    parser.add_argument("--config", type=Path, help="YAML file with drone, box, and takeoff settings")
     parser.add_argument("--video", type=Path)
     parser.add_argument("--no-video", action="store_true")
     parser.add_argument("--plot", type=Path)
@@ -65,11 +66,17 @@ def main() -> None:
         if args.self_check:
             self_check()
         else:
-            config, scene = StrikeConfig(), SceneConfig()
+            try:
+                config, scene = load_yaml_config(args.config) if args.config else (StrikeConfig(), SceneConfig())
+            except (OSError, ValueError) as exc:
+                parser.error(str(exc))
             run_name = args.run_name or datetime.now().strftime("run-%Y%m%d-%H%M%S-%f")
             run_dir = args.output_root / run_name
             run_dir.mkdir(parents=True, exist_ok=False)
-            (run_dir / "settings.json").write_text(json.dumps({"strike": asdict(config), "scene": asdict(scene)}, indent=2) + "\n")
+            settings = {"strike": asdict(config), "scene": asdict(scene)}
+            if args.config:
+                settings["source_config"] = str(args.config)
+            (run_dir / "settings.json").write_text(json.dumps(settings, indent=2) + "\n")
             video = args.video or run_dir / "environment.mp4"
             plot = args.plot or run_dir / "telemetry.png"
             csv = args.csv or run_dir / "telemetry.csv"

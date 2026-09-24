@@ -13,6 +13,44 @@ Run it with:
 uv run python examples/07-optical-navigation/ttc_diagonal_strike.py
 ```
 
+### Scenario YAML
+
+Initial conditions can be changed without editing Python. The sample
+`scenario.yaml` sets the drone position, the cube center, and the altitude at
+which tracking starts:
+
+```yaml
+drone:
+  position: [-5.25, 0.0, 0.05]
+box:
+  position: [20.0, 0.0, 1.0]
+flight:
+  takeoff_altitude_m: 15.0
+  commit_box_height_fraction: 0.1
+```
+
+Run it with:
+
+```bash
+uv run python examples/07-optical-navigation/ttc_diagonal_strike.py \
+  --config examples/07-optical-navigation/ttc_strike/scenario.yaml
+```
+
+For the shorter 30 m test, use
+`examples/07-optical-navigation/ttc_strike_inputs/30m_diagonal_strike.yaml`:
+
+```bash
+uv run python examples/07-optical-navigation/ttc_diagonal_strike.py \
+  --config examples/07-optical-navigation/ttc_strike_inputs/30m_diagonal_strike.yaml
+```
+
+`box.position` changes only where the simulator spawns the visual target;
+the controller still uses image measurements and TTC. The YAML does not
+change the existing 1 m impact altitude. For a distant target, lower
+`commit_box_height_fraction` so a small bbox can enter the commit phase before
+leaving the camera view. The resolved values and source path are recorded in
+each run's `settings.json`.
+
 ## Module design
 
 ```text

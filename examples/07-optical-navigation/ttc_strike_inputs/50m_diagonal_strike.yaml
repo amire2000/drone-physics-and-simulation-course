@@ -1,0 +1,11 @@
+# 50 m diagonal-strike test: the drone starts at x=-30 m and the box at x=20 m.
+drone:
+  position: [-30.0, 0.0, 0.05]
+
+box:
+  position: [20.0, 0.0, 1.0]
+
+flight:
+  takeoff_altitude_m: 20.0
+  # The 2 m cube is about 12 px at this distance; commit before it leaves view.
+  commit_box_height_fraction: 0.02

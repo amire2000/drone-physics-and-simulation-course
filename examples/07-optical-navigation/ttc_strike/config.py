@@ -1,7 +1,11 @@
 """Control configuration and simulator-only scene configuration."""
 
-from dataclasses import dataclass
-from math import radians
+from dataclasses import dataclass, replace
+from math import isfinite, radians
+from pathlib import Path
+from numbers import Real
+
+import yaml
 
 
 @dataclass(frozen=True)
@@ -68,3 +72,45 @@ class StrikeConfig:
     @property
     def commit_box_height_px(self) -> float:
         return self.camera_height_px * self.commit_box_height_fraction
+
+
+def _position(value: object, field: str) -> tuple[float, float, float]:
+    if not isinstance(value, (list, tuple)) or len(value) != 3:
+        raise ValueError(f"{field} must be a list of three numbers")
+    if any(isinstance(item, bool) or not isinstance(item, Real) or not isfinite(float(item)) for item in value):
+        raise ValueError(f"{field} must contain only finite numbers")
+    return tuple(float(item) for item in value)
+
+
+def load_yaml_config(path: Path) -> tuple[StrikeConfig, SceneConfig]:
+    """Load the small set of scenario overrides supported by the example."""
+    try:
+        data = yaml.safe_load(path.read_text()) or {}
+    except yaml.YAMLError as exc:
+        raise ValueError(f"invalid YAML in {path}: {exc}") from exc
+    if not isinstance(data, dict):
+        raise ValueError("the YAML root must be a mapping")
+
+    drone = data.get("drone", {})
+    box = data.get("box", {})
+    flight = data.get("flight", {})
+    if not all(isinstance(section, dict) for section in (drone, box, flight)):
+        raise ValueError("drone, box, and flight must be mappings")
+
+    config = StrikeConfig()
+    scene = SceneConfig()
+    if "position" in drone:
+        config = replace(config, launch_position=_position(drone["position"], "drone.position"))
+    if "position" in box:
+        scene = replace(scene, target_center=_position(box["position"], "box.position"))
+    if "takeoff_altitude_m" in flight:
+        altitude = flight["takeoff_altitude_m"]
+        if isinstance(altitude, bool) or not isinstance(altitude, Real) or not isfinite(float(altitude)) or float(altitude) < 0:
+            raise ValueError("flight.takeoff_altitude_m must be a finite non-negative number")
+        config = replace(config, takeoff_altitude_m=float(altitude))
+    if "commit_box_height_fraction" in flight:
+        fraction = flight["commit_box_height_fraction"]
+        if isinstance(fraction, bool) or not isinstance(fraction, Real) or not isfinite(float(fraction)) or not 0 < float(fraction) <= 1:
+            raise ValueError("flight.commit_box_height_fraction must be greater than 0 and at most 1")
+        config = replace(config, commit_box_height_fraction=float(fraction))
+    return config, scene

@@ -68,7 +68,10 @@ class StrikeGuidance:
             if ready and stable and data.last_observation:
                 self.phase = FlightPhase.TRACK
                 self.forward_pid.reset()
-                command = replace(self._track_command(data), reset_ttc=True)
+                # The observation was accumulated during takeoff.  Ignore it
+                # for this first track command so stale TTC cannot cut thrust
+                # before the reset tracker produces a fresh camera estimate.
+                command = replace(self._track_command(replace(data, observation=None)), reset_ttc=True)
             self.last_command = command
             return command
 

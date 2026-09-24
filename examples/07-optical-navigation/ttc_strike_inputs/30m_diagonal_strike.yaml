@@ -1,0 +1,11 @@
+# 30 m diagonal-strike test: the drone starts at x=-10 m and the box at x=20 m.
+drone:
+  position: [-10.0, 0.0, 0.05]
+
+box:
+  position: [20.0, 0.0, 1.0]
+
+flight:
+  takeoff_altitude_m: 15.0
+  # Keep a small target from aborting when it briefly leaves the camera view.
+  commit_box_height_fraction: 0.04

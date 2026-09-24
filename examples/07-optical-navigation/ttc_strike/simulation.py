@@ -77,7 +77,7 @@ class StrikeSimulation:
             cv2.moveWindow("TTC diagonal strike", *config.opencv_window_position_px)
             p.resetDebugVisualizerCamera(36.0, 48.0, -25.0, (7.0, 0.0, 7.0))
 
-        def finish(success: bool, phase: str, now_s: float) -> StrikeResult:
+        def finish(success: bool, phase: str, now_s: float, abort_reason: str | None = None) -> StrikeResult:
             if plot:
                 save_plot(log, config, self.scene, plot)
             if csv:
@@ -85,7 +85,7 @@ class StrikeSimulation:
             if live_plot:
                 refresh_plot(live_plot, log)
             result = StrikeResult(success, phase, now_s, impact_speed, video, plot, csv, summary)
-            summary_data = build_summary(log, config, self.scene, success, phase, now_s, {"video": video, "plot": plot, "csv": csv, "summary": summary})
+            summary_data = build_summary(log, config, self.scene, success, phase, now_s, {"video": video, "plot": plot, "csv": csv, "summary": summary}, abort_reason)
             if summary:
                 save_summary(summary_data, summary)
             self._print_summary(result, summary_data)
@@ -134,8 +134,12 @@ class StrikeSimulation:
                             # Guidance has already neutralized its pitch request;
                             # stop before applying another flight-control cycle.
                             last_height = tracker.last_observation.box[3] if tracker.last_observation else 0
-                            print(f"Aborted: target lost before commit; last bbox height {last_height} px")
-                            return finish(False, command.phase.value, now_s)
+                            return finish(
+                                False,
+                                command.phase.value,
+                                now_s,
+                                f"target lost before commit (last bbox height {last_height:g} px)",
+                            )
                         # pitch_target_rad is a high-level attitude request.
                         # attitude_torque compares it with the IMU attitude and
                         # returns the body torque needed by the motor mixer.
@@ -212,6 +216,8 @@ class StrikeSimulation:
         print("\n--- TTC strike summary ---")
         print(f"result: {'target contacted' if result.success else 'no valid contact'}")
         print(f"final phase: {result.phase}; simulated time: {result.simulated_time_s:.1f} s")
+        if result.phase == FlightPhase.ABORT.value and summary.get("abort_reason"):
+            print(f"\033[31mABORT: {summary['abort_reason']}\033[0m")
         collision = summary["collision"]
         metrics = summary["flight_metrics"]
         print(f"starting pose: {summary['starting_pose']['position_m']}")

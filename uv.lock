@@ -391,6 +391,7 @@ dependencies = [
     { name = "numpy", version = "2.5.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
     { name = "opencv-python" },
     { name = "pybullet" },
+    { name = "pyyaml" },
 ]
 
 [package.metadata]
@@ -401,6 +402,7 @@ requires-dist = [
     { name = "numpy", specifier = ">=1.26" },
     { name = "opencv-python", specifier = ">=4.10" },
     { name = "pybullet", specifier = ">=3.2.7" },
+    { name = "pyyaml", specifier = ">=6.0" },
 ]
 
 [[package]]
