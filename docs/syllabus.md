@@ -36,8 +36,37 @@
 - Use internal resistance and Ohm's law to model voltage sag under load.
 - Scale maximum thrust as the battery depletes.
 
-## [6. Capstone: autonomous takeoff and precision hover](modules/06-autonomous-hover/index.md)
+## [6. Autonomous takeoff and precision hover](modules/06-autonomous-hover/index.md)
 
 - Turn altitude error into continuous high-level decision inputs.
 - Map model outputs through the mixer to motor PWM signals.
 - Balance battery, drag, and inertia to hold a stable 5 m hover.
+
+## 7. Forward camera and monocular optical navigation
+
+- Attach a forward-facing RGB camera to the drone body and render synchronized
+  PyBullet frames.
+- Track real optical flow between consecutive images to estimate image motion,
+  yaw, and relative travel.
+- Explain why monocular flow is measured in pixels per frame and cannot recover
+  metric distance without an additional scale source.
+
+## 8. Betaflight SITL control bridge
+
+- Build and pin a verified Betaflight SITL revision for reproducible lessons.
+- Send simulated IMU/FDM state and virtual RC input over the current UDP bridge,
+  then apply SITL's four motor outputs to the PyBullet drone.
+- Fly a virtual-RC Angle-mode sequence: arm, hover, yaw, then disarm and land.
+
+The bridge will follow the current [Betaflight SITL harness](https://github.com/betaflight/betaflight/blob/master/src/test/sitl/sitl_harness.py) packet roles while keeping the tested revision pinned in the module setup instructions.
+
+## 9. Learned vertical hover with an MLP
+
+- Train a small NumPy MLP to imitate the altitude PID for a fixed 3 m hover.
+- Keep the existing attitude PID, motor mixer, and PyBullet physics responsible
+  for low-level stabilization; the MLP commands only vertical acceleration.
+- Recognize that success from one clean initial condition can be memorization,
+  not evidence that the policy generalizes.
+
+The implementation plan is recorded in
+`design/mlp_vertical_hover_module_plan.md`.

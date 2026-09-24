@@ -1,10 +1,11 @@
-# Roadmap: from gravity to autonomous hover
+# Roadmap: from gravity to SITL-controlled flight
 
 ## Final goal
 
 Create a real-time PyBullet quadcopter simulation that takes off and holds a
-stable hover at 5 m while accounting for inertia, propeller forces, air drag,
-control feedback, and battery voltage sag.
+stable hover while accounting for inertia, propeller forces, air drag, control
+feedback, and battery voltage sag. Then add image-based navigation cues and fly
+the same vehicle through a Betaflight SITL control bridge.
 
 | Milestone | Modules | Outcome |
 | --- | --- | --- |
@@ -15,6 +16,8 @@ control feedback, and battery voltage sag.
 | Stable control | 4 | Mix commands and stabilize the vehicle with PID. |
 | Real-world limits | 5 | Model battery discharge and reduced available thrust. |
 | Autonomous flight | 6 | Achieve a controlled takeoff and precision hover. |
+| Visual navigation | 7 | Read forward-camera RGB frames and measure monocular optical flow. |
+| Flight-controller integration | 8 | Fly PyBullet with Betaflight SITL motor commands. |
 
 ## Recommended sequence
 
@@ -24,5 +27,8 @@ control feedback, and battery voltage sag.
 3. Compare simulation measurements with the expected equations before adding
    the next layer.
 4. Integrate all layers only in the capstone.
+5. Treat RGB optical flow as relative image motion until another sensor provides
+   metric scale.
+6. Pin and test the SITL version before changing the UDP bridge.
 
 See the complete [syllabus](syllabus.md).
