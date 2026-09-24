@@ -3,13 +3,13 @@
 ## By the end, you will be able to
 
 - Convert altitude error into high-level control inputs.
-- Map a decision model's output to motor PWM.
+- Map PID control output to motor PWM.
 - Hold a stable 5 m hover under simulated physical limits.
 
 ## Lessons
 
 1. Build closed-loop altitude tracking from spatial displacement.
-2. Map live MLP inference through the mixer to safe motor commands.
+2. Map PID corrections through the mixer to safe motor commands.
 3. Verify hover while balancing drag, inertia, and battery depletion.
 
 ---
@@ -96,6 +96,64 @@ uv run python examples/06-autonomous-hover/auto_takeoff_and_hover.py --headless
 
 Later modules will replace collective throttle with individual motor commands,
 add battery and wind effects, and close the loop with altitude control.
+
+---
+
+## Live altitude PID tuning
+
+`pid_tuning_hover.py` is a separate tuning tool. It keeps the automatic
+example unchanged and exposes live sliders for the altitude target, `Kp`, `Ki`,
+`Kd`, and altitude-measurement noise. It opens paused. Use the separate
+**Simulation controls** window to start, stop, reset, exit, or load a preset.
+
+The response window has two plots: target, true, and measured altitude with
+collective thrust on top; the P, I, D, and summed controller terms below.
+
+```bash
+uv run python examples/06-autonomous-hover/pid_tuning_hover.py
+```
+
+Start with the default gains `(0.7, 0.05, 1.1)`. Change one gain at a time,
+then move the target slider to create a step response:
+
+| Gain | What to look for |
+| --- | --- |
+| `Kp` | More lift response, but excessive values overshoot and oscillate. |
+| `Ki` | Removes steady altitude error, but can build up and overshoot. |
+| `Kd` | Damps vertical motion; this first version keeps vertical-velocity sensing ideal. |
+
+Changing a gain resets the altitude integrator so the graph shows the new
+setting clearly. **Reset** retains your gain, target, and noise sliders while
+restarting the vehicle and graph. The presets replace those slider values with
+one deliberate scenario: stable, gentle, aggressive, or noisy.
+
+**Units matter:** collective thrust and all four lower PID traces are forces in
+newtons. The PID output is a correction force; the controller adds it to the
+drone weight `mg` to obtain total thrust. Only after that does the simulation
+convert each motor's thrust share to a PWM command in microseconds.
+
+Keep noise at `0` for the first experiment. Then increase **Altitude noise
+sigma (m)**: it changes only the measurement given to the PID, not the true
+physical altitude or the vertical-velocity input. The seeded noise can be
+reproduced with `--seed`.
+
+For a non-interactive run, output a chart and CSV trace:
+
+```bash
+uv run python examples/06-autonomous-hover/pid_tuning_hover.py \
+  --headless --seconds 12 --output pid-tuning-run
+```
+
+In the GUI, add `--output runs/my-tune` before tuning, then press Esc when the
+run is finished. It saves `my-tune.csv`, `my-tune.png`, and `my-tune.json`.
+The JSON file preserves the final target, PID gains, noise setting, and seed so
+you can record or repeat a tuning session.
+
+Run the repeatable controller and noise check with:
+
+```bash
+uv run python examples/06-autonomous-hover/pid_tuning_hover.py --self-check
+```
 
 ---
 

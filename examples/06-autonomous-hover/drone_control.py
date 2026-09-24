@@ -152,9 +152,15 @@ def step_drone(drone: int, pwm: float, torque: tuple[float, float, float], motor
 
 
 def draw_force_vectors(drone: int, motor_thrusts: tuple[float, float, float, float], line_ids: list[int]) -> None:
-    rotation = p.getMatrixFromQuaternion(p.getBasePositionAndOrientation(drone)[1])
-    direction = (rotation[2], rotation[5], rotation[8])
-    for index, thrust in enumerate(motor_thrusts):
-        position = p.getLinkState(drone, index)[0]
-        endpoint = tuple(start + axis * thrust * 0.15 for start, axis in zip(position, direction))
-        line_ids[index] = p.addUserDebugLine(position, endpoint, (0.1, 0.8, 0.2), lineWidth=3, replaceItemUniqueId=line_ids[index])
+    if not p.isConnected():
+        return
+    try:
+        rotation = p.getMatrixFromQuaternion(p.getBasePositionAndOrientation(drone)[1])
+        direction = (rotation[2], rotation[5], rotation[8])
+        for index, thrust in enumerate(motor_thrusts):
+            position = p.getLinkState(drone, index)[0]
+            endpoint = tuple(start + axis * thrust * 0.15 for start, axis in zip(position, direction))
+            line_ids[index] = p.addUserDebugLine(position, endpoint, (0.1, 0.8, 0.2), lineWidth=3, replaceItemUniqueId=line_ids[index])
+    except p.error:
+        if p.isConnected():
+            raise
