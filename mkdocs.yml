@@ -2,6 +2,7 @@ site_name: Drone Physics & Simulation
 site_description: Build a quadcopter physics engine from first principles
 theme:
   name: material
+  favicon: assets/drone-icon.svg
   features:
     - content.code.copy
 extra_javascript:
@@ -30,7 +31,10 @@ nav:
   - Syllabus: syllabus.md
   - "Module 0: PyBullet setup": modules/00-pybullet-setup/index.md
   - "Module 1: Mass and forces": modules/01-mass-and-forces/index.md
-  - "Module 2: URDF engine": modules/02-urdf-engine/index.md
+  - "Module 2: URDF engine":
+      - Overview: modules/02-urdf-engine/index.md
+      - URDF anatomy: modules/02-urdf-engine/urdf-anatomy/index.md
+      - Real racing-quad case study: modules/02-urdf-engine/real-drone/index.md
   - "Module 3: Propeller aerodynamics": modules/03-propeller-aerodynamics/index.md
   - "Module 4: Motor mixer and PID": modules/04-motor-mixer-pid/index.md
   - "Module 5: Battery voltage sag": modules/05-battery-voltage-sag/index.md

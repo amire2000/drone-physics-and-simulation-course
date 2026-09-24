@@ -25,6 +25,15 @@ heading around the vertical Z axis. Roll and pitch arrive later with control.
 
 ---
 
+## URDF lessons
+
+- [URDF anatomy](urdf-anatomy/index.md) — learn the `robot`, `link`, `joint`,
+  `inertial`, `visual`, and `collision` blocks with an isolated editable drone.
+- [Real racing-quad case study](real-drone/index.md) — inspect a runnable,
+  course-focused adaptation of a Racer drone URDF.
+
+---
+
 ## World frame and body frame
 
 The **world frame** is fixed to the room: `+X`, `+Y`, and `+Z` never move. The

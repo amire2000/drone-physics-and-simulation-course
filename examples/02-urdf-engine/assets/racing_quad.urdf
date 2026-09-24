@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+<robot name="course_racing_quad">
+  <link name="base_link">
+    <inertial><origin xyz="0 0 0"/><mass value="0.83"/><inertia ixx="0.003113" ixy="0" ixz="0" iyy="0.003113" iyz="0" izz="0.003113"/></inertial>
+    <visual><geometry><box size="0.17 0.135 0.035"/></geometry><material name="body"><color rgba="0.12 0.16 0.24 1"/></material></visual>
+    <visual><geometry><box size="0.30 0.02 0.015"/></geometry><material name="arm"><color rgba="0.35 0.42 0.55 1"/></material></visual>
+    <visual><geometry><box size="0.02 0.25 0.015"/></geometry><material name="arm"><color rgba="0.35 0.42 0.55 1"/></material></visual>
+    <collision><geometry><cylinder radius="0.06" length="0.025"/></geometry></collision>
+  </link>
+  <link name="rotor_0"><inertial><mass value="0"/><inertia ixx="0" ixy="0" ixz="0" iyy="0" iyz="0" izz="0"/></inertial><visual><geometry><cylinder radius="0.035" length="0.02"/></geometry><material name="rotor"><color rgba="0.1 0.65 1 1"/></material></visual></link>
+  <joint name="rotor_0_joint" type="fixed"><parent link="base_link"/><child link="rotor_0"/><origin xyz="0.085 0.0675 0"/></joint>
+  <link name="rotor_1"><inertial><mass value="0"/><inertia ixx="0" ixy="0" ixz="0" iyy="0" iyz="0" izz="0"/></inertial><visual><geometry><cylinder radius="0.035" length="0.02"/></geometry><material name="rotor"><color rgba="0.1 0.65 1 1"/></material></visual></link>
+  <joint name="rotor_1_joint" type="fixed"><parent link="base_link"/><child link="rotor_1"/><origin xyz="-0.085 0.0675 0"/></joint>
+  <link name="rotor_2"><inertial><mass value="0"/><inertia ixx="0" ixy="0" ixz="0" iyy="0" iyz="0" izz="0"/></inertial><visual><geometry><cylinder radius="0.035" length="0.02"/></geometry><material name="rotor"><color rgba="0.1 0.65 1 1"/></material></visual></link>
+  <joint name="rotor_2_joint" type="fixed"><parent link="base_link"/><child link="rotor_2"/><origin xyz="-0.085 -0.0675 0"/></joint>
+  <link name="rotor_3"><inertial><mass value="0"/><inertia ixx="0" ixy="0" ixz="0" iyy="0" iyz="0" izz="0"/></inertial><visual><geometry><cylinder radius="0.035" length="0.02"/></geometry><material name="rotor"><color rgba="0.1 0.65 1 1"/></material></visual></link>
+  <joint name="rotor_3_joint" type="fixed"><parent link="base_link"/><child link="rotor_3"/><origin xyz="0.085 -0.0675 0"/></joint>
+</robot>

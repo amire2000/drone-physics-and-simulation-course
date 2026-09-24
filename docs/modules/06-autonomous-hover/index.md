@@ -61,7 +61,7 @@ you reduce collective PWM below hover, the drone still descends because total
 thrust is below weight.
 
 The 1500 µs hover point is a teaching calibration, not propeller test data.
-The constants at the top of `manual_takeoff.py` are deliberately easy to tune.
+The shared constants in `drone_control.py` are deliberately easy to tune.
 
 For a repeatable terminal run:
 

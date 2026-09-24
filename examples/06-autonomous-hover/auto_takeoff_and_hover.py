@@ -5,13 +5,12 @@ import time
 
 import pybullet as p
 
-from manual_takeoff import (
-    CONTROL_HZ,
+from drone_control import (
     CONTROL_STEPS,
     MASS,
-    PWM_MAX,
     START_HEIGHT,
     TIME_STEP,
+    attitude_torque,
     clamp,
     create_world,
     draw_force_vectors,
@@ -55,13 +54,7 @@ def run(gui: bool, max_seconds: float = MAX_SECONDS) -> None:
         if step % CONTROL_STEPS == 0:
             total_thrust = MASS * 9.81 + altitude_pid.update(target_altitude - position[2], vertical_velocity)
             pwm = pwm_from_thrust(clamp(total_thrust / 4, 0.0, MASS * 9.81))
-            (roll, pitch, yaw), rates = read_imu(drone)
-            roll_pid, pitch_pid, yaw_pid = attitude_pids
-            torque = (
-                roll_pid.update(-roll, rates[0]),
-                pitch_pid.update(-pitch, rates[1]),
-                yaw_pid.update(wrap_angle(yaw_target - yaw), rates[2]),
-            )
+            torque = attitude_torque(drone, attitude_pids, yaw_target)
         motor_rpms, motor_thrusts, total_thrust = step_drone(drone, pwm, torque, motor_rpms)
 
         position, _ = p.getBasePositionAndOrientation(drone)
