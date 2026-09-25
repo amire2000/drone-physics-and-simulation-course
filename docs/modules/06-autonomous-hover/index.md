@@ -63,8 +63,9 @@ you reduce collective PWM below hover, the drone still descends because total
 thrust is below weight.
 
 The 1500 µs hover point is a teaching calibration, not propeller test data.
-The shared constants in `examples/common/drone_control.py` are deliberately
-easy to tune.
+The shared model constants in `examples/common/drone_model.py` are deliberately
+easy to tune. `PhysicsEngine` owns the changing motor RPM state and applies the
+forces for each tick.
 
 For a repeatable terminal run:
 
@@ -118,7 +119,7 @@ flowchart LR
     weight[Add hover force<br/>mg + PID output]
     pwm[Split force across 4 motors<br/>and convert N to PWM us]
     attitude[Read IMU attitude and rates<br/>attitude PID → body torque]
-    step[step_drone]
+    step[PhysicsEngine.step]
     physics[PyBullet physics tick]
     state --> error
     target --> error
@@ -138,11 +139,11 @@ converts the requested force for one motor to PWM, and uses the attitude PID's
 torque request to make the small motor-to-motor differences needed to stay
 level.
 
-### What `step_drone()` does
+### What `PhysicsEngine.step()` does
 
-`step_drone(drone, pwm, torque, motor_rpms)` receives a collective PWM command,
-a body-torque request `(roll, pitch, yaw)`, and the motors' actual RPM from the
-previous physics tick. It performs the actuator and force part of the loop:
+`engine.step(drone, pwm, torque)` receives a collective PWM command and a
+body-torque request `(roll, pitch, yaw)`. The engine owns the motors' actual
+RPM state and performs the actuator and force part of the loop:
 
 1. Convert the collective PWM to a requested thrust per motor.
 2. Mix the roll, pitch, and yaw torque corrections into four bounded motor
@@ -154,10 +155,10 @@ previous physics tick. It performs the actuator and force part of the loop:
    body drag as PyBullet external forces and torques.
 6. Call `p.stepSimulation()` once to integrate the new motion at 240 Hz.
 
-It returns the new actual motor RPM, the four applied motor thrusts, and their
-total. That returned RPM is essential: it becomes the next tick's motor state,
-which is why a sudden PWM change produces a smooth force response instead of
-an impossible instantaneous jump.
+It returns a `PhysicsStep` containing the new actual motor RPM, the four
+applied motor thrusts, their total, drag force, and updated rigid-body state.
+The retained engine RPM state is why a sudden PWM change produces a smooth
+force response instead of an impossible instantaneous jump.
 
 ---
 
@@ -221,53 +222,10 @@ uv run python examples/06-autonomous-hover/pid_tuning_hover.py --self-check
 
 ## Physics-engine capstone and validation
 
-Before tuning an autonomous controller, the simulator must expose a complete
-state and pass controlled physics checks. The combined state is:
-
-```text
-x = [position, linear_velocity, attitude_quaternion, angular_velocity]
-```
-
-Keep the model responsibilities separate:
-
-```text
-DroneModel
- ├── mass and inertia
- ├── four motors and propellers
- ├── aerodynamics
- └── physical state
-
-PhysicsEngine
- ├── gravity and thrust
- ├── motor reaction torque
- ├── drag and wind
- ├── force/torque accumulation
- └── numerical integration
-```
-
-### Validation checklist
-
-Run each test with one change at a time and compare the measured state with the
-prediction:
-
-| Test | Setup | Expected result |
-| --- | --- | --- |
-| Gravity | Motors off | Free fall near `−9.81 m/s²`. |
-| Hover | Equal thrust with `ΣT = mg` | Nearly constant altitude. |
-| Vertical acceleration | Increase all four motors equally | Positive vertical acceleration. |
-| Roll | Change left/right thrust pair | Roll acceleration in the predicted direction. |
-| Pitch | Change front/rear thrust pair | Pitch acceleration in the predicted direction. |
-| Yaw | Change CW/CCW pair balance | Yaw acceleration without changing collective much. |
-| Wind | Add a lateral relative-air velocity | Lateral drift and drag-limited motion. |
-
-The manual takeoff, force-vector display, automatic hover, and PID tuning
-examples provide the first four practical checks. The propeller and mixer
-lessons provide the motor-force checks; the wind experiment from Module 4
-provides the final environmental check.
-
-Only after these tests pass should the altitude PID be judged. A controller can
-hide a physics error for one scenario, while independent force and torque tests
-reveal whether the engine itself is correct.
+The detailed capstone explains the reusable engine, its seven validation
+scenarios, and how the hover examples use it. Continue to
+[the physics-engine capstone](physics-engine-capstone/index.md) before tuning
+new controller gains.
 
 ---
 

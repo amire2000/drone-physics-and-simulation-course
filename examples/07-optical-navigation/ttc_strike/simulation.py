@@ -8,19 +8,11 @@ import time
 import cv2
 import pybullet as p
 
-from common.drone_control import (
-    CONTROL_STEPS,
-    MASS,
-    PHYSICS_HZ,
-    TIME_STEP,
-    attitude_torque,
-    clamp,
-    create_world,
-    draw_force_vectors,
-    make_controllers,
-    pwm_from_thrust,
-    step_drone,
-)
+from common.drone_model import DEFAULT_DRONE_MODEL, DEFAULT_PHYSICS_SETTINGS
+from common.drone_physics import PhysicsEngine, clamp
+from common.flight_control import AttitudeController
+from common.pybullet_sensors import read_imu
+from common.pybullet_utils import create_world, draw_force_vectors
 from forward_camera import add_environment_buildings, add_red_cube, forward_rgb
 from red_target_detector import detect_red_box
 
@@ -30,6 +22,13 @@ from .sensing import Barometer, BarometerReading
 from .telemetry import FlightLog, build_summary, make_plot, move_plot_window, refresh_plot, save_csv, save_plot, save_summary
 from .ttc import BboxTtcTracker, TtcObservation
 from .views import annotate, environment_rgb
+
+MODEL = DEFAULT_DRONE_MODEL
+SETTINGS = DEFAULT_PHYSICS_SETTINGS
+MASS = MODEL.mass_kg
+PHYSICS_HZ = SETTINGS.physics_hz
+TIME_STEP = SETTINGS.time_step_s
+CONTROL_STEPS = SETTINGS.control_steps
 
 
 @dataclass(frozen=True)
@@ -54,13 +53,12 @@ class StrikeSimulation:
     def run(self, gui: bool, max_seconds: float, video: Path | None, plot: Path | None, csv: Path | None = None, summary: Path | None = None) -> StrikeResult:
         config = self.config
         drone = create_world()
+        engine = PhysicsEngine()
         p.resetBasePositionAndOrientation(drone, config.launch_position, (0, 0, 0, 1))
         cube = add_red_cube(self.scene.target_center, self.scene.target_size_m)
         add_environment_buildings()
         barometer, tracker, guidance = Barometer(config), BboxTtcTracker(config), StrikeGuidance(config)
-        attitude_pids = make_controllers(config.pitch_attitude_pid_gains)
-        motor_rpms = (0.0, 0.0, 0.0, 0.0)
-        motor_thrusts = (0.0, 0.0, 0.0, 0.0)
+        attitude_controller = AttitudeController(config.pitch_attitude_pid_gains)
         torque = (0.0, 0.0, 0.0)
         command = GuidanceCommand(FlightPhase.TAKEOFF, config.hover_thrust_n, 0.0, None)
         baro = BarometerReading(config.launch_position[2], 0.0)
@@ -151,9 +149,9 @@ class StrikeSimulation:
                                 f"target lost before commit (last bbox height {last_height:g} px)",
                             )
                         # pitch_target_rad is a high-level attitude request.
-                        # attitude_torque compares it with the IMU attitude and
+                        # The attitude controller compares it with the IMU attitude and
                         # returns the body torque needed by the motor mixer.
-                        torque = attitude_torque(drone, attitude_pids, yaw_target=0.0, pitch_target=command.pitch_target_rad)
+                        torque = attitude_controller.update(read_imu(drone), yaw_target=0.0, pitch_target=command.pitch_target_rad)
                     else:
                         # Post-impact: do not keep steering or accelerating.
                         torque = (0.0, 0.0, 0.0)
@@ -161,9 +159,9 @@ class StrikeSimulation:
                 # thrust_n is the collective force. Split it evenly before
                 # mapping force to a PWM signal for the four motors.
                 collective = 0.0 if stop_at_s is not None else command.thrust_n
-                pwm = pwm_from_thrust(clamp(collective / 4, 0.0, MASS * 9.81))
+                pwm = engine.pwm_from_thrust(clamp(collective / 4, 0.0, MODEL.max_thrust_per_motor_n))
                 incoming_velocity = p.getBaseVelocity(drone)[0]
-                motor_rpms, motor_thrusts, _ = step_drone(drone, pwm, torque, motor_rpms)
+                flight_step = engine.step(drone, pwm, torque)
                 position, _ = p.getBasePositionAndOrientation(drone)
                 velocity, _ = p.getBaseVelocity(drone)
                 pitch_rad = p.getEulerFromQuaternion(p.getBasePositionAndOrientation(drone)[1])[1]
@@ -191,7 +189,7 @@ class StrikeSimulation:
                         cv2.imshow("TTC diagonal strike", annotate(frame, command, observation))
                         if cv2.waitKey(1) & 0xFF in (27, ord("q"), ord("Q")):
                             return finish(False, command.phase.value, now_s)
-                    draw_force_vectors(drone, motor_thrusts, force_lines)
+                    draw_force_vectors(drone, flight_step, force_lines)
                     time.sleep(TIME_STEP)
             print(f"Strike timed out in {command.phase.value} phase")
             return finish(False, command.phase.value, max_seconds)

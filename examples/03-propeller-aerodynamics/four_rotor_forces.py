@@ -8,16 +8,16 @@ EXAMPLES_ROOT = Path(__file__).resolve().parents[1]
 if str(EXAMPLES_ROOT) not in sys.path:
     sys.path.insert(0, str(EXAMPLES_ROOT))
 
-from common.drone_control import ARM_OFFSET, KF, KM, MOTOR_YAW_SIGNS
+from common.drone_model import DEFAULT_DRONE_MODEL
 
-POSITIONS = ((ARM_OFFSET, ARM_OFFSET), (ARM_OFFSET, -ARM_OFFSET), (-ARM_OFFSET, ARM_OFFSET), (-ARM_OFFSET, -ARM_OFFSET))
+POSITIONS = DEFAULT_DRONE_MODEL.motor_positions_m
 
 
 def force_and_torque(thrusts: tuple[float, float, float, float]) -> tuple[float, tuple[float, float, float]]:
     total = sum(thrusts)
     roll = sum(y * thrust for (_, y), thrust in zip(POSITIONS, thrusts))
     pitch = sum(-x * thrust for (x, _), thrust in zip(POSITIONS, thrusts))
-    yaw = sum(sign * KM / KF * thrust for sign, thrust in zip(MOTOR_YAW_SIGNS, thrusts))
+    yaw = sum(sign * DEFAULT_DRONE_MODEL.torque_coefficient / DEFAULT_DRONE_MODEL.thrust_coefficient * thrust for sign, thrust in zip(DEFAULT_DRONE_MODEL.motor_yaw_signs, thrusts))
     return total, (roll, pitch, yaw)
 
 

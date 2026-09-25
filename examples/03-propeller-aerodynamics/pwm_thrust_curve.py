@@ -9,12 +9,13 @@ EXAMPLES_ROOT = Path(__file__).resolve().parents[1]
 if str(EXAMPLES_ROOT) not in sys.path:
     sys.path.insert(0, str(EXAMPLES_ROOT))
 
-from common.drone_control import MAX_RPM, MAX_THRUST_PER_MOTOR, PWM_MAX, PWM_MIN, thrust_from_pwm
+from common.drone_model import DEFAULT_DRONE_MODEL
+from common.drone_physics import PWM_MAX, PWM_MIN, thrust_from_pwm
 
 
 def rpm_from_pwm(pwm: float) -> float:
     normalized = max(0.0, min(1.0, (pwm - PWM_MIN) / (PWM_MAX - PWM_MIN)))
-    return MAX_RPM * math.sqrt(normalized)
+    return DEFAULT_DRONE_MODEL.max_rpm * math.sqrt(normalized)
 
 
 def main() -> None:
@@ -26,9 +27,9 @@ def main() -> None:
     for index in range(args.steps):
         pwm = PWM_MIN + (PWM_MAX - PWM_MIN) * index / (args.steps - 1)
         print(f"{pwm:8.0f} | {rpm_from_pwm(pwm):5.0f} | {thrust_from_pwm(pwm):9.3f}")
-    print(f"Maximum single-rotor thrust: {MAX_THRUST_PER_MOTOR:.3f} N")
+    print(f"Maximum single-rotor thrust: {DEFAULT_DRONE_MODEL.max_thrust_per_motor_n:.3f} N")
     assert abs(thrust_from_pwm(PWM_MIN)) < 1e-12
-    assert abs(thrust_from_pwm(PWM_MAX) - MAX_THRUST_PER_MOTOR) < 1e-12
+    assert abs(thrust_from_pwm(PWM_MAX) - DEFAULT_DRONE_MODEL.max_thrust_per_motor_n) < 1e-12
 
 
 if __name__ == "__main__":

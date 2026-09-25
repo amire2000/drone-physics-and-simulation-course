@@ -22,6 +22,7 @@
 
 - Explain propeller airflow, SI units, diameter, pitch, and blade count.
 - Map PWM through RPM to quadratic thrust using calibrated `kT` and `kQ`.
+- Use motor KV and battery voltage to compare 5-inch FPV power-system choices.
 - Use ideal momentum theory to estimate induced velocity and rotor disk effects.
 - Calculate four-rotor collective thrust, lever-arm torque, reaction torque, and power.
 
@@ -42,6 +43,7 @@
 - Turn altitude error into continuous high-level decision inputs.
 - Map model outputs through the mixer to motor PWM signals.
 - Balance battery, drag, and inertia to hold a stable 5 m hover.
+- Validate gravity, hover, roll, pitch, yaw, and wind before trusting the controller.
 
 ## [7. Forward camera and monocular optical navigation](modules/07-optical-navigation/index.md)
 

@@ -15,19 +15,11 @@ EXAMPLES_ROOT = Path(__file__).resolve().parents[1]
 if str(EXAMPLES_ROOT) not in sys.path:
     sys.path.insert(0, str(EXAMPLES_ROOT))
 
-from common.drone_control import (
-    CONTROL_STEPS,
-    MASS,
-    START_HEIGHT,
-    TIME_STEP,
-    attitude_torque,
-    clamp,
-    create_world,
-    draw_force_vectors,
-    make_controllers,
-    pwm_from_thrust,
-    step_drone,
-)
+from common.drone_model import DEFAULT_DRONE_MODEL, DEFAULT_PHYSICS_SETTINGS
+from common.drone_physics import PhysicsEngine, clamp
+from common.flight_control import AttitudeController
+from common.pybullet_sensors import read_imu, read_state
+from common.pybullet_utils import create_world, draw_force_vectors, reset_drone
 from common.pid import PID
 
 TARGET_ALTITUDE = 3.0
@@ -39,6 +31,12 @@ PRESETS = {
     "Aggressive response": (TARGET_ALTITUDE, (2.0, 0.1, 0.1), 0.0),
     "Noisy sensor": (TARGET_ALTITUDE, DEFAULT_GAINS, 0.05),
 }
+MODEL = DEFAULT_DRONE_MODEL
+SETTINGS = DEFAULT_PHYSICS_SETTINGS
+MASS = MODEL.mass_kg
+START_HEIGHT = 0.05
+TIME_STEP = SETTINGS.time_step_s
+CONTROL_STEPS = SETTINGS.control_steps
 
 
 @dataclass
@@ -74,12 +72,11 @@ class Telemetry:
         self.controller_output.append(controller_output)
 
 
-def reset_flight(drone: int, altitude_pid: PID) -> tuple[float, float, float, float]:
+def reset_flight(drone: int, engine: PhysicsEngine, altitude_pid: PID) -> None:
     """Reset only the vehicle state so GUI controls remain available."""
-    p.resetBasePositionAndOrientation(drone, (0, 0, START_HEIGHT), (0, 0, 0, 1))
-    p.resetBaseVelocity(drone, (0, 0, 0), (0, 0, 0))
+    reset_drone(drone, (0, 0, START_HEIGHT))
+    engine.reset()
     altitude_pid.reset()
-    return (0.0, 0.0, 0.0, 0.0)
 
 
 def apply_gains(controller: PID, gains: tuple[float, float, float]) -> None:
@@ -181,14 +178,13 @@ def make_control_panel() -> tuple[object, dict[str, object]]:
 def simulate(seconds: float, target: float, gains: tuple[float, float, float], noise_sigma: float, seed: int, gui: bool = False, output: str | None = None) -> Telemetry:
     """Run one repeatable flight. GUI mode supplies live sliders and a plot."""
     drone = create_world()
+    engine = PhysicsEngine()
     altitude_pid = PID(*gains, integral_limit=0.4)
-    roll_pid, pitch_pid, yaw_pid = make_controllers()
-    attitude_pids = (roll_pid, pitch_pid, yaw_pid)
+    attitude_controller = AttitudeController()
     yaw_target = 0.0
-    motor_rpms = (0.0, 0.0, 0.0, 0.0)
     torque = (0.0, 0.0, 0.0)
     total_thrust = MASS * 9.81
-    pwm = pwm_from_thrust(total_thrust / 4)
+    pwm = engine.pwm_from_thrust(total_thrust / 4)
     rng = np.random.default_rng(seed)
     telemetry = Telemetry()
     plot_state = None
@@ -224,7 +220,7 @@ def simulate(seconds: float, target: float, gains: tuple[float, float, float], n
                 control_state["preset"] = None
                 control_state["reset"] = True
             if control_state["reset"]:
-                motor_rpms = reset_flight(drone, altitude_pid)
+                reset_flight(drone, engine, altitude_pid)
                 telemetry = Telemetry()
                 rng = np.random.default_rng(seed)
                 pid_terms = (0.0, 0.0, 0.0)
@@ -244,28 +240,28 @@ def simulate(seconds: float, target: float, gains: tuple[float, float, float], n
                 apply_gains(altitude_pid, gains)
                 gains_before = gains
 
-        position, _ = p.getBasePositionAndOrientation(drone)
-        altitude = position[2]
-        vertical_velocity = p.getBaseVelocity(drone)[0][2]
+        state = read_state(drone)
+        altitude = state.position_m[2]
+        vertical_velocity = state.linear_velocity_mps[2]
         if step % CONTROL_STEPS == 0:
             measured_altitude = altitude + rng.normal(0.0, noise_sigma)
             pid_terms = altitude_pid.update_terms(target - measured_altitude, vertical_velocity)
             controller_output = sum(pid_terms)
             total_thrust = MASS * 9.81 + controller_output
-            pwm = pwm_from_thrust(clamp(total_thrust / 4, 0.0, MASS * 9.81))
-            torque = attitude_torque(drone, attitude_pids, yaw_target)
-        motor_rpms, motor_thrusts, total_thrust = step_drone(drone, pwm, torque, motor_rpms)
+            pwm = engine.pwm_from_thrust(clamp(total_thrust / 4, 0.0, MODEL.max_thrust_per_motor_n))
+            torque = attitude_controller.update(read_imu(drone), yaw_target)
+        flight_step = engine.step(drone, pwm, torque)
+        total_thrust = flight_step.total_thrust_n
 
         if step % max(1, round(1 / (PLOT_HZ * TIME_STEP))) == 0:
-            position, _ = p.getBasePositionAndOrientation(drone)
-            altitude = position[2]
+            altitude = flight_step.state.position_m[2]
             measured_altitude = altitude + rng.normal(0.0, noise_sigma)
             telemetry.append(now, target, altitude, measured_altitude, total_thrust, pid_terms, controller_output)
             if gui:
                 refresh_plot(*plot_state, telemetry)
 
         if gui:
-            draw_force_vectors(drone, motor_thrusts, force_lines)
+            draw_force_vectors(drone, flight_step, force_lines)
             time.sleep(TIME_STEP)
         step += 1
 
@@ -296,8 +292,10 @@ def self_check() -> None:
     assert noisy_a.measured_altitude == noisy_b.measured_altitude, "A seed must reproduce altitude noise"
     assert noisy_a.measured_altitude != noisy_c.measured_altitude, "Different seeds must change altitude noise"
     drone = create_world()
+    engine = PhysicsEngine()
+    flight_step = engine.step(drone, 1000.0, (0.0, 0.0, 0.0))
     p.disconnect()
-    draw_force_vectors(drone, (0.0, 0.0, 0.0, 0.0), [-1, -1, -1, -1])
+    draw_force_vectors(drone, flight_step, [-1, -1, -1, -1])
     print("PID tuning hover self-check passed")
 
 

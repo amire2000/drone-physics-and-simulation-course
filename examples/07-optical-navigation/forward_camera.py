@@ -14,24 +14,22 @@ EXAMPLES_ROOT = Path(__file__).resolve().parents[1]
 if str(EXAMPLES_ROOT) not in sys.path:
     sys.path.insert(0, str(EXAMPLES_ROOT))
 
-from common.drone_control import (
-    CONTROL_STEPS,
-    MASS,
-    PHYSICS_HZ,
-    TIME_STEP,
-    attitude_torque,
-    clamp,
-    create_world,
-    draw_force_vectors,
-    make_controllers,
-    pwm_from_thrust,
-    step_drone,
-)
+from common.drone_model import DEFAULT_DRONE_MODEL, DEFAULT_PHYSICS_SETTINGS
+from common.drone_physics import PhysicsEngine, clamp
+from common.flight_control import AttitudeController
+from common.pybullet_sensors import read_imu, read_state
+from common.pybullet_utils import create_world, draw_force_vectors
 from common.pid import PID
 
 TARGET_ALTITUDE = 3.0
 CAMERA_WIDTH, CAMERA_HEIGHT = 640, 480
 CAMERA_HZ = 30
+MODEL = DEFAULT_DRONE_MODEL
+SETTINGS = DEFAULT_PHYSICS_SETTINGS
+MASS = MODEL.mass_kg
+PHYSICS_HZ = SETTINGS.physics_hz
+TIME_STEP = SETTINGS.time_step_s
+CONTROL_STEPS = SETTINGS.control_steps
 
 
 def add_red_cube(center: tuple[float, float, float] = (20, 0, 1), size_m: float = 2.0) -> int:
@@ -77,24 +75,25 @@ def forward_rgb(
 
 def run(gui: bool, max_seconds: float) -> None:
     drone = create_world()
+    engine = PhysicsEngine()
     add_red_cube()
     add_environment_buildings()
     altitude_pid = PID(kp=0.7, ki=0.05, kd=1.1, integral_limit=0.4)
-    attitude_pids = make_controllers()
-    motor_rpms = (0.0, 0.0, 0.0, 0.0)
+    attitude_controller = AttitudeController()
     pwm = 1000.0
     torque = (0.0, 0.0, 0.0)
     force_lines = [-1, -1, -1, -1]
     renderer = p.ER_BULLET_HARDWARE_OPENGL if gui else p.ER_TINY_RENDERER
 
     for step in range(round(max_seconds / TIME_STEP)):
-        position, _ = p.getBasePositionAndOrientation(drone)
-        vertical_velocity = p.getBaseVelocity(drone)[0][2]
+        state = read_state(drone)
+        position = state.position_m
+        vertical_velocity = state.linear_velocity_mps[2]
         if step % CONTROL_STEPS == 0:
             total_thrust = MASS * 9.81 + altitude_pid.update(TARGET_ALTITUDE - position[2], vertical_velocity)
-            pwm = pwm_from_thrust(clamp(total_thrust / 4, 0.0, MASS * 9.81))
-            torque = attitude_torque(drone, attitude_pids, yaw_target=0.0)
-        motor_rpms, motor_thrusts, _ = step_drone(drone, pwm, torque, motor_rpms)
+            pwm = engine.pwm_from_thrust(clamp(total_thrust / 4, 0.0, MODEL.max_thrust_per_motor_n))
+            torque = attitude_controller.update(read_imu(drone), yaw_target=0.0)
+        flight_step = engine.step(drone, pwm, torque)
 
         if step % (PHYSICS_HZ // CAMERA_HZ) == 0:
             rgb = forward_rgb(drone, renderer)
@@ -104,7 +103,7 @@ def run(gui: bool, max_seconds: float) -> None:
                     return
 
         if gui:
-            draw_force_vectors(drone, motor_thrusts, force_lines)
+            draw_force_vectors(drone, flight_step, force_lines)
             time.sleep(TIME_STEP)
 
 

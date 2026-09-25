@@ -8,6 +8,7 @@ pushed up”, then add equations and experiments one piece at a time.
 
 - Explain how a propeller creates thrust in everyday language.
 - Convert PWM to an approximate RPM and thrust value.
+- Explain motor KV and select a sensible KV/voltage pair for a 5-inch frame.
 - Use SI units for speed, force, torque, power, and propeller size.
 - Explain how diameter, pitch, and blade count affect performance.
 - Calculate ideal induced velocity with a momentum-theory model.
@@ -111,68 +112,16 @@ Record minimum PWM, midpoint PWM, and maximum PWM. Explain why midpoint command
 is not necessarily half of maximum thrust. Try `--steps 21` and estimate the
 PWM needed for one quarter of the drone's hover force.
 
----
 
-## 4. Propeller geometry
-
-- **Diameter** is the circle swept by blade tips. A larger disk can move more
-  air, but needs more room and motor torque.
-- **Pitch** is the ideal distance traveled in one revolution. Higher pitch can
-  produce more speed, but only when the motor can maintain RPM.
-- **Blade count** changes how much blade area touches the air. More blades can
-  make a compact rotor produce more force, but usually increase drag and power.
-
-Rotor disk area is
-
-$$A = \pi\left(\frac{D}{2}\right)^2.$$
-
-For forward flight, the advance ratio is
-
-$$J = \frac{V}{nD},$$
-
-where (V) is speed through the rotor disk and (n) is revolutions per second.
-At hover, (V\approx0), so (J) is close to zero. At higher forward speed,
-incoming air changes the blade forces.
-
-### Hands-on: compare two disks
-
-Calculate the area of 5-inch and 7-inch propellers. Predict which can move
-more air, then explain why diameter alone does not determine final thrust:
-pitch, RPM, blade shape, motor power, and air density also matter.
+Continue with [Motor KV: from theory to practice](motor-kv/index.md) to connect
+battery voltage and motor RPM, then study
+[Propeller geometry and airflow](propeller-design/index.md). Run the
+[configuration takeoff comparison](configuration-comparison/index.md) to see
+how the same PWM produces different takeoff trajectories on 4S and 6S.
 
 ---
 
-## 5. Momentum theory: an ideal airflow model
-
-Momentum theory treats the rotor as a disk accelerating a column of air. In
-ideal hover:
-
-$$T = 2\rho A v_i^2,$$
-
-so induced air speed is
-
-$$v_i = \sqrt{\frac{T}{2\rho A}}.$$
-
-Here (v_i) is not the drone's vertical speed. It is the ideal airflow speed
-associated with the rotor's change to air momentum.
-
-The model assumes still air, uniform flow, no blade losses, and no ground
-effect. It is useful for intuition, not a replacement for measurements or CFD.
-
-### Hands-on: calculate hover induced velocity
-
-```bash
-uv run python examples/03-propeller-aerodynamics/hover_momentum.py
-uv run python examples/03-propeller-aerodynamics/hover_momentum.py --diameter 0.178
-```
-
-Compare the default 5-inch rotor with the larger rotor. The larger disk should
-need less induced velocity for the same thrust. Near the ground, explain why
-the ideal model becomes inaccurate.
-
----
-
-## 6. Reaction torque, power, and yaw
+## 4. Reaction torque, power, and yaw
 
 The propeller resists the motor's rotation. A simple model is
 
@@ -192,11 +141,11 @@ uv run python examples/03-propeller-aerodynamics/reaction_torque.py
 
 The equal-speed result should be nearly zero yaw torque. Speeding one rotor up
 breaks the balance and creates a yaw command. The exact positive sign follows
-the motor-direction tuple in `examples/common/drone_control.py`.
+the motor-direction tuple in `examples/common/drone_model.py`.
 
 ---
 
-## 7. Four rotors: force, lever arm, and attitude
+## 5. Four rotors: force, lever arm, and attitude
 
 Each rotor applies an upward force at a different arm position. Because it is
 offset from the center of mass, it can create torque:
@@ -224,13 +173,13 @@ model; Module 4 turns the same relationships into a mixer and PID controller.
 
 ---
 
-## 8. What this model leaves out
+## 6. What this model leaves out
 
-The equations deliberately ignore motor electrical dynamics, battery voltage,
-blade shape, non-uniform inflow, ground effect, wind, and vehicle drag. Module
+The equations do not simulate motor electrical dynamics, battery-voltage sag,
+blade shape, non-uniform inflow, ground effect, wind, or vehicle drag. Module
 4 introduces vehicle drag, wind-relative velocity, mixing, and PID control.
-Later modules add voltage and controller effects. A real vehicle needs measured
-thrust and torque data to calibrate (k_T), (k_Q), and motor response time.
+Module 5 adds voltage sag. A real vehicle needs measured thrust and torque data
+to calibrate (k_T), (k_Q), and motor response time.
 
 ---
 

@@ -41,7 +41,7 @@ flowchart TD
     guidance --> pitch[Pitch target]
     pitch --> attitude[Attitude PID]
     collective --> pwm[Per-motor PWM]
-    attitude --> step[step_drone]
+    attitude --> step[PhysicsEngine.step]
     pwm --> step
     step --> forces[Rotor thrust, torque, drag]
     forces --> next[p.stepSimulation]

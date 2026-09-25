@@ -13,7 +13,7 @@
   <rect x="385" y="185" width="130" height="130" rx="18" fill="#1e3a5f"/>
   <text x="450" y="258" text-anchor="middle" font-family="sans-serif" font-size="20" fill="white">CoM</text>
   <g font-family="sans-serif" font-size="18" text-anchor="middle">
-    <circle cx="220" cy="100" r="34" fill="#38bdf8"/><text x="220" y="106" fill="#0f172a">M1</text>
+    <circle cx="220" cy="100" r="34" fill="#38bdf8"/><text x="168" y="106" text-anchor="end" fill="#0f172a">M1</text>
     <circle cx="680" cy="100" r="34" fill="#38bdf8"/><text x="680" y="106" fill="#0f172a">M2</text>
     <circle cx="220" cy="400" r="34" fill="#38bdf8"/><text x="220" y="406" fill="#0f172a">M4</text>
     <circle cx="680" cy="400" r="34" fill="#38bdf8"/><text x="680" y="406" fill="#0f172a">M3</text>

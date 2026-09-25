@@ -205,9 +205,9 @@ flowchart TD
     planner --> guidance[StrikeGuidance.update]
     observation --> guidance
     guidance --> command[GuidanceCommand: pitch, collective thrust]
-    command --> attitude[attitude_torque]
+    command --> attitude[AttitudeController.update]
     command --> pwm[pwm_from_thrust]
-    attitude --> step[step_drone]
+    attitude --> step[PhysicsEngine.step]
     pwm --> step
     step --> physics
 ```
