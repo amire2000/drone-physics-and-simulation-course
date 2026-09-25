@@ -9,7 +9,8 @@ from pathlib import Path
 import cv2
 import pybullet as p
 
-from .config import SceneConfig, StrikeConfig, load_yaml_config
+from .config import StrikeConfig
+from .config_loader import load_yaml_config
 from .guidance import FlightPhase, GuidanceInput, StrikeGuidance
 from .sensing import BarometerReading
 from .simulation import StrikeSimulation
@@ -53,7 +54,7 @@ def main() -> None:
     parser.add_argument("--max-seconds", type=float, default=35.0)
     parser.add_argument("--output-root", type=Path, default=Path("outputs/ttc_runs"))
     parser.add_argument("--run-name", type=str)
-    parser.add_argument("--config", type=Path, help="YAML file with drone, box, and takeoff settings")
+    parser.add_argument("--config", type=Path, help="Grouped YAML file with simulation and runtime settings")
     parser.add_argument("--video", type=Path)
     parser.add_argument("--no-video", action="store_true")
     parser.add_argument("--plot", type=Path)
@@ -67,13 +68,13 @@ def main() -> None:
             self_check()
         else:
             try:
-                config, scene = load_yaml_config(args.config) if args.config else (StrikeConfig(), SceneConfig())
+                config = load_yaml_config(args.config) if args.config else StrikeConfig()
             except (OSError, ValueError) as exc:
                 parser.error(str(exc))
             run_name = args.run_name or datetime.now().strftime("run-%Y%m%d-%H%M%S-%f")
             run_dir = args.output_root / run_name
             run_dir.mkdir(parents=True, exist_ok=False)
-            settings = {"strike": asdict(config), "scene": asdict(scene)}
+            settings = {"simulation": asdict(config.simulation), "runtime": asdict(config.runtime)}
             if args.config:
                 settings["source_config"] = str(args.config)
             (run_dir / "settings.json").write_text(json.dumps(settings, indent=2) + "\n")
@@ -81,7 +82,7 @@ def main() -> None:
             plot = args.plot or run_dir / "telemetry.png"
             csv = args.csv or run_dir / "telemetry.csv"
             summary = run_dir / "summary.json"
-            result = StrikeSimulation(config, scene).run(not args.headless, args.max_seconds, None if args.no_video else video, None if args.no_plot else plot, None if args.no_csv else csv, summary)
+            result = StrikeSimulation(config).run(not args.headless, args.max_seconds, None if args.no_video else video, None if args.no_plot else plot, None if args.no_csv else csv, summary)
             print(f"run folder: {run_dir}")
             if args.headless:
                 assert result.success, f"Strike failed; impact speed was {result.impact_speed_mps:.1f} m/s"

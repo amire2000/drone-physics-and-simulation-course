@@ -4,7 +4,8 @@ This Module 7 proof of concept takes off to 15 m, detects a red cube, estimates
 time-to-contact (TTC) from bounding-box growth, synchronises its descent to the
 known impact altitude, and records the contact. The controller does **not** need
 the cube's metric size, image centre, focal length, or world position. Those
-values exist only in `SceneConfig` so the simulator can spawn and draw a target.
+values exist only in `SimulationConfig` so the simulator can spawn and draw a
+target.
 Roll and yaw remain zero in this first exercise.
 
 Run it with:
@@ -16,17 +17,19 @@ uv run python examples/07-optical-navigation/ttc_diagonal_strike.py
 ### Scenario YAML
 
 Initial conditions can be changed without editing Python. The sample
-`scenario.yaml` sets the drone position, the cube center, and the altitude at
-which tracking starts:
+`scenario.yaml` groups simulator setup separately from field-tunable runtime
+parameters:
 
 ```yaml
-drone:
-  position: [-5.25, 0.0, 0.05]
-box:
-  position: [20.0, 0.0, 1.0]
-flight:
-  takeoff_altitude_m: 15.0
-  commit_box_height_fraction: 0.1
+simulation:
+  scene:
+    launch_position: [-5.25, 0.0, 0.05]
+    target_center: [20.0, 0.0, 1.0]
+runtime:
+  mission:
+    takeoff_altitude_m: 15.0
+  ttc:
+    commit_box_height_fraction: 0.1
 ```
 
 Run it with:
@@ -51,11 +54,18 @@ change the existing 1 m impact altitude. For a distant target, lower
 leaving the camera view. The resolved values and source path are recorded in
 each run's `settings.json`.
 
+The complete commented schema is in
+`examples/07-optical-navigation/ttc_strike_inputs/template.yaml`. The loader
+creates `SimulationConfig` and `RuntimeConfig` independently, then composes
+them into `StrikeConfig`; the simulator and controllers receive typed config,
+not YAML parsing responsibilities.
+
 ## Module design
 
 ```text
 ttc_strike/
-├── config.py       StrikeConfig + scene-only SceneConfig
+├── config.py       SimulationConfig + RuntimeConfig + StrikeConfig
+├── config_loader.py grouped YAML parser and validation
 ├── sensing.py      Barometer: altitude and vertical velocity
 ├── ttc.py          BboxTtcTracker: bbox scale growth to TTC
 ├── trajectory.py   TtcDescentPlanner: TTC + altitude to vx/vz target
@@ -73,8 +83,9 @@ plain typed data, which keeps TTC and trajectory math easy to test.
 
 ```mermaid
 classDiagram
-    class SceneConfig { +target_center +target_size_m }
-    class StrikeConfig { +takeoff_altitude_m +impact_altitude_m +forward_speed_mps +pitch_attitude_pid_gains +hover_thrust_n }
+    class SimulationConfig { +launch_position +target_center +vehicle_mass_kg +display }
+    class RuntimeConfig { +camera +mission +pid +ttc +flight_limits }
+    class StrikeConfig { +simulation +runtime +hover_thrust_n }
     class Barometer { +sample(true_altitude_m, now_s) BarometerReading }
     class BarometerReading { +altitude_m +vertical_velocity_mps }
     class BboxTtcTracker { +update(box, now_s) TtcObservation +reset() }
@@ -86,11 +97,13 @@ classDiagram
     class GuidanceCommand { +phase +thrust_n +pitch_target_rad }
     class FlightLog { +append(now_s, position, velocity, command, pitch_torque) }
     class StrikeSimulation { +run(gui, max_seconds, video, plot) StrikeResult }
-    SceneConfig --> StrikeSimulation : spawns target
-    StrikeConfig --> Barometer : configures
-    StrikeConfig --> BboxTtcTracker : configures
-    StrikeConfig --> TtcDescentPlanner : configures
-    StrikeConfig --> StrikeGuidance : configures
+    SimulationConfig --> StrikeSimulation : scene and display
+    RuntimeConfig --> Barometer : runtime sensor filter
+    RuntimeConfig --> BboxTtcTracker : TTC tuning
+    RuntimeConfig --> TtcDescentPlanner : trajectory limits
+    RuntimeConfig --> StrikeGuidance : PID and mission tuning
+    StrikeConfig *-- SimulationConfig
+    StrikeConfig *-- RuntimeConfig
     BboxTtcTracker --> TtcObservation : creates
     TtcDescentPlanner --> TrajectoryCommand : creates
     StrikeGuidance *-- TtcDescentPlanner
@@ -102,8 +115,9 @@ classDiagram
 
 | Class | Role |
 | --- | --- |
-| `SceneConfig` | Simulator-only cube position and size; never enters TTC or thrust math. |
-| `StrikeConfig` | Immutable control, sensor, camera, and output settings. |
+| `SimulationConfig` | Simulator scene, vehicle model, synthetic sensors, display, and recording defaults. |
+| `RuntimeConfig` | Physical camera setup, mission targets, TTC tuning, limits, filters, and PID gains. |
+| `StrikeConfig` | Composes the two independent configuration groups. |
 | `Barometer` | Samples altitude and filters vertical velocity. |
 | `BboxTtcTracker` | Converts bbox scale growth into TTC and commit readiness. |
 | `TtcObservation` | Typed visual measurement: box, scale, growth, and TTC. |
@@ -127,9 +141,10 @@ altitude while moving forward to create measurable bbox growth.
 
 ## Configuration reference
 
-`StrikeConfig` contains control settings. `SceneConfig.target_center` and
-`SceneConfig.target_size_m` are fixture values only; changing them must not
-change the controller equations.
+`SimulationConfig.target_center` and `SimulationConfig.target_size_m` are
+fixture values only; changing them must not change the controller equations.
+`RuntimeConfig` contains the camera setup and values that should be calibrated
+against a real vehicle.
 
 | Field | Default | Meaning |
 | --- | --- | --- |

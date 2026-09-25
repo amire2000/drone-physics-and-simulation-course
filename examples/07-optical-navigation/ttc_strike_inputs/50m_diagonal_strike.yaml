@@ -1,11 +1,23 @@
-# 50 m diagonal-strike test: the drone starts at x=-30 m and the box at x=20 m.
-drone:
-  position: [-30.0, 0.0, 0.05]
+# 50 m diagonal-strike test. The drone starts at x=-30 m and the box at x=20 m.
+simulation:
+  scene:
+    launch_position: [-30.0, 0.0, 0.05]  # Initial world position in metres.
+    target_center: [20.0, 0.0, 1.0]      # Red cube center in world coordinates.
+    target_size_m: 2.0                   # Static cube edge length.
 
-box:
-  position: [20.0, 0.0, 1.0]
-
-flight:
-  takeoff_altitude_m: 20.0
-  # The 2 m cube is about 12 px at this distance; commit before it leaves view.
-  commit_box_height_fraction: 0.02
+runtime:
+  physical_setup:
+    camera:
+      camera_width_px: 640       # Camera image width.
+      camera_height_px: 480      # Camera image height.
+      camera_hz: 30              # Camera sampling rate.
+      camera_fov_deg: 90.0       # Camera horizontal field of view.
+      camera_look_down_deg: 0.0  # Physical camera mounting angle.
+  mission:
+    takeoff_altitude_m: 20.0     # Height where visual tracking begins.
+    impact_altitude_m: 1.0       # Desired altitude at contact.
+    forward_speed_mps: 13.0      # Desired forward velocity.
+    nominal_pitch_deg: 20.0      # Initial forward pitch request.
+  ttc:
+    # The 2 m cube is small at this distance; commit before it leaves view.
+    commit_box_height_fraction: 0.02

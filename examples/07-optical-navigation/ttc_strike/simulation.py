@@ -49,7 +49,7 @@ class StrikeSimulation:
 
     def __init__(self, config: StrikeConfig | None = None, scene: SceneConfig | None = None) -> None:
         self.config = config or StrikeConfig()
-        self.scene = scene or SceneConfig()
+        self.scene = scene or self.config.simulation
 
     def run(self, gui: bool, max_seconds: float, video: Path | None, plot: Path | None, csv: Path | None = None, summary: Path | None = None) -> StrikeResult:
         config = self.config

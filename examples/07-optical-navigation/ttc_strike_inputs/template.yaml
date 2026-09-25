@@ -1,0 +1,60 @@
+# Copy this file to create a scenario. Omitted values use dataclass defaults.
+simulation:
+  scene:
+    launch_position: [-10.0, 0.0, 0.05]  # Initial world position [m].
+    target_center: [20.0, 0.0, 1.0]      # Target center [m].
+    target_size_m: 2.0                   # Target cube edge length [m].
+  vehicle_model:
+    vehicle_mass_kg: 0.65                # Simulated vehicle mass [kg].
+    gravity_mps2: 9.81                   # Simulator gravity [m/s²].
+  sensor_model:
+    barometer_noise_sigma_m: 0.0         # Synthetic altitude noise [m].
+    barometer_bias_m: 0.0                # Synthetic altitude bias [m].
+    random_seed: 7                       # Reproducible sensor noise seed.
+  display:
+    environment_size_px: [960, 540]      # Wide environment render size.
+    opencv_window_position_px: [20, 80]  # Camera window screen position.
+    plot_window_position_px: [700, 80]   # Matplotlib window screen position.
+  recording:
+    post_impact_seconds: 3.0             # Simulation time after collision.
+
+runtime:
+  physical_setup:
+    camera:
+      camera_width_px: 640               # Camera image width [px].
+      camera_height_px: 480              # Camera image height [px].
+      camera_hz: 30                      # Camera sampling rate [Hz].
+      camera_fov_deg: 90.0               # Horizontal field of view [deg].
+      camera_look_down_deg: 0.0          # Camera mount angle [deg].
+  mission:
+    takeoff_altitude_m: 15.0             # Height where tracking starts [m].
+    impact_altitude_m: 1.0               # Desired contact altitude [m].
+    forward_speed_mps: 13.0              # Desired forward velocity [m/s].
+    nominal_pitch_deg: 20.0              # Initial pitch request [deg].
+  flight_limits:
+    max_descent_velocity_mps: 4.5        # Maximum descent rate [m/s].
+    max_climb_velocity_mps: 3.0          # Maximum climb rate [m/s].
+    max_pitch_deg: 20.0                  # Maximum requested pitch [deg].
+    takeoff_altitude_tolerance_m: 0.2    # Takeoff altitude ready band [m].
+    takeoff_velocity_tolerance_mps: 0.5  # Takeoff stability band [m/s].
+    commit_timeout_margin_s: 5.0         # Extra commit deadline margin [s].
+  ttc:
+    min_ttc_s: 0.2                       # Minimum accepted TTC [s].
+    commit_box_height_fraction: 0.04     # Bbox height fraction to arm commit.
+    ttc_growth_old_weight: 0.65          # Previous growth smoothing weight.
+    min_growth_px_per_s: 0.01            # Minimum approach growth [px/s].
+  sensor_filters:
+    barometer_velocity_old_weight: 0.7   # Previous vertical-speed weight.
+  pid:
+    altitude:
+      gains: [0.7, 0.05, 1.1]            # [kp, ki, kd].
+      integral_limit: 0.5                # Altitude integral clamp.
+    forward_speed:
+      gains: [0.03, 0.0, 0.002]          # [kp, ki, kd].
+      integral_limit: 0.2                # Pitch integral clamp.
+    pitch_attitude:
+      gains: [0.008, 0.0, 0.006]         # [kp, ki, kd].
+    vertical_velocity:
+      gains: [1.0, 0.0, 0.0]             # [kp, ki, kd].
+  vertical_control:
+    vertical_position_correction: 0.8     # Position error to velocity correction.
