@@ -1,0 +1,71 @@
+{
+  "success": true,
+  "final_phase": "post-impact",
+  "abort_reason": null,
+  "simulated_time_s": 14.220833333333333,
+  "starting_pose": {
+    "position_m": [
+      -10.0,
+      0.0,
+      0.05
+    ],
+    "orientation_xyzw": [
+      0.0,
+      0.0,
+      0.0,
+      1.0
+    ]
+  },
+  "target": {
+    "center_m": [
+      20.0,
+      0.0,
+      1.0
+    ],
+    "size_m": 2.0
+  },
+  "collision": {
+    "time_s": 11.220833333333333,
+    "position_m": [
+      18.925784415190382,
+      4.697048324853129e-07,
+      0.35833447491405673
+    ],
+    "velocity_mps": [
+      11.40784333690434,
+      0.0,
+      -0.34126148809279333
+    ],
+    "speed_mps": 11.41294655216645
+  },
+  "flight_metrics": {
+    "maximum_altitude_m": 14.872154987407656,
+    "minimum_altitude_m": 0.022462801866571746,
+    "maximum_forward_speed_mps": 11.40784333690434,
+    "maximum_vertical_speed_mps": 6.8851369329186065,
+    "last_ttc_s": 0.31303574705957615
+  },
+  "phase_intervals": [
+    {
+      "phase": "takeoff",
+      "start_s": 0.0,
+      "end_s": 5.170833333333333
+    },
+    {
+      "phase": "track",
+      "start_s": 5.175,
+      "end_s": 11.220833333333333
+    },
+    {
+      "phase": "post-impact",
+      "start_s": 11.220833333333333,
+      "end_s": 14.220833333333333
+    }
+  ],
+  "outputs": {
+    "video": "outputs/ttc_runs/baseline-pre-tune/environment.mp4",
+    "plot": "outputs/ttc_runs/baseline-pre-tune/telemetry.png",
+    "csv": "outputs/ttc_runs/baseline-pre-tune/telemetry.csv",
+    "summary": "outputs/ttc_runs/baseline-pre-tune/summary.json"
+  }
+}

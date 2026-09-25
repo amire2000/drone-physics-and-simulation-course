@@ -1,0 +1,74 @@
+{
+  "strike": {
+    "launch_position": [
+      -10.0,
+      0.0,
+      0.05
+    ],
+    "vehicle_mass_kg": 0.65,
+    "gravity_mps2": 9.81,
+    "takeoff_altitude_m": 15.0,
+    "impact_altitude_m": 1.0,
+    "forward_speed_mps": 13.0,
+    "nominal_pitch_deg": 20.0,
+    "max_descent_velocity_mps": 4.5,
+    "max_climb_velocity_mps": 3.0,
+    "min_ttc_s": 0.2,
+    "camera_width_px": 640,
+    "camera_height_px": 480,
+    "camera_hz": 30,
+    "camera_fov_deg": 90.0,
+    "camera_look_down_deg": 0.0,
+    "commit_box_height_fraction": 0.04,
+    "ttc_growth_old_weight": 0.65,
+    "min_growth_px_per_s": 0.01,
+    "barometer_noise_sigma_m": 0.0,
+    "barometer_bias_m": 0.0,
+    "barometer_velocity_old_weight": 0.7,
+    "random_seed": 7,
+    "altitude_pid_gains": [
+      0.7,
+      0.05,
+      1.1
+    ],
+    "altitude_integral_limit": 0.5,
+    "forward_speed_pid_gains": [
+      0.03,
+      0.0,
+      0.002
+    ],
+    "forward_pitch_integral_limit": 0.2,
+    "max_pitch_deg": 20.0,
+    "vertical_velocity_pid_gains": [
+      1.0,
+      0.0,
+      0.0
+    ],
+    "vertical_position_correction": 0.8,
+    "takeoff_altitude_tolerance_m": 0.2,
+    "takeoff_velocity_tolerance_mps": 0.5,
+    "commit_timeout_margin_s": 5.0,
+    "post_impact_seconds": 3.0,
+    "environment_size_px": [
+      960,
+      540
+    ],
+    "opencv_window_position_px": [
+      20,
+      80
+    ],
+    "plot_window_position_px": [
+      700,
+      80
+    ]
+  },
+  "scene": {
+    "target_center": [
+      20.0,
+      0.0,
+      1.0
+    ],
+    "target_size_m": 2.0
+  },
+  "source_config": "examples/07-optical-navigation/ttc_strike_inputs/30m_diagonal_strike.yaml"
+}
