@@ -14,6 +14,9 @@ Run it with:
 uv run python examples/07-optical-navigation/ttc_diagonal_strike.py
 ```
 
+For the complete command, YAML, output, and troubleshooting guide, see
+[`ttc_strike_usage.md`](../ttc_strike_usage.md).
+
 ### Scenario YAML
 
 Initial conditions can be changed without editing Python. The sample
