@@ -20,9 +20,10 @@
 
 ## [3. Propeller dynamics and aerodynamics](modules/03-propeller-aerodynamics/index.md)
 
-- Relate propeller diameter, pitch, and blade count to performance.
-- Map PWM to quadratic thrust using a thrust coefficient (`Kt`).
-- Model alternating CW/CCW yaw torque and velocity-opposing air drag.
+- Explain propeller airflow, SI units, diameter, pitch, and blade count.
+- Map PWM through RPM to quadratic thrust using calibrated `kT` and `kQ`.
+- Use ideal momentum theory to estimate induced velocity and rotor disk effects.
+- Calculate four-rotor collective thrust, lever-arm torque, reaction torque, and power.
 
 ## [4. Motor mixer and PID control](modules/04-motor-mixer-pid/index.md)
 

@@ -217,7 +217,7 @@ deadline. After contact, thrust and torque are set to zero for the configured
 aftermath window. The wide PyBullet camera is only a scene view; the controller
 uses the body-fixed forward camera.
 
-## Guidance phase flow
+## `StrikeGuidance.update()` phase flow
 
 ```mermaid
 flowchart TD
@@ -237,6 +237,12 @@ flowchart TD
     armed -->|no| abort[abort and hold altitude]
     armed -->|yes| commit[hold last command]
     phase -->|commit| commit
+    phase -->|abort| abort
     commit --> deadline{deadline passed?}
     deadline -->|yes| expired[report timeout]
+    deadline -->|no| commit
+    abort --> abort_command[zero pitch + vertical damping]
+    track --> track_command[GuidanceCommand]
+    takeoff_out --> takeoff_command[GuidanceCommand]
+    expired --> commit_command[GuidanceCommand with commit expired]
 ```

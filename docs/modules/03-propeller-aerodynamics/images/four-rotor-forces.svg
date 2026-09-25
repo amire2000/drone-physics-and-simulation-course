@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 500" role="img" aria-labelledby="title desc">
+  <title id="title">Four rotor force and torque directions</title>
+  <desc id="desc">An X-frame quadcopter with rotor thrust arrows and alternating reaction torque labels.</desc>
+  <defs>
+    <marker id="up" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L9,3 L0,6 Z" fill="#16a34a"/></marker>
+  </defs>
+  <rect width="900" height="500" rx="18" fill="#f8fafc"/>
+  <text x="450" y="38" text-anchor="middle" font-family="sans-serif" font-size="25" font-weight="700" fill="#1e293b">Four rotors: lift plus attitude torque</text>
+  <line x1="450" y1="250" x2="220" y2="100" stroke="#64748b" stroke-width="18" stroke-linecap="round"/>
+  <line x1="450" y1="250" x2="680" y2="100" stroke="#64748b" stroke-width="18" stroke-linecap="round"/>
+  <line x1="450" y1="250" x2="220" y2="400" stroke="#64748b" stroke-width="18" stroke-linecap="round"/>
+  <line x1="450" y1="250" x2="680" y2="400" stroke="#64748b" stroke-width="18" stroke-linecap="round"/>
+  <rect x="385" y="185" width="130" height="130" rx="18" fill="#1e3a5f"/>
+  <text x="450" y="258" text-anchor="middle" font-family="sans-serif" font-size="20" fill="white">CoM</text>
+  <g font-family="sans-serif" font-size="18" text-anchor="middle">
+    <circle cx="220" cy="100" r="34" fill="#38bdf8"/><text x="220" y="106" fill="#0f172a">M1</text>
+    <circle cx="680" cy="100" r="34" fill="#38bdf8"/><text x="680" y="106" fill="#0f172a">M2</text>
+    <circle cx="220" cy="400" r="34" fill="#38bdf8"/><text x="220" y="406" fill="#0f172a">M4</text>
+    <circle cx="680" cy="400" r="34" fill="#38bdf8"/><text x="680" y="406" fill="#0f172a">M3</text>
+  </g>
+  <g stroke="#16a34a" stroke-width="8" marker-end="url(#up)">
+    <line x1="220" y1="92" x2="220" y2="45"/><line x1="680" y1="92" x2="680" y2="45"/>
+    <line x1="220" y1="392" x2="220" y2="345"/><line x1="680" y1="392" x2="680" y2="345"/>
+  </g>
+  <g font-family="sans-serif" font-size="17" fill="#166534"><text x="235" y="30">T1</text><text x="695" y="30">T2</text><text x="235" y="334">T4</text><text x="695" y="334">T3</text></g>
+  <text x="80" y="470" font-family="sans-serif" font-size="18" fill="#334155">All thrusts equal → climb/hover</text>
+  <text x="390" y="470" font-family="sans-serif" font-size="18" fill="#334155">arm difference → roll/pitch</text>
+  <text x="680" y="470" font-family="sans-serif" font-size="18" fill="#334155">CW/CCW difference → yaw</text>
+</svg>
