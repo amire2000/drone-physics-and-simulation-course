@@ -14,6 +14,12 @@
 3. Verify hover while balancing drag, inertia, and battery depletion.
 4. Validate the complete force, torque, and integration pipeline.
 
+## Capstone tutorial steps
+
+1. [Initialize the simulation environment](01-initialize-environment/index.md): load and inspect the ground plane and drone before advancing physics.
+2. [Drone free fall](02-drone-free-fall/index.md): advance the 240 Hz loop, measure gravity, and separate free fall from ground contact.
+5. [Physics-engine validation](05-physics-engine-validation/index.md): test gravity, lift, attitude, and wind before tuning a controller.
+
 ---
 
 ## Manual takeoff preview
@@ -220,12 +226,11 @@ uv run python examples/06-autonomous-hover/pid_tuning_hover.py --self-check
 
 ---
 
-## Physics-engine capstone and validation
+## Physics-engine validation
 
-The detailed capstone explains the reusable engine, its seven validation
-scenarios, and how the hover examples use it. Continue to
-[the physics-engine capstone](physics-engine-capstone/index.md) before tuning
-new controller gains.
+The detailed Step 5 lesson explains the reusable engine and its seven
+validation scenarios. Continue to [physics-engine validation](05-physics-engine-validation/index.md)
+before tuning new controller gains.
 
 ---
 

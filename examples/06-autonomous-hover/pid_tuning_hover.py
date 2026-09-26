@@ -18,6 +18,7 @@ if str(EXAMPLES_ROOT) not in sys.path:
 from common.drone_model import DEFAULT_DRONE_MODEL, DEFAULT_PHYSICS_SETTINGS
 from common.drone_physics import PhysicsEngine, clamp
 from common.flight_control import AttitudeController
+from common.gui_helper import SimulationControls, add_simulation_buttons
 from common.pybullet_sensors import read_imu, read_state
 from common.pybullet_utils import create_world, draw_force_vectors, reset_drone
 from common.pid import PID
@@ -154,25 +155,18 @@ def make_sliders(target: float, gains: tuple[float, float, float], noise_sigma: 
     }
 
 
-def make_control_panel() -> tuple[object, dict[str, object]]:
+def make_control_panel() -> tuple[object, SimulationControls, dict[str, str | None]]:
+    """Create standard simulation buttons plus this example's PID preset selector."""
     import matplotlib.pyplot as plt
-    from matplotlib.widgets import Button, RadioButtons
+    from matplotlib.widgets import RadioButtons
 
-    state: dict[str, object] = {"running": False, "exit": False, "reset": False, "preset": None}
+    preset_state: dict[str, str | None] = {"preset": None}
     figure = plt.figure("Simulation controls", figsize=(6.5, 3.2))
-    start = Button(figure.add_axes((0.06, 0.67, 0.18, 0.18)), "Start")
-    pause = Button(figure.add_axes((0.28, 0.67, 0.18, 0.18)), "Stop")
-    reset = Button(figure.add_axes((0.50, 0.67, 0.18, 0.18)), "Reset")
-    exit_button = Button(figure.add_axes((0.72, 0.67, 0.18, 0.18)), "Exit")
+    controls = add_simulation_buttons(figure)
     radio = RadioButtons(figure.add_axes((0.08, 0.08, 0.82, 0.48)), tuple(PRESETS))
-    start.on_clicked(lambda _: state.update(running=True))
-    pause.on_clicked(lambda _: state.update(running=False))
-    reset.on_clicked(lambda _: state.update(reset=True))
-    exit_button.on_clicked(lambda _: state.update(exit=True))
-    radio.on_clicked(lambda label: state.update(preset=label))
-    figure.canvas.mpl_connect("close_event", lambda _: state.update(exit=True))
-    state["widgets"] = (start, pause, reset, exit_button, radio)
-    return figure, state
+    radio.on_clicked(lambda label: preset_state.update(preset=label))
+    controls.widgets += (radio,)
+    return figure, controls, preset_state
 
 
 def simulate(seconds: float, target: float, gains: tuple[float, float, float], noise_sigma: float, seed: int, gui: bool = False, output: str | None = None) -> Telemetry:
@@ -190,7 +184,8 @@ def simulate(seconds: float, target: float, gains: tuple[float, float, float], n
     plot_state = None
     sliders = None
     control_figure = None
-    control_state = None
+    controls = None
+    preset_state = None
     gains_before = gains
     force_lines = [-1, -1, -1, -1]
     pid_terms = (0.0, 0.0, 0.0)
@@ -201,33 +196,32 @@ def simulate(seconds: float, target: float, gains: tuple[float, float, float], n
 
         plt.ion()
         plot_state = make_plot()
-        control_figure, control_state = make_control_panel()
+        control_figure, controls, preset_state = make_control_panel()
         plt.show(block=False)
         p.resetDebugVisualizerCamera(cameraDistance=2.2, cameraYaw=45, cameraPitch=-25, cameraTargetPosition=(0, 0, 0.8))
         sliders = make_sliders(target, gains, noise_sigma)
 
     total_steps = round(seconds / TIME_STEP) if not gui else None
     step = 0
-    while p.isConnected() and (total_steps is None or step < total_steps) and (not gui or not control_state["exit"]):
+    while p.isConnected() and (total_steps is None or step < total_steps) and (not gui or not controls.exit_requested):
         if gui:
             control_figure.canvas.flush_events()
-            preset = control_state["preset"]
+            preset = preset_state["preset"]
             if preset:
                 target, gains, noise_sigma = PRESETS[preset]
                 sliders = make_sliders(target, gains, noise_sigma, sliders)
                 apply_gains(altitude_pid, gains)
                 gains_before = gains
-                control_state["preset"] = None
-                control_state["reset"] = True
-            if control_state["reset"]:
+                preset_state["preset"] = None
+                controls.request_reset()
+            if controls.consume_reset():
                 reset_flight(drone, engine, altitude_pid)
                 telemetry = Telemetry()
                 rng = np.random.default_rng(seed)
                 pid_terms = (0.0, 0.0, 0.0)
                 controller_output = 0.0
                 step = 0
-                control_state["reset"] = False
-            if not control_state["running"]:
+            if not controls.running:
                 time.sleep(0.02)
                 continue
 

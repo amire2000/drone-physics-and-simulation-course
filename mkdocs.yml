@@ -44,7 +44,9 @@ nav:
   - "Module 5: Battery voltage sag": modules/05-battery-voltage-sag/index.md
   - "Module 6: Autonomous hover":
       - Overview: modules/06-autonomous-hover/index.md
-      - Physics-engine capstone: modules/06-autonomous-hover/physics-engine-capstone/index.md
+      - "Step 1: Initialize environment": modules/06-autonomous-hover/01-initialize-environment/index.md
+      - "Step 2: Drone free fall": modules/06-autonomous-hover/02-drone-free-fall/index.md
+      - "Step 5: Physics-engine validation": modules/06-autonomous-hover/05-physics-engine-validation/index.md
   - "Module 7: Optical navigation": modules/07-optical-navigation/index.md
   - "Module 8: Betaflight SITL bridge": modules/08-betaflight-sitl/index.md
   - "Module 9: Learned vertical hover": modules/09-mlp-hover/index.md

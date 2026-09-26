@@ -131,6 +131,16 @@ def save_plot(results: list[ValidationResult], output: Path) -> None:
     plt.close(figure)
 
 
+def print_results(results: list[ValidationResult], selected: str) -> None:
+    """Print labelled validation measurements and a completion summary."""
+    print("\n====== PHYSICS-ENGINE VALIDATION ======")
+    for result in results:
+        print(f"{result.name:>22}: {result.measurement:.3f} {result.unit} ({result.expectation})")
+    if selected == "all":
+        print(f"{len(results)}/7 checks passed")
+    print("========================================")
+
+
 def main() -> None:
     """Run selected validations, print measurements, and optionally save their plot."""
     parser = argparse.ArgumentParser(description=__doc__)
@@ -142,9 +152,9 @@ def main() -> None:
     args = parser.parse_args()
     client = p.connect(p.DIRECT if args.headless or args.self_check else p.GUI)
     try:
-        results = run_validation("all" if args.self_check else args.scenario)
-        for result in results:
-            print(f"{result.name:>22}: {result.measurement:.3f} {result.unit} ({result.expectation})")
+        selected = "all" if args.self_check else args.scenario
+        results = run_validation(selected)
+        print_results(results, selected)
         if not args.no_plot and not args.self_check:
             save_plot(results, args.plot)
             print(f"Saved plot: {args.plot}")

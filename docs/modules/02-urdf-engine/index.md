@@ -283,7 +283,7 @@ individual motor thrust will create the roll, pitch, and yaw commands.
 </form>
 
 <form class="quiz" data-answer="c" data-explanation="Torque is the turning effect caused by a force with a nonzero lever arm.">
-  <fieldset><legend>3. What equation describes torque from a force location?</legend><label><input type="radio" name="q3" value="a"> <span class="arithmatex">\(\tau = m / F\)</span></label><br><label><input type="radio" name="q3" value="b"> <span class="arithmatex">\(\tau = F / r\)</span></label><br><label><input type="radio" name="q3" value="c"> <span class="arithmatex">\(\boldsymbol{\tau} = \mathbf{r} \times \mathbf{F}\)</span></label></fieldset><button type="button" class="quiz-check">Check answer</button><p class="quiz-result" aria-live="polite"></p>
+  <fieldset><legend>3. What equation describes torque from a force location?</legend><label><input type="radio" name="q3" value="a"> <span class="arithmatex">\(\tau = m / F\)</span></label><br><label><input type="radio" name="q3" value="b"> <span class="arithmatex">\(\tau = F / r\)</span></label><br><label><input type="radio" name="q3" value="c"> <span class="arithmatex">\(\tau = \mathbf{r} \times \mathbf{F}\)</span></label></fieldset><button type="button" class="quiz-check">Check answer</button><p class="quiz-result" aria-live="polite"></p>
 </form>
 
 <form class="quiz" data-answer="b" data-explanation="A force through the center of mass has zero lever arm and therefore no torque.">

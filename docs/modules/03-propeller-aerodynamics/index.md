@@ -150,7 +150,7 @@ the motor-direction tuple in `examples/common/drone_model.py`.
 Each rotor applies an upward force at a different arm position. Because it is
 offset from the center of mass, it can create torque:
 
-$$\boldsymbol{\tau}_i = \mathbf r_i \times \mathbf F_i.$$
+$$\tau_i = \mathbf r_i \times \mathbf F_i.$$
 
 ![Four rotor thrust arrows and their attitude effects.](images/four-rotor-forces.svg)
 

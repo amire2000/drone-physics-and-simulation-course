@@ -3,7 +3,7 @@
 import pybullet as p
 import pybullet_data
 
-from .drone_model import DEFAULT_DRONE_MODEL, DEFAULT_PHYSICS_SETTINGS, DroneModel, PhysicsSettings, PhysicsStep
+from .drone_model import DEFAULT_DRONE_MODEL, DEFAULT_PHYSICS_SETTINGS, DroneModel, DroneState, PhysicsSettings, PhysicsStep
 from .pybullet_sensors import body_to_world_vector
 
 
@@ -28,6 +28,17 @@ def reset_drone(drone: int, position_m: tuple[float, float, float], orientation_
     p.resetBaseVelocity(drone, (0, 0, 0), (0, 0, 0))
 
 
+def format_drone_state(state: DroneState) -> str:
+    """Format a measured drone state for terminal output or a GUI overlay."""
+    roll_pitch_yaw = p.getEulerFromQuaternion(state.orientation_quaternion)
+    return (
+        f"Position: {tuple(round(value, 3) for value in state.position_m)} m\n"
+        f"Linear velocity: {tuple(round(value, 3) for value in state.linear_velocity_mps)} m/s\n"
+        f"Roll/pitch/yaw: {tuple(round(value, 3) for value in roll_pitch_yaw)} rad\n"
+        f"Body rate: {tuple(round(value, 3) for value in state.angular_velocity_body_rad_s)} rad/s"
+    )
+
+
 def draw_force_vectors(drone: int, step: PhysicsStep, line_ids: list[int]) -> None:
     """Draw green body-up arrows proportional to each applied rotor thrust."""
     if not p.isConnected():
@@ -46,14 +57,11 @@ def draw_force_vectors(drone: int, step: PhysicsStep, line_ids: list[int]) -> No
 def state_text(step: PhysicsStep, stabilized: bool) -> str:
     """Format the latest actuator and rigid-body state for a PyBullet overlay."""
     state = step.state
-    roll_pitch_yaw = p.getEulerFromQuaternion(state.orientation_quaternion)
     return (
         f"PWM command: {step.collective_pwm_us:.0f} us\n"
         f"Rotor RPM: {', '.join(f'{value:.0f}' for value in step.motor_rpms)}\n"
         f"Motor thrusts: {', '.join(f'{value:.2f}' for value in step.motor_thrusts_n)} N\n"
         f"Total thrust: {step.total_thrust_n:.2f} N\n"
-        f"Altitude: {state.position_m[2]:.2f} m, vertical velocity: {state.linear_velocity_mps[2]:.2f} m/s\n"
-        f"Roll/pitch/yaw: {', '.join(f'{value:.2f}' for value in roll_pitch_yaw)} rad\n"
-        f"Body rate: {', '.join(f'{value:.2f}' for value in state.angular_velocity_body_rad_s)} rad/s\n"
+        f"{format_drone_state(state)}\n"
         f"Attitude hold: {'on' if stabilized else 'off'}"
     )
