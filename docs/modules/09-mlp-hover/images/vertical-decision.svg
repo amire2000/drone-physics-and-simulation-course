@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="390" viewBox="0 0 900 390" role="img" aria-labelledby="title desc">
+  <title id="title">One small vertical decision</title>
+  <desc id="desc">A drone below a target height requests upward acceleration; a drone above target requests downward acceleration.</desc>
+  <defs><marker id="blue-arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0 0 L10 5 L0 10Z" fill="#2563eb"/></marker><marker id="orange-arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0 0 L10 5 L0 10Z" fill="#ea580c"/></marker></defs>
+  <rect width="900" height="390" rx="20" fill="#f8fafc"/>
+  <text x="45" y="48" font-family="sans-serif" font-size="27" font-weight="700" fill="#1e293b">One small decision: should vertical acceleration go up or down?</text>
+  <line x1="50" y1="126" x2="405" y2="126" stroke="#16a34a" stroke-width="4" stroke-dasharray="10 8"/>
+  <line x1="495" y1="126" x2="850" y2="126" stroke="#16a34a" stroke-width="4" stroke-dasharray="10 8"/>
+  <text x="145" y="112" font-family="sans-serif" font-size="19" font-weight="700" fill="#15803d">target altitude: 3 m</text>
+  <text x="510" y="112" font-family="sans-serif" font-size="19" font-weight="700" fill="#15803d">target altitude: 3 m</text>
+  <rect x="180" y="240" width="100" height="48" rx="15" fill="#38bdf8" stroke="#0369a1" stroke-width="4"/>
+  <line x1="230" y1="230" x2="230" y2="150" stroke="#2563eb" stroke-width="8" marker-end="url(#blue-arrow)"/>
+  <text x="84" y="328" font-family="sans-serif" font-size="20" fill="#334155">Below target and falling</text>
+  <text x="90" y="358" font-family="sans-serif" font-size="20" font-weight="700" fill="#1d4ed8">ask for upward acceleration</text>
+  <rect x="730" y="55" width="100" height="48" rx="15" fill="#38bdf8" stroke="#0369a1" stroke-width="4"/>
+  <line x1="780" y1="113" x2="780" y2="224" stroke="#ea580c" stroke-width="8" marker-end="url(#orange-arrow)"/>
+  <text x="559" y="328" font-family="sans-serif" font-size="20" fill="#334155">Above target and rising</text>
+  <text x="553" y="358" font-family="sans-serif" font-size="20" font-weight="700" fill="#c2410c">ask for downward acceleration</text>
+</svg>

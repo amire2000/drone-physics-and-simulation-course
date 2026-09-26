@@ -35,8 +35,8 @@ motor mixing, PID stabilization, and battery voltage sag.
    body-mounted RGB camera and estimate relative image motion with optical flow.
 8. **Betaflight SITL control bridge** *(planned)* — route simulated sensors and
    motor commands through a pinned Betaflight SITL integration.
-9. **Learned vertical hover with an MLP** *(planned)* — imitate the altitude
-   PID with a small NumPy network while retaining deterministic low-level
+9. **Learned vertical hover with an MLP** *(planned)* — learn a simple PD
+   vertical-acceleration rule with a small NumPy network while retaining deterministic low-level
    stabilization.
 
 ## Roadmap

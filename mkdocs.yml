@@ -49,4 +49,7 @@ nav:
       - "Step 5: Physics-engine validation": modules/06-autonomous-hover/05-physics-engine-validation/index.md
   - "Module 7: Optical navigation": modules/07-optical-navigation/index.md
   - "Module 8: Betaflight SITL bridge": modules/08-betaflight-sitl/index.md
-  - "Module 9: Learned vertical hover": modules/09-mlp-hover/index.md
+  - "Module 9: Learned vertical hover":
+      - Overview: modules/09-mlp-hover/index.md
+      - "Lesson 1: NumPy MLP from scratch": modules/09-mlp-hover/01-numpy-mlp-basics/index.md
+      - "Lesson 2: MLP drone decision": modules/09-mlp-hover/01-mlp-introduction/index.md

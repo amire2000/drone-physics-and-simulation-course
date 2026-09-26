@@ -65,7 +65,8 @@ The bridge will follow the current [Betaflight SITL harness](https://github.com/
 
 ## [9. Learned vertical hover with an MLP](modules/09-mlp-hover/index.md)
 
-- Train a small NumPy MLP to imitate the altitude PID for a fixed 3 m hover.
+- Train a small NumPy MLP to imitate a visible PD vertical-acceleration rule
+  for a fixed 3 m hover.
 - Keep the existing attitude PID, motor mixer, and PyBullet physics responsible
   for low-level stabilization; the MLP commands only vertical acceleration.
 - Recognize that success from one clean initial condition can be memorization,

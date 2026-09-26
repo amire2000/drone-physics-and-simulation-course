@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="410" viewBox="0 0 900 410" role="img" aria-labelledby="title desc">
+  <title id="title">The layers of the circle classifier</title>
+  <desc id="desc">Two input values connect to eight hidden neurons, four shown, which connect to one output probability.</desc>
+  <defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0 0 L10 5 L0 10Z" fill="#94a3b8"/></marker></defs>
+  <rect width="900" height="410" rx="20" fill="#f8fafc"/>
+  <text x="45" y="48" font-family="sans-serif" font-size="27" font-weight="700" fill="#1e293b">Our MLP turns two point coordinates into one answer</text>
+  <text x="116" y="95" text-anchor="middle" font-family="sans-serif" font-size="20" font-weight="700" fill="#1e293b">Input layer</text>
+  <text x="448" y="95" text-anchor="middle" font-family="sans-serif" font-size="20" font-weight="700" fill="#1e293b">Hidden layer</text>
+  <text x="744" y="95" text-anchor="middle" font-family="sans-serif" font-size="20" font-weight="700" fill="#1e293b">Output layer</text>
+  <g stroke="#94a3b8" stroke-width="2.5"><line x1="166" y1="155" x2="390" y2="128"/><line x1="166" y1="155" x2="390" y2="188"/><line x1="166" y1="155" x2="390" y2="248"/><line x1="166" y1="155" x2="390" y2="308"/><line x1="166" y1="285" x2="390" y2="128"/><line x1="166" y1="285" x2="390" y2="188"/><line x1="166" y1="285" x2="390" y2="248"/><line x1="166" y1="285" x2="390" y2="308"/><line x1="506" y1="128" x2="692" y2="218"/><line x1="506" y1="188" x2="692" y2="218"/><line x1="506" y1="248" x2="692" y2="218"/><line x1="506" y1="308" x2="692" y2="218"/></g>
+  <circle cx="126" cy="155" r="40" fill="#dbeafe" stroke="#2563eb" stroke-width="4"/><text x="126" y="162" text-anchor="middle" font-family="sans-serif" font-size="25" font-weight="700" fill="#1e3a8a">x</text>
+  <circle cx="126" cy="285" r="40" fill="#dbeafe" stroke="#2563eb" stroke-width="4"/><text x="126" y="292" text-anchor="middle" font-family="sans-serif" font-size="25" font-weight="700" fill="#1e3a8a">y</text>
+  <g fill="#dcfce7" stroke="#16a34a" stroke-width="4"><circle cx="448" cy="128" r="29"/><circle cx="448" cy="188" r="29"/><circle cx="448" cy="248" r="29"/><circle cx="448" cy="308" r="29"/></g>
+  <text x="448" y="355" text-anchor="middle" font-family="sans-serif" font-size="17" fill="#166534">8 neurons total (4 shown)</text>
+  <circle cx="744" cy="218" r="62" fill="#ffedd5" stroke="#ea580c" stroke-width="4"/><text x="744" y="208" text-anchor="middle" font-family="sans-serif" font-size="18" font-weight="700" fill="#9a3412">probability</text><text x="744" y="234" text-anchor="middle" font-family="sans-serif" font-size="18" fill="#9a3412">inside circle</text>
+  <text x="126" y="355" text-anchor="middle" font-family="sans-serif" font-size="17" fill="#475569">one point: (x, y)</text>
+</svg>
