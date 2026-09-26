@@ -53,3 +53,5 @@ nav:
       - Overview: modules/09-mlp-hover/index.md
       - "Lesson 1: NumPy MLP from scratch": modules/09-mlp-hover/01-numpy-mlp-basics/index.md
       - "Lesson 2: MLP drone decision": modules/09-mlp-hover/01-mlp-introduction/index.md
+      - "Lesson 3: Vertical acceleration practice": modules/09-mlp-hover/02-vertical-acceleration-practice/index.md
+      - "Lesson 4: Read the PyBullet MLP hover code": modules/09-mlp-hover/03-pybullet-mlp-code/index.md

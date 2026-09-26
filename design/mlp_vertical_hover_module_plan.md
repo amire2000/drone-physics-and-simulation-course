@@ -24,19 +24,32 @@ existing attitude PID → mixer → motors → PyBullet
 The existing roll, pitch, and yaw PID controllers keep the drone level. The
 MLP does not command individual motor PWM values.
 
-## Planned lesson and examples
+## Teacher data and units
 
-- Create `docs/modules/09-mlp-hover/index.md` when implementation begins.
-  Explain PID imitation, the `2 → 8 → 1` network, mean-squared-error training,
-  model inference, and the boundary between learned and deterministic control.
-  Include a control-flow drawing, hands-on exercise, and review quiz.
-- Add `examples/09-mlp-hover/train_vertical_hover_mlp.py`. Generate a
-  deterministic grid of altitude errors and vertical velocities, label it using
-  the existing altitude PID's desired vertical acceleration, train the NumPy
-  network, and write `vertical_hover_mlp.npz`.
-- Add `examples/09-mlp-hover/mlp_hover.py`. Load the saved weights and run the
-  hover in the GUI or headless mode. Commit the deterministic `.npz` artifact
-  so the inference demo can run immediately.
+The first trainer uses generated states rather than PyBullet trajectories. It
+labels altitude error $e$ and vertical velocity $v_z$ with an explicit
+acceleration teacher:
+
+$$
+a_{teacher}=\operatorname{clip}(1.2e-1.2v_z,-4.0,4.0)\ \mathrm{m/s^2}.
+$$
+
+The MLP learns this acceleration in $\mathrm{m/s^2}$, then the hover example
+converts it to total thrust with $T=m(g+a_{desired})$. This is deliberately
+different from the existing Module 6 altitude PID, whose output is a force
+correction in newtons and is added directly to $mg$.
+
+## Implemented lesson and examples
+
+- Lesson 3 explains PID imitation, the `2 → 8 → 1` network, mean-squared-error
+  training, inference, force conversion, and the boundary between learned and
+  deterministic control. It includes control-flow diagrams, hands-on work, and
+  review quizzes.
+- `vertical_acceleration_mlp.py` generates a deterministic state grid, trains
+  the NumPy model, validates it, and writes `outputs/vertical_acceleration_mlp.npz`.
+- `mlp_pybullet_hover.py` loads those weights and runs a GUI or headless hover.
+  `--controller teacher` uses the transparent PD teacher through exactly the
+  same physics path for comparison.
 - Reuse the Module 6 flight physics, mixer, motor model, and attitude hold;
   do not duplicate them and do not add Betaflight integration.
 
@@ -57,5 +70,5 @@ is appropriate only after compact features such as optical flow are available.
 
 ## Deferred work
 
-Do not implement the Module 9 lesson, runnable examples, model artifact,
-glossary additions, or ADR as part of this planning-only change.
+Do not add wind, sensor noise, randomized starts, horizontal flight, camera
+features, raw RGB learning, or Betaflight integration to this first MLP lesson.
