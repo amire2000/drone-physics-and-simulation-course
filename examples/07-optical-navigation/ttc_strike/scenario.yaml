@@ -5,6 +5,20 @@ simulation:
     launch_position: [-5.25, 0.0, 0.05]  # Initial world position in metres.
     target_center: [20.0, 0.0, 1.0]      # Red cube center in world coordinates.
     target_size_m: 2.0                   # Static cube edge length.
+  physical_forces:
+    body_drag:
+      enabled: true
+    angular_damping:
+      enabled: true
+    wind:
+      enabled: true
+      world_velocity_mps: [0.0, 0.0, 0.0]
+    rotor_aerodynamics:
+      enabled: false
+    ground_effect:
+      enabled: false
+    gyroscopic:
+      enabled: false
 
 runtime:
   physical_setup:

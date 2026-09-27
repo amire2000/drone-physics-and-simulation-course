@@ -30,6 +30,13 @@ def _gains(value: object, name: str) -> tuple[float, float, float]:
     return _position(value, name)
 
 
+def _boolean(value: object, name: str) -> bool:
+    """Return one YAML boolean and reject numeric lookalikes."""
+    if not isinstance(value, bool):
+        raise ValueError(f"{name} must be true or false")
+    return value
+
+
 def _merge(instance, values: dict, names: tuple[str, ...], section_name: str):
     unknown = set(values) - set(names)
     if unknown:
@@ -64,6 +71,13 @@ def load_yaml_config(path: Path) -> StrikeConfig:
     filters = _mapping(runtime_data.get("sensor_filters"), "runtime.sensor_filters")
     pid = _mapping(runtime_data.get("pid"), "runtime.pid")
     vertical = _mapping(runtime_data.get("vertical_control"), "runtime.vertical_control")
+    forces = _mapping(simulation_data.get("physical_forces"), "simulation.physical_forces")
+    body_drag = _mapping(forces.get("body_drag"), "simulation.physical_forces.body_drag")
+    angular_damping = _mapping(forces.get("angular_damping"), "simulation.physical_forces.angular_damping")
+    wind = _mapping(forces.get("wind"), "simulation.physical_forces.wind")
+    rotor_aerodynamics = _mapping(forces.get("rotor_aerodynamics"), "simulation.physical_forces.rotor_aerodynamics")
+    ground_effect = _mapping(forces.get("ground_effect"), "simulation.physical_forces.ground_effect")
+    gyroscopic = _mapping(forces.get("gyroscopic"), "simulation.physical_forces.gyroscopic")
 
     simulation = SimulationConfig()
     runtime = RuntimeConfig()
@@ -82,6 +96,42 @@ def load_yaml_config(path: Path) -> StrikeConfig:
     simulation = _merge(simulation, vehicle, ("vehicle_mass_kg", "gravity_mps2"), "simulation.vehicle_model")
     simulation = _merge(simulation, sensor_model, ("barometer_noise_sigma_m", "barometer_bias_m", "random_seed"), "simulation.sensor_model")
     simulation = _merge(simulation, recording, ("post_impact_seconds",), "simulation.recording")
+
+    if "enabled" in body_drag:
+        simulation = replace(simulation, body_drag_enabled=_boolean(body_drag["enabled"], "simulation.physical_forces.body_drag.enabled"))
+    if "cd_area_m2" in body_drag:
+        simulation = replace(simulation, body_drag_cd_area_m2=_position(body_drag["cd_area_m2"], "simulation.physical_forces.body_drag.cd_area_m2"))
+    if "air_density_kg_m3" in body_drag:
+        simulation = replace(simulation, air_density_kg_m3=body_drag["air_density_kg_m3"])
+    unknown = set(body_drag) - {"enabled", "cd_area_m2", "air_density_kg_m3"}
+    if unknown:
+        raise ValueError(f"unknown simulation.physical_forces.body_drag setting(s): {', '.join(sorted(unknown))}")
+
+    if "enabled" in angular_damping:
+        simulation = replace(simulation, angular_damping_enabled=_boolean(angular_damping["enabled"], "simulation.physical_forces.angular_damping.enabled"))
+    if "coefficients_nm_per_rad_s" in angular_damping:
+        simulation = replace(simulation, angular_damping_nm_per_rad_s=_position(angular_damping["coefficients_nm_per_rad_s"], "simulation.physical_forces.angular_damping.coefficients_nm_per_rad_s"))
+    unknown = set(angular_damping) - {"enabled", "coefficients_nm_per_rad_s"}
+    if unknown:
+        raise ValueError(f"unknown simulation.physical_forces.angular_damping setting(s): {', '.join(sorted(unknown))}")
+
+    if "enabled" in wind:
+        simulation = replace(simulation, wind_enabled=_boolean(wind["enabled"], "simulation.physical_forces.wind.enabled"))
+    if "world_velocity_mps" in wind:
+        simulation = replace(simulation, wind_world_mps=_position(wind["world_velocity_mps"], "simulation.physical_forces.wind.world_velocity_mps"))
+    unknown = set(wind) - {"enabled", "world_velocity_mps"}
+    if unknown:
+        raise ValueError(f"unknown simulation.physical_forces.wind setting(s): {', '.join(sorted(unknown))}")
+
+    simulation = _merge(simulation, {name: value for name, value in rotor_aerodynamics.items() if name != "enabled"}, ("propeller_diameter_m", "inflow_coefficient", "blade_flapping_coefficient"), "simulation.physical_forces.rotor_aerodynamics")
+    if "enabled" in rotor_aerodynamics:
+        simulation = replace(simulation, rotor_aerodynamics_enabled=_boolean(rotor_aerodynamics["enabled"], "simulation.physical_forces.rotor_aerodynamics.enabled"))
+    simulation = _merge(simulation, {name: value for name, value in ground_effect.items() if name != "enabled"}, ("ground_effect_height_m", "ground_effect_coefficient", "ground_effect_max_multiplier"), "simulation.physical_forces.ground_effect")
+    if "enabled" in ground_effect:
+        simulation = replace(simulation, ground_effect_enabled=_boolean(ground_effect["enabled"], "simulation.physical_forces.ground_effect.enabled"))
+    simulation = _merge(simulation, {name: value for name, value in gyroscopic.items() if name != "enabled"}, ("rotor_inertia_kg_m2",), "simulation.physical_forces.gyroscopic")
+    if "enabled" in gyroscopic:
+        simulation = replace(simulation, gyroscopic_torque_enabled=_boolean(gyroscopic["enabled"], "simulation.physical_forces.gyroscopic.enabled"))
 
     runtime = _merge(runtime, camera, ("camera_width_px", "camera_height_px", "camera_hz", "camera_fov_deg", "camera_look_down_deg"), "runtime.physical_setup.camera")
     runtime = _merge(runtime, mission, ("takeoff_altitude_m", "impact_altitude_m", "forward_speed_mps", "nominal_pitch_deg"), "runtime.mission")

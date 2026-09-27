@@ -6,6 +6,8 @@ import json
 from math import degrees
 from pathlib import Path
 
+from common.drone_model import PhysicsStep
+
 from .config import SceneConfig, StrikeConfig
 from .guidance import GuidanceCommand
 from .ttc import TtcObservation
@@ -31,11 +33,17 @@ class FlightLog:
     ttc_s: list[float] = field(default_factory=list)
     bbox_scale_px: list[float] = field(default_factory=list)
     bbox_growth_px_s: list[float] = field(default_factory=list)
+    body_drag_x_n: list[float] = field(default_factory=list)
+    body_drag_z_n: list[float] = field(default_factory=list)
+    angular_damping_pitch_torque_nm: list[float] = field(default_factory=list)
+    gyroscopic_pitch_torque_nm: list[float] = field(default_factory=list)
+    ground_effect_max_multiplier: list[float] = field(default_factory=list)
     collision_time_s: float | None = None
     collision_position_m: tuple[float, float, float] | None = None
     collision_velocity_mps: tuple[float, float, float] | None = None
 
-    def append(self, now_s: float, position: tuple[float, float, float], velocity: tuple[float, float, float], command: GuidanceCommand, measured_pitch_rad: float = 0.0, pitch_torque: float = 0.0, observation: TtcObservation | None = None) -> None:
+    def append(self, now_s: float, position: tuple[float, float, float], velocity: tuple[float, float, float], command: GuidanceCommand, measured_pitch_rad: float = 0.0, pitch_torque: float = 0.0, observation: TtcObservation | None = None, physics_step: PhysicsStep | None = None) -> None:
+        """Record state, guidance, and optional applied shared-force telemetry."""
         self.time_s.append(now_s)
         self.x_m.append(position[0])
         self.z_m.append(position[2])
@@ -55,6 +63,14 @@ class FlightLog:
         self.ttc_s.append(observation.ttc_s if observation else float("nan"))
         self.bbox_scale_px.append(observation.scale_px if observation else float("nan"))
         self.bbox_growth_px_s.append(observation.scale_growth_px_s if observation else float("nan"))
+        body_drag = physics_step.body_drag_force_body_n if physics_step else (float("nan"),) * 3
+        angular_damping = physics_step.angular_damping_torque_body_nm if physics_step else (float("nan"),) * 3
+        gyroscopic = physics_step.gyroscopic_torque_body_nm if physics_step else (float("nan"),) * 3
+        self.body_drag_x_n.append(body_drag[0])
+        self.body_drag_z_n.append(body_drag[2])
+        self.angular_damping_pitch_torque_nm.append(angular_damping[1])
+        self.gyroscopic_pitch_torque_nm.append(gyroscopic[1])
+        self.ground_effect_max_multiplier.append(max(physics_step.ground_effect_multipliers) if physics_step else float("nan"))
 
     def mark_collision(self, now_s: float, position: tuple[float, float, float], velocity: tuple[float, float, float]) -> None:
         if self.collision_time_s is None:
@@ -216,7 +232,8 @@ def save_csv(log: FlightLog, output: Path) -> None:
     output.parent.mkdir(parents=True, exist_ok=True)
     fields = ("time_s", "phase", "x_m", "y_m", "z_m", "vx_mps", "vz_mps", "command_vx_mps",
               "command_vz_mps", "command_altitude_m", "command_thrust_n", "command_pitch_deg",
-              "measured_pitch_deg", "pitch_error_deg", "pitch_torque", "ttc_s", "bbox_scale_px", "bbox_growth_px_s")
+              "measured_pitch_deg", "pitch_error_deg", "pitch_torque", "ttc_s", "bbox_scale_px", "bbox_growth_px_s",
+              "body_drag_x_n", "body_drag_z_n", "angular_damping_pitch_torque_nm", "gyroscopic_pitch_torque_nm", "ground_effect_max_multiplier")
     with output.open("w", newline="") as stream:
         writer = csv.writer(stream)
         writer.writerow(fields)

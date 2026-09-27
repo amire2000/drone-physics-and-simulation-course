@@ -42,6 +42,22 @@ class PhysicsSettings:
     physics_hz: int = 240
     control_hz: int = 120
     wind_world_mps: tuple[float, float, float] = (0.0, 0.0, 0.0)
+    wind_enabled: bool = True
+    air_density_kg_m3: float = 1.225
+    body_drag_enabled: bool = True
+    body_drag_cd_area_m2: tuple[float, float, float] = (0.012, 0.012, 0.020)
+    angular_damping_enabled: bool = True
+    angular_damping_nm_per_rad_s: tuple[float, float, float] = (0.0012, 0.0012, 0.0020)
+    rotor_aerodynamics_enabled: bool = False
+    propeller_diameter_m: float = 0.14
+    inflow_coefficient: float = 0.35
+    blade_flapping_coefficient: float = 0.10
+    ground_effect_enabled: bool = False
+    ground_effect_height_m: float = 0.35
+    ground_effect_coefficient: float = 0.10
+    ground_effect_max_multiplier: float = 1.25
+    gyroscopic_torque_enabled: bool = False
+    rotor_inertia_kg_m2: float = 5e-6
 
     @property
     def time_step_s(self) -> float:
@@ -81,6 +97,10 @@ class PhysicsStep:
     motor_thrusts_n: tuple[float, float, float, float]
     total_thrust_n: float
     drag_force_body_n: tuple[float, float, float]
+    body_drag_force_body_n: tuple[float, float, float]
+    angular_damping_torque_body_nm: tuple[float, float, float]
+    gyroscopic_torque_body_nm: tuple[float, float, float]
+    ground_effect_multipliers: tuple[float, float, float, float]
     state: DroneState
 
 

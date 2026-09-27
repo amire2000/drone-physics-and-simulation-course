@@ -99,8 +99,51 @@ def wind_validation() -> ValidationResult:
     return ValidationResult("wind", drift, "m", "positive lateral drift")
 
 
+def body_drag_validation() -> ValidationResult:
+    """Verify quadratic frame drag opposes a known forward body velocity."""
+    drone = create_world()
+    engine = PhysicsEngine()
+    reset_drone(drone, (0.0, 0.0, 5.0))
+    p.resetBaseVelocity(drone, linearVelocity=(10.0, 0.0, 0.0))
+    step = engine.step(drone, PWM_HOVER, (0.0, 0.0, 0.0))
+    force = step.body_drag_force_body_n[0]
+    assert force < 0.0
+    return ValidationResult("body drag", force, "N", "negative against forward velocity")
+
+
+def angular_damping_validation() -> ValidationResult:
+    """Verify aerodynamic damping torque opposes a known roll rate."""
+    drone = create_world()
+    engine = PhysicsEngine()
+    reset_drone(drone, (0.0, 0.0, 5.0))
+    p.resetBaseVelocity(drone, angularVelocity=(1.0, 0.0, 0.0))
+    step = engine.step(drone, PWM_HOVER, (0.0, 0.0, 0.0))
+    torque = step.angular_damping_torque_body_nm[0]
+    assert torque < 0.0
+    return ValidationResult("angular damping", torque, "N m", "negative against roll rate")
+
+
+def optional_forces_validation() -> ValidationResult:
+    """Verify optional rotor, ground, and gyro effects are configurable and bounded."""
+    settings = PhysicsSettings(
+        rotor_aerodynamics_enabled=True,
+        ground_effect_enabled=True,
+        gyroscopic_torque_enabled=True,
+    )
+    drone = create_world(settings=settings)
+    engine = PhysicsEngine(settings=settings)
+    reset_drone(drone, (0.0, 0.0, 0.15))
+    engine.reset((HOVER_RPM * 1.2, HOVER_RPM, HOVER_RPM, HOVER_RPM))
+    p.resetBaseVelocity(drone, linearVelocity=(8.0, 0.0, 0.0), angularVelocity=(1.0, 0.0, 0.0))
+    step = engine.step(drone, PWM_HOVER, (0.0, 0.0, 0.0))
+    assert max(step.ground_effect_multipliers) > 1.0
+    assert step.gyroscopic_torque_body_nm[1] != 0.0
+    assert max(step.motor_thrusts_n) < MODEL.max_thrust_per_motor_n * settings.ground_effect_max_multiplier
+    return ValidationResult("optional forces", max(step.ground_effect_multipliers), "x", "ground effect bounded; gyro active")
+
+
 def run_validation(selected: str) -> list[ValidationResult]:
-    """Run one named validation or the complete seven-case validation suite."""
+    """Run one named validation or the complete validation suite."""
     cases = {
         "gravity": gravity_validation,
         "hover": hover_validation,
@@ -109,6 +152,9 @@ def run_validation(selected: str) -> list[ValidationResult]:
         "pitch": lambda: attitude_validation("pitch", (0.0, 0.02, 0.0), 1),
         "yaw": lambda: attitude_validation("yaw", (0.0, 0.0, 0.002), 2),
         "wind": wind_validation,
+        "body-drag": body_drag_validation,
+        "angular-damping": angular_damping_validation,
+        "optional-forces": optional_forces_validation,
     }
     if selected == "all":
         return [case() for case in cases.values()]
@@ -137,14 +183,14 @@ def print_results(results: list[ValidationResult], selected: str) -> None:
     for result in results:
         print(f"{result.name:>22}: {result.measurement:.3f} {result.unit} ({result.expectation})")
     if selected == "all":
-        print(f"{len(results)}/7 checks passed")
+        print(f"{len(results)}/10 checks passed")
     print("========================================")
 
 
 def main() -> None:
     """Run selected validations, print measurements, and optionally save their plot."""
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--scenario", choices=("all", "gravity", "hover", "vertical", "roll", "pitch", "yaw", "wind"), default="all")
+    parser.add_argument("--scenario", choices=("all", "gravity", "hover", "vertical", "roll", "pitch", "yaw", "wind", "body-drag", "angular-damping", "optional-forces"), default="all")
     parser.add_argument("--headless", action="store_true", help="Use PyBullet DIRECT mode")
     parser.add_argument("--plot", type=Path, default=Path("outputs/physics_engine_validation.png"))
     parser.add_argument("--no-plot", action="store_true", help="Do not save the result plot")

@@ -8,7 +8,6 @@ import time
 import cv2
 import pybullet as p
 
-from common.drone_model import DEFAULT_DRONE_MODEL, DEFAULT_PHYSICS_SETTINGS
 from common.drone_physics import PhysicsEngine, clamp
 from common.flight_control import AttitudeController
 from common.pybullet_sensors import read_imu
@@ -22,14 +21,6 @@ from .sensing import Barometer, BarometerReading
 from .telemetry import FlightLog, build_summary, make_plot, move_plot_window, refresh_plot, save_csv, save_plot, save_summary
 from .ttc import BboxTtcTracker, TtcObservation
 from .views import annotate, environment_rgb
-
-MODEL = DEFAULT_DRONE_MODEL
-SETTINGS = DEFAULT_PHYSICS_SETTINGS
-MASS = MODEL.mass_kg
-PHYSICS_HZ = SETTINGS.physics_hz
-TIME_STEP = SETTINGS.time_step_s
-CONTROL_STEPS = SETTINGS.control_steps
-
 
 @dataclass(frozen=True)
 class StrikeResult:
@@ -52,8 +43,13 @@ class StrikeSimulation:
 
     def run(self, gui: bool, max_seconds: float, video: Path | None, plot: Path | None, csv: Path | None = None, summary: Path | None = None) -> StrikeResult:
         config = self.config
-        drone = create_world()
-        engine = PhysicsEngine()
+        model = self.scene.drone_model
+        settings = self.scene.physics_settings
+        physics_hz = settings.physics_hz
+        time_step = settings.time_step_s
+        control_steps = settings.control_steps
+        drone = create_world(model, settings)
+        engine = PhysicsEngine(model, settings)
         p.resetBasePositionAndOrientation(drone, config.launch_position, (0, 0, 0, 1))
         cube = add_red_cube(self.scene.target_center, self.scene.target_size_m)
         add_environment_buildings()
@@ -90,15 +86,15 @@ class StrikeSimulation:
             return result
 
         try:
-            for step in range(round(max_seconds / TIME_STEP)):
-                now_s = step * TIME_STEP
+            for step in range(round(max_seconds / time_step)):
+                now_s = step * time_step
                 position, _ = p.getBasePositionAndOrientation(drone)
                 sample = barometer.sample(position[2], now_s)
                 if sample:
                     baro = sample
 
                 frame = None
-                if step % (PHYSICS_HZ // config.camera_hz) == 0:
+                if step % (physics_hz // config.camera_hz) == 0:
                     if writer:
                         writer.write(cv2.cvtColor(environment_rgb(renderer, config), cv2.COLOR_RGB2BGR))
                     frame, box = detect_red_box(
@@ -114,7 +110,7 @@ class StrikeSimulation:
                     target_visible = box is not None
                     observation = tracker.update(box, now_s)
 
-                if step % CONTROL_STEPS == 0:
+                if step % control_steps == 0:
                     if stop_at_s is None:
                         current_velocity = p.getBaseVelocity(drone)[0]
                         measured_pitch = p.getEulerFromQuaternion(p.getBasePositionAndOrientation(drone)[1])[1]
@@ -159,7 +155,7 @@ class StrikeSimulation:
                 # thrust_n is the collective force. Split it evenly before
                 # mapping force to a PWM signal for the four motors.
                 collective = 0.0 if stop_at_s is not None else command.thrust_n
-                pwm = engine.pwm_from_thrust(clamp(collective / 4, 0.0, MODEL.max_thrust_per_motor_n))
+                pwm = engine.pwm_from_thrust(clamp(collective / 4, 0.0, model.max_thrust_per_motor_n))
                 incoming_velocity = p.getBaseVelocity(drone)[0]
                 flight_step = engine.step(drone, pwm, torque)
                 position, _ = p.getBasePositionAndOrientation(drone)
@@ -168,8 +164,8 @@ class StrikeSimulation:
                 pitch_torque = torque[1]
                 # trajectory is observational here: FlightLog plots its vx,
                 # vz, and altitude target beside measured vehicle state.
-                log.append(now_s, position, velocity, command, pitch_rad, pitch_torque, observation)
-                if live_plot and step % (PHYSICS_HZ // config.camera_hz) == 0:
+                log.append(now_s, position, velocity, command, pitch_rad, pitch_torque, observation, flight_step)
+                if live_plot and step % (physics_hz // config.camera_hz) == 0:
                     refresh_plot(live_plot, log)
 
                 if not impact_speed and p.getContactPoints(drone, cube):
@@ -190,7 +186,7 @@ class StrikeSimulation:
                         if cv2.waitKey(1) & 0xFF in (27, ord("q"), ord("Q")):
                             return finish(False, command.phase.value, now_s)
                     draw_force_vectors(drone, flight_step, force_lines)
-                    time.sleep(TIME_STEP)
+                    time.sleep(time_step)
             print(f"Strike timed out in {command.phase.value} phase")
             return finish(False, command.phase.value, max_seconds)
         finally:

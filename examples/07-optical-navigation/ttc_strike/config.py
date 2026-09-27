@@ -1,7 +1,9 @@
 """Typed simulation and field-runtime configuration for the TTC strike."""
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from math import radians
+
+from common.drone_model import DEFAULT_DRONE_MODEL, DEFAULT_PHYSICS_SETTINGS, DroneModel, PhysicsSettings
 
 
 @dataclass(frozen=True)
@@ -20,6 +22,53 @@ class SimulationConfig:
     environment_size_px: tuple[int, int] = (960, 540)
     opencv_window_position_px: tuple[int, int] = (20, 80)
     plot_window_position_px: tuple[int, int] = (700, 80)
+    wind_enabled: bool = True
+    wind_world_mps: tuple[float, float, float] = (0.0, 0.0, 0.0)
+    air_density_kg_m3: float = 1.225
+    body_drag_enabled: bool = True
+    body_drag_cd_area_m2: tuple[float, float, float] = (0.012, 0.012, 0.020)
+    angular_damping_enabled: bool = True
+    angular_damping_nm_per_rad_s: tuple[float, float, float] = (0.0012, 0.0012, 0.0020)
+    rotor_aerodynamics_enabled: bool = False
+    propeller_diameter_m: float = 0.14
+    inflow_coefficient: float = 0.35
+    blade_flapping_coefficient: float = 0.10
+    ground_effect_enabled: bool = False
+    ground_effect_height_m: float = 0.35
+    ground_effect_coefficient: float = 0.10
+    ground_effect_max_multiplier: float = 1.25
+    gyroscopic_torque_enabled: bool = False
+    rotor_inertia_kg_m2: float = 5e-6
+
+    @property
+    def drone_model(self) -> DroneModel:
+        """Return the shared drone model with this scenario's mass."""
+        return replace(DEFAULT_DRONE_MODEL, mass_kg=self.vehicle_mass_kg)
+
+    @property
+    def physics_settings(self) -> PhysicsSettings:
+        """Return shared physics settings resolved from this scenario's force model."""
+        return replace(
+            DEFAULT_PHYSICS_SETTINGS,
+            gravity_z_mps2=-self.gravity_mps2,
+            wind_enabled=self.wind_enabled,
+            wind_world_mps=self.wind_world_mps,
+            air_density_kg_m3=self.air_density_kg_m3,
+            body_drag_enabled=self.body_drag_enabled,
+            body_drag_cd_area_m2=self.body_drag_cd_area_m2,
+            angular_damping_enabled=self.angular_damping_enabled,
+            angular_damping_nm_per_rad_s=self.angular_damping_nm_per_rad_s,
+            rotor_aerodynamics_enabled=self.rotor_aerodynamics_enabled,
+            propeller_diameter_m=self.propeller_diameter_m,
+            inflow_coefficient=self.inflow_coefficient,
+            blade_flapping_coefficient=self.blade_flapping_coefficient,
+            ground_effect_enabled=self.ground_effect_enabled,
+            ground_effect_height_m=self.ground_effect_height_m,
+            ground_effect_coefficient=self.ground_effect_coefficient,
+            ground_effect_max_multiplier=self.ground_effect_max_multiplier,
+            gyroscopic_torque_enabled=self.gyroscopic_torque_enabled,
+            rotor_inertia_kg_m2=self.rotor_inertia_kg_m2,
+        )
 
 
 @dataclass(frozen=True)

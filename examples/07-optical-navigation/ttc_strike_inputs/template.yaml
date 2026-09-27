@@ -7,6 +7,30 @@ simulation:
   vehicle_model:
     vehicle_mass_kg: 0.65                # Simulated vehicle mass [kg].
     gravity_mps2: 9.81                   # Simulator gravity [m/s²].
+  physical_forces:
+    body_drag:
+      enabled: true                       # Quadratic frame drag switch.
+      air_density_kg_m3: 1.225            # Air density [kg/m³].
+      cd_area_m2: [0.012, 0.012, 0.020]  # Effective CdA in body x/y/z [m²].
+    angular_damping:
+      enabled: true                       # Aerodynamic attitude-rate damping switch.
+      coefficients_nm_per_rad_s: [0.0012, 0.0012, 0.0020]  # Roll/pitch/yaw damping.
+    wind:
+      enabled: true                       # Use the constant world-frame air velocity.
+      world_velocity_mps: [0.0, 0.0, 0.0]  # Wind velocity in world x/y/z [m/s].
+    rotor_aerodynamics:
+      enabled: false                      # Optional inflow and blade-flapping model.
+      propeller_diameter_m: 0.14          # Propeller diameter [m].
+      inflow_coefficient: 0.35            # Forward-flight thrust-loss scale.
+      blade_flapping_coefficient: 0.10    # In-plane rotor force scale.
+    ground_effect:
+      enabled: false                      # Optional near-surface lift increase.
+      ground_effect_height_m: 0.35        # Search depth below each rotor [m].
+      ground_effect_coefficient: 0.10     # Ground-effect strength.
+      ground_effect_max_multiplier: 1.25  # Maximum rotor thrust multiplier.
+    gyroscopic:
+      enabled: false                      # Optional rotor angular-momentum torque.
+      rotor_inertia_kg_m2: 0.000005       # One rotor's polar inertia [kg·m²].
   sensor_model:
     barometer_noise_sigma_m: 0.0         # Synthetic altitude noise [m].
     barometer_bias_m: 0.0                # Synthetic altitude bias [m].

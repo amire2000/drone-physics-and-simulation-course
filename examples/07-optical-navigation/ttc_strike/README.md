@@ -192,6 +192,20 @@ The velocity and guidance plots shade the tracking interval only up to the
 collision marker. The `TrajectoryCommand` plot is intentionally left unshaded
 so its command curves remain easy to read.
 
+### Physical-force configuration
+
+The shared `PhysicsEngine` now receives the scenario's
+`simulation.physical_forces` block. Frame drag, angular damping, and a
+constant world-frame wind model are enabled by default; wind starts at
+`[0, 0, 0] m/s`. Rotor inflow/blade flapping, ground effect, and gyroscopic
+torque are implemented as optional effects and default to off.
+
+Use the commented [`template.yaml`](../ttc_strike_inputs/template.yaml) to
+change coefficients. The run CSV records applied body drag, pitch damping,
+gyroscopic pitch torque, and maximum ground-effect multiplier. See
+[`design/missing_flight_forces_plan.md`](../../../design/missing_flight_forces_plan.md)
+for the equations, ownership boundary, and tuning order.
+
 ## TTC-to-drone-step flow
 
 ```mermaid
@@ -306,7 +320,7 @@ sequenceDiagram
 | Attitude loop | `AttitudeController.update()` | desired pitch, IMU attitude/rates | `(roll, pitch, yaw)` torque in N m | Correct the difference between desired and measured attitude. |
 | Command adapter | `StrikeSimulation.run()` | collective thrust and torque | one PWM value plus torque | Divides collective force by four and keeps control/physics clocks coordinated. |
 | Mixer and motors | `PhysicsEngine.step()` | PWM and torque | four actual RPM values | Mixes torque corrections, limits motors, and models motor lag. |
-| Force model | `_apply_rotor_forces()` and `_apply_drag()` | RPM and body-relative velocity | PyBullet external forces/torques | Applies thrust, rotor reaction torque, and aerodynamic drag. |
+| Force model | `PhysicsEngine` force helpers | RPM, body-relative airspeed, and rates | PyBullet external forces/torques | Applies thrust, drag, damping, and optional advanced effects. |
 | Rigid-body simulator | `pybullet.stepSimulation()` | forces, torque, gravity, contacts | next pose and velocity | Integrates motion and resolves collision with the target/scene. |
 
 For one rotor, the simplified actuator chain is:
