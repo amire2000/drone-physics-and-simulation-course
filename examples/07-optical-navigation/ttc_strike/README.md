@@ -217,6 +217,116 @@ deadline. After contact, thrust and torque are set to zero for the configured
 aftermath window. The wide PyBullet camera is only a scene view; the controller
 uses the body-fixed forward camera.
 
+## Low-level control and physics loop
+
+`StrikeGuidance` does not call PyBullet directly. It publishes a small,
+physical command at the 120 Hz control rate:
+
+- `thrust_n` is the **total requested lift in newtons** for all four motors.
+- `pitch_target_rad` is the desired body pitch. Positive pitch tilts the rotor
+  disk and creates forward acceleration.
+
+`StrikeSimulation` adapts that command to the shared controller and physics
+engine. The engine runs every 240 Hz physics tick, so it continues to model
+motor response and forces between control updates. Gravity and collision are
+handled by PyBullet when `stepSimulation()` advances the rigid body.
+
+```mermaid
+flowchart TD
+    guidance[GuidanceCommand\ncollective thrust N and pitch target rad]
+    guidance --> split[Split collective thrust across four rotors]
+    split --> pwm[pwm_from_thrust\none-motor force to PWM microseconds]
+
+    imu[read_imu\nmeasured pitch and body rate] --> attitude[AttitudeController.update]
+    guidance --> attitude
+    attitude --> torque[Body torque request\nroll pitch yaw N m]
+
+    pwm --> engine[PhysicsEngine.step]
+    torque --> engine
+    engine --> mixer[_mix_motor_thrusts\ncollective plus torque corrections]
+    mixer --> rpm_target[rpm_from_thrust\nper-motor target RPM]
+    rpm_target --> motor[_advance_motor_rpms\nfirst-order motor lag]
+    motor --> thrust[thrust = kf times RPM squared]
+    thrust --> rotor_force[applyExternalForce\nupward force on each motor link]
+    motor --> reaction[applyExternalTorque\nalternating rotor reaction torque]
+    rotor_force --> drag[_apply_drag\nbody-frame force opposite airspeed]
+    reaction --> drag
+    drag --> integrate[PyBullet stepSimulation\ngravity contacts rigid-body integration]
+    integrate --> state[read_state\nposition velocity attitude and rates]
+    state --> imu
+    state --> next[Next barometer camera and guidance update]
+```
+
+The arrows labelled `applyExternalForce` and `applyExternalTorque` are the
+boundary where the course's motor model becomes PyBullet physics. A rotor
+force is applied in its own link frame along body `+Z`; tilting the drone
+therefore tilts the total lift vector forward. Equal motor thrust mainly
+changes lift. Unequal thrust creates roll or pitch torque through the arm
+length, while alternating rotor spin creates yaw torque.
+
+### One control period and two physics ticks
+
+The default clocks are `control_hz = 120` and `physics_hz = 240`. The control
+command is held for two physics ticks; this is intentional, not a skipped
+controller update.
+
+```mermaid
+sequenceDiagram
+    participant G as StrikeGuidance
+    participant A as AttitudeController
+    participant E as PhysicsEngine
+    participant P as PyBullet
+    participant S as Sensors
+
+    Note over G,S: Control tick at 120 Hz
+    S->>G: barometer, bbox/TTC, forward velocity
+    G->>A: pitch target
+    S->>A: IMU attitude and angular rate
+    A->>E: body torque request
+    G->>E: collective thrust converted to one PWM command
+
+    Note over E,P: Physics tick 1 at 240 Hz
+    E->>E: mix thrust, update motor RPM, calculate drag
+    E->>P: applyExternalForce on four rotor links
+    E->>P: applyExternalTorque on drone body
+    E->>P: stepSimulation
+    P-->>S: new state
+
+    Note over E,P: Physics tick 2 at 240 Hz, same held command
+    E->>E: update motor RPM and forces again
+    E->>P: apply forces, torque, drag, then stepSimulation
+    P-->>S: new state for the next control tick
+```
+
+### What each layer owns
+
+| Layer | Code | Input | Output | Responsibility |
+| --- | --- | --- | --- | --- |
+| Guidance | `StrikeGuidance.update()` | TTC, barometer, forward speed | `GuidanceCommand` | Select phase, collective thrust, and desired pitch. |
+| Attitude loop | `AttitudeController.update()` | desired pitch, IMU attitude/rates | `(roll, pitch, yaw)` torque in N m | Correct the difference between desired and measured attitude. |
+| Command adapter | `StrikeSimulation.run()` | collective thrust and torque | one PWM value plus torque | Divides collective force by four and keeps control/physics clocks coordinated. |
+| Mixer and motors | `PhysicsEngine.step()` | PWM and torque | four actual RPM values | Mixes torque corrections, limits motors, and models motor lag. |
+| Force model | `_apply_rotor_forces()` and `_apply_drag()` | RPM and body-relative velocity | PyBullet external forces/torques | Applies thrust, rotor reaction torque, and aerodynamic drag. |
+| Rigid-body simulator | `pybullet.stepSimulation()` | forces, torque, gravity, contacts | next pose and velocity | Integrates motion and resolves collision with the target/scene. |
+
+For one rotor, the simplified actuator chain is:
+
+```text
+requested force -> PWM -> target RPM -> delayed actual RPM -> thrust
+F_rotor = kf * RPM^2
+```
+
+The total lift is the sum of the four rotor thrusts. `GuidanceCommand.thrust_n`
+is divided by four before conversion to PWM, then the mixer adds small
+per-motor corrections for the requested attitude torque. The resulting total
+thrust can differ briefly from the guidance request because motors have a
+time constant and because individual motor limits are enforced.
+
+`PhysicsStep` records the applied PWM, four RPM values, four thrusts, total
+thrust, drag force, and the resulting state. The force arrows in the PyBullet
+GUI are drawn from that result; they show the actual applied rotor forces, not
+the requested command.
+
 ## `StrikeGuidance.update()` phase flow
 
 ```mermaid

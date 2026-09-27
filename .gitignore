@@ -1,6 +1,7 @@
 .venv/
 site/
 outputs/
+.sitl/
 __pycache__/
 *.py[cod]
 .DS_Store

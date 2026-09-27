@@ -48,7 +48,9 @@ nav:
       - "Step 2: Drone free fall": modules/06-autonomous-hover/02-drone-free-fall/index.md
       - "Step 5: Physics-engine validation": modules/06-autonomous-hover/05-physics-engine-validation/index.md
   - "Module 7: Optical navigation": modules/07-optical-navigation/index.md
-  - "Module 8: Betaflight SITL bridge": modules/08-betaflight-sitl/index.md
+  - "Module 8: Betaflight SITL bridge":
+      - Overview: modules/08-betaflight-sitl/index.md
+      - "Lesson 1: Bridge protocol and setup": modules/08-betaflight-sitl/bridge-protocol/index.md
   - "Module 9: Learned vertical hover":
       - Overview: modules/09-mlp-hover/index.md
       - "Lesson 1: NumPy MLP from scratch": modules/09-mlp-hover/01-numpy-mlp-basics/index.md
