@@ -175,4 +175,4 @@ uv run python examples/06-autonomous-hover/physics_engine_validation.py --self-c
 
 ---
 
-Previous: [Step 2: Drone free fall](../02-drone-free-fall/index.md). Next: [Automatic takeoff and hover](../index.md#automatic-takeoff-yaw-and-landing).
+Previous: [Step 2: Drone free fall](../02-drone-free-fall/index.md). Next: [Drone hover capstone](../03-drone-hover/index.md).

@@ -9,19 +9,36 @@
 
 ---
 
-## PyBullet methods at a glance
+## Important PyBullet methods
 
-| Method | Short description |
-| --- | --- |
-| `p.connect()` | Connect to the GUI or headless physics engine. |
-| `p.setGravity()` | Set the world gravity vector in `m/s²`. |
-| `p.setTimeStep()` | Set the duration of one physics update. |
-| `p.loadURDF()` | Load a plane, cube, drone, or other physical body. |
-| `p.stepSimulation()` | Advance the physics world by one time step. |
-| `p.getBaseVelocity()` | Read a body's linear and angular velocity. |
-| `p.getDynamicsInfo()` | Read properties such as the body's mass. |
-| `p.applyExternalForce()` | Apply a force vector for the next simulation step. |
-| `p.disconnect()` | Close the connection to the physics engine. |
+These are the PyBullet calls used directly by Module 1. Later modules reuse
+them for drone bodies, motors, forces, and sensors.
+
+| Method | What it does | Why Module 1 uses it | Important detail |
+| --- | --- | --- | --- |
+| `p.connect(p.GUI)` | Opens the interactive PyBullet window. | Lets you watch the cube fall or hover. | Use `p.DIRECT` instead for a headless automated check. |
+| `p.disconnect()` | Closes the physics connection. | Cleans up after every example, even after an error. | Pass the client ID when more than one connection exists. |
+| `p.setAdditionalSearchPath()` | Tells PyBullet where built-in assets live. | Lets `loadURDF()` find `plane.urdf` and `cube.urdf`. | The course examples use the `pybullet_data` asset directory. |
+| `p.setGravity(0, 0, -9.81)` | Sets world acceleration caused by gravity. | Makes an unsupported cube fall. | The unit is `m/s²`, not newtons; negative Z is down in this course. |
+| `p.setTimeStep(1 / 240)` | Sets one physics integration interval. | Makes the examples advance at 240 Hz. | Each `stepSimulation()` call advances exactly this duration. |
+| `p.loadURDF()` | Loads a physical body from a URDF file. | Creates the ground plane and cube. | URDF provides mass, inertia, visual shape, and collision geometry. |
+| `p.changeVisualShape()` | Changes how a body looks. | Makes the free-fall cube blue and easy to see. | Colour changes appearance only; it does not change mass or physics. |
+| `p.getDynamicsInfo()` | Reads mass and other dynamics properties. | Lets the hover-force experiment calculate `W = mg`. | Base-link data uses link index `-1`; mass is in `kg`. |
+| `p.applyExternalForce()` | Adds a force vector to a body for the next physics tick. | Supplies the simple upward thrust in the hover experiment. | Force is in newtons and lasts one step, so continuous thrust needs a call inside the loop. |
+| `p.stepSimulation()` | Advances rigid-body physics once. | Updates position and velocity after gravity, thrust, and contact forces. | Call it after setting forces for the current tick. |
+| `p.getBasePositionAndOrientation()` | Reads a body's world position and orientation. | Checks the final height in the free-fall experiment. | Position is in metres; orientation is a quaternion. |
+| `p.getBaseVelocity()` | Reads linear and angular velocity. | Lets the velocity experiment estimate acceleration. | Linear velocity is `m/s`; angular velocity is `rad/s`. |
+
+`p.applyExternalForce()` also needs a frame choice. Module 1 uses
+`p.WORLD_FRAME`, so `(0, 0, upward_force)` always means upward in the fixed
+world frame. [Experiment 3: Force and hover](03-hover-force/index.md) explores
+this call in detail; [Experiment 2](02-track-linear-velocity/index.md) uses the
+position and velocity readers to measure gravity.
+
+This is the blue cube and ground plane used by the first experiment, rendered
+by PyBullet before gravity advances the simulation:
+
+![PyBullet render of the Module 1 blue cube above its checkerboard ground plane.](images/pybullet-free-fall-snapshot.png)
 
 ---
 
@@ -199,205 +216,14 @@ those masses multiplied by gravity.
 
 ---
 
-## Experiment 1: free fall
+## Exercises
 
-Run one cube above a ground plane:
+Each experiment is now a focused page with its own diagram, runnable code,
+hands-on task, and review questions.
 
-```bash
-uv run python examples/01-mass-and-forces/free_fall.py
-```
-
-The script spawns a large 1 m blue cube at 3 m, making its motion easy to see.
-It falls until the plane stops it. In headless mode, the script checks that the
-final height is lower than the starting height:
-
-![Free-fall scenario: a blue cube falls under gravity until the ground reacts upward.](images/free-fall-scenario.svg)
-
-```mermaid
-flowchart TD
-    A[Blue cube at 3 m\nvelocity = 0] --> B[Gravity: W = mg downward]
-    B --> C[Each step: downward velocity grows]
-    C --> D[Cube contacts ground plane]
-    D --> E[Ground reaction force upward\nCube stops]
-```
-
-```bash
-uv run python examples/01-mass-and-forces/free_fall.py --headless
-```
-
-```python
---8<-- "examples/01-mass-and-forces/free_fall.py"
-```
-
-The plane is only a collision surface. Gravity is the external force that
-changes the cube's velocity before it reaches the plane.
-
-### Newton's laws in this scene
-
-- **First law:** the cube starts at rest and stays at rest only until a net
-  force acts. With gravity enabled, there is no balanced-force hover state.
-- **Second law:** gravity creates downward weight `W = mg`. The net force is
-  downward, so `a = F / m` gives the familiar acceleration near `−9.81 m/s²`.
-  The next experiment measures this from the cube's velocity.
-- **Third law:** when the cube reaches the plane, it pushes the plane down.
-  The plane pushes the cube up with an equal and opposite contact force, which
-  stops it from falling through the ground.
-
----
-
-## Experiment 2: track linear velocity
-
-Position tells you where the cube is. **Linear velocity** tells you how fast
-and in which direction it moves. Its vertical component starts near `0 m/s`,
-then becomes more negative each step during free fall.
-
-![Velocity-tracking scenario: a falling cube moves downward faster at each sample while vertical velocity becomes more negative.](images/velocity-tracking-scenario.svg)
-
-```mermaid
-flowchart LR
-    A[Start\nv₀ = 0 m/s] --> B[Step physics\nΔt = 1/240 s]
-    B --> C[Read vertical velocity\nv₁, v₂, ...]
-    C --> D[Calculate acceleration\na = Δv / Δt]
-    D --> E[Verify a ≈ −9.81 m/s²]
-```
-
-```bash
-uv run python examples/01-mass-and-forces/velocity_tracking.py --headless
-```
-
-```python
---8<-- "examples/01-mass-and-forces/velocity_tracking.py"
-```
-
-The script starts the cube at 10 m with no ground plane and samples only 0.5 s
-of free flight. It calculates:
-
-```text
-acceleration = (final_velocity - initial_velocity) / elapsed_time
-```
-
-The result should be close to `−9.81 m/s²`. Damping is disabled so the estimate
-measures gravity rather than artificial air resistance.
-
-### Newton's laws in this scene
-
-- **First law:** the cube begins with zero vertical velocity. It would keep
-  that velocity if no net force acted on it, but gravity immediately changes it.
-- **Second law:** every velocity sample becomes more negative by about
-  `9.81 m/s` each second. The calculated slope `Δv / Δt` is acceleration, so
-  this experiment checks `F = ma` against the real-world value of `g`.
-- **Third law:** Earth pulls the cube downward, while the cube pulls Earth
-  upward with equal force. Earth is so massive that its acceleration is too
-  small to see; the light cube's acceleration is easy to measure.
-
----
-
-## Experiment 3: force below, at, and above hover
-
-```bash
-uv run python examples/01-mass-and-forces/hover_force.py
-```
-
-```python
---8<-- "examples/01-mass-and-forces/hover_force.py"
-```
-
-The script asks PyBullet for the cube's mass, calculates its weight with
-`mass × 9.81`, and runs three trials:
-
-![Force comparison: insufficient upward force descends, balanced force hovers, and excess upward force ascends.](images/hover-force-scenario.svg)
-
-```mermaid
-flowchart TD
-    A[Read cube mass] --> B[Calculate weight: W = mg]
-    B --> C{Choose upward force T}
-    C -->|T = 0.8 × W| D[Net force down\nCube descends]
-    C -->|T = 1.0 × W| E[Net force zero\nCube hovers]
-    C -->|T = 1.2 × W| F[Net force up\nCube ascends]
-```
-
-| Trial | Upward force | Expected motion |
-| --- | --- | --- |
-| Under | `0.8 × mg` | Descends |
-| Hover | `1.0 × mg` | Stays at the same height |
-| Over | `1.2 × mg` | Ascends |
-
-This is the first version of a drone motor model: a propeller's thrust will
-eventually replace the simple upward force.
-
-### Newton's laws in this scene
-
-- **First law:** in the `hover` trial, net force is zero. The cube keeps its
-  existing velocity; because it starts still, it stays at the same height.
-- **Second law:** the `under` force gives a negative net force and downward
-  acceleration. The `over` force gives a positive net force and upward
-  acceleration. The same change in force would accelerate a heavier body less.
-- **Third law:** `applyExternalForce()` represents the upward reaction that a
-  real propeller gets by pushing air downward. In later modules, individual
-  motor forces will replace this one simplified force.
-
----
-
-## Important method: `applyExternalForce`
-
-`p.applyExternalForce()` is how the hover example gives the cube a temporary
-upward push. Its important arguments are:
-
-```python
-p.applyExternalForce(
-    cube,                  # body unique ID returned by loadURDF
-    -1,                    # base link; a drone's motors later use real links
-    (0, 0, upward_force),  # force vector in newtons: +Z means upward
-    (0, 0, 0),             # point where the force is applied
-    p.WORLD_FRAME,         # interpret the vector in world coordinates
-)
-```
-
-The force exists for **one** simulation step. That is why the script calls it
-inside the `for` loop, immediately before `p.stepSimulation()`. Calling it once
-would create only one tiny impulse-like effect, not continuous thrust.
-
-In the hover experiment, `upward_force = multiplier × mass × 9.81`. With a
-multiplier of `1.0`, the upward force cancels weight. In a later drone model,
-each motor contributes its own force at a different point, which can also create
-rotation.
-
----
-
-## Hands-on: use `applyExternalForce()` yourself
-
-1. Run the hover experiment and observe the three trials:
-
-   ```bash
-   uv run python examples/01-mass-and-forces/hover_force.py
-   ```
-
-2. Open `examples/01-mass-and-forces/hover_force.py`. Find this force vector:
-
-   ```python
-   (0, 0, upward_force)
-   ```
-
-   The three values mean `(X, Y, Z)`. The zeros apply no sideways force; the
-   final value applies thrust upward.
-
-3. Change it to the following, then rerun the GUI example:
-
-   ```python
-   (1.0, 0, upward_force)
-   ```
-
-   You now apply a 1 N force in positive X as well as the upward force. The
-   cube should drift sideways while the `hover` trial remains near its original
-   height. This is the same method a future drone model uses for every motor
-   force—only the force direction and application point will differ.
-
-4. Restore `(0, 0, upward_force)`, then change the `"hover"` multiplier from
-   `1.0` to `0.9`. Predict the result and run it: it descends because upward
-   force is below weight.
-
-5. Multiply the cube mass by two mentally. What must happen to `T = mg` to
-   keep the same hover? Explain before changing any code.
+1. [Experiment 1: Free fall](01-free-fall/index.md) — gravity and ground contact.
+2. [Experiment 2: Track linear velocity](02-track-linear-velocity/index.md) — measure acceleration from velocity samples.
+3. [Experiment 3: Force below, at, and above hover](03-hover-force/index.md) — use `applyExternalForce()` to balance weight.
 
 ---
 

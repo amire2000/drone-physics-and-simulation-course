@@ -1,237 +1,120 @@
-# Module 6: Autonomous takeoff and precision hover
+# Module 6: Complete drone physics engine and validation
 
 ## By the end, you will be able to
 
-- Convert altitude error into high-level control inputs.
-- Map PID control output to motor PWM.
-- Hold a stable 5 m hover under simulated physical limits.
-- Validate gravity, hover, attitude torque, and wind responses before tuning control.
-
-## Lessons
-
-1. Build closed-loop altitude tracking from spatial displacement.
-2. Map PID corrections through the mixer to safe motor commands.
-3. Verify hover while balancing drag, inertia, and battery depletion.
-4. Validate the complete force, torque, and integration pipeline.
-
-## Capstone tutorial steps
-
-1. [Initialize the simulation environment](01-initialize-environment/index.md): load and inspect the ground plane and drone before advancing physics.
-2. [Drone free fall](02-drone-free-fall/index.md): advance the 240 Hz loop, measure gravity, and separate free fall from ground contact.
-5. [Physics-engine validation](05-physics-engine-validation/index.md): test gravity, lift, attitude, and wind before tuning a controller.
+- Identify every force and torque in the course drone model.
+- Explain where each effect comes from and how it changes flight.
+- Distinguish a physical force from a model property such as mass or inertia.
+- Validate gravity, lift, attitude torque, drag, and wind before tuning a controller.
 
 ---
 
-## Manual takeoff preview
+## The complete physics path
 
-This is an early capstone preview: a complete 650 g drone body on a ground
-plane, with four virtual motors and a single collective PWM slider. It is manual
-control, not an autonomous controller yet.
-
-```bash
-uv run python examples/06-autonomous-hover/manual_takeoff.py
-```
-
-In the PyBullet GUI, raise **Collective PWM (us)** slowly from `1000` toward
-`1500`. The live display shows the commanded PWM, actual rotor RPM, individual
-motor thrusts, total thrust, attitude, body angular rate, and the drone's
-`6.38 N` weight.
-
-| PWM range | Expected behavior |
-| --- | --- |
-| Below `1500 µs` | Total thrust is below weight; the drone stays on the ground or descends. |
-| Near `1500 µs` | Total thrust is about equal to weight; the drone hovers. |
-| Above `1500 µs` | Total thrust exceeds weight; the drone takes off. |
-
-### Forces in this preview
-
-- **Gravity** pulls the drone down with `W = mg`.
-- **Rotor speed** follows PWM through a short motor-response delay, so an abrupt
-  command does not create an impossible instant force jump.
-- **Four rotor thrusts** use `F = Kf × RPM²` at their own fixed rotor links.
-- **CW/CCW reaction torques** use `τ = Km × RPM²` in opposite pairs and cancel
-  when all motors run equally.
-- **Aerodynamic drag** opposes body-frame velocity and increases with total
-  rotor RPM.
-
-### Attitude hold and force view
-
-The GUI starts with **Attitude hold** enabled. Its IMU-style state read supplies
-roll, pitch, yaw, and body angular rate to three PID controllers. The X-frame
-mixer keeps all motor forces equal while the drone is level, then makes only
-small motor-force differences when it must correct a tilt. If a requested
-correction would exceed a motor limit, the mixer scales all correction terms
-together instead of clipping one motor and creating an unintended spin. Green
-lines above each rotor show the current, delayed thrust force.
-
-Attitude hold prevents uncontrolled rotation; it does **not** create lift. If
-you reduce collective PWM below hover, the drone still descends because total
-thrust is below weight.
-
-The 1500 µs hover point is a teaching calibration, not propeller test data.
-The shared model constants in `examples/common/drone_model.py` are deliberately
-easy to tune. `PhysicsEngine` owns the changing motor RPM state and applies the
-forces for each tick.
-
-For a repeatable terminal run:
-
-```bash
-uv run python examples/06-autonomous-hover/manual_takeoff.py --headless --pwm 1550
-```
-
-Run the motor-lag and equal-force check with:
-
-```bash
-uv run python examples/06-autonomous-hover/manual_takeoff.py --self-check
-```
-
----
-
-## Automatic takeoff, yaw, and landing
-
-The automatic example uses the shared `examples/common/pid.py` controller for
-altitude, roll, pitch, and yaw. It climbs to `3 m`, hovers for two seconds,
-turns `180°`, and then lands. Its vertical gains are deliberately conservative:
-the headless check limits the peak altitude to `3.25 m`.
-
-```bash
-uv run python examples/06-autonomous-hover/auto_takeoff_and_hover.py
-```
-
-Use `--headless` for the repeatable check:
-
-```bash
-uv run python examples/06-autonomous-hover/auto_takeoff_and_hover.py --headless
-```
-
-Later modules will replace collective throttle with individual motor commands,
-add battery and wind effects, and close the loop with altitude control.
-
----
-
-## One control step: altitude to motor forces
-
-The physics engine advances at **240 Hz**, but the controller makes a new
-decision every two physics ticks: **120 Hz**. On each control step, the program
-reads the current vertical state, calculates the force needed to correct the
-altitude error, and lets the lower-level attitude loop keep the body level.
+Module 6 is the capstone for the physical model built in Modules 1–5. A flight
+controller asks for motor commands; the engine turns them into forces and
+torques; PyBullet advances the rigid body to its next state.
 
 ```mermaid
 flowchart LR
-    state[Read current altitude z<br/>and vertical velocity vz]
-    target[Choose target altitude]
-    error[Altitude error<br/>e = z_target - z]
-    altitude_pid[Altitude PID<br/>force correction in N]
-    weight[Add hover force<br/>mg + PID output]
-    pwm[Split force across 4 motors<br/>and convert N to PWM us]
-    attitude[Read IMU attitude and rates<br/>attitude PID → body torque]
-    step[PhysicsEngine.step]
-    physics[PyBullet physics tick]
-    state --> error
-    target --> error
-    error --> altitude_pid --> weight --> pwm --> step --> physics --> state
-    attitude --> step
+    command[Controller: PWM and body torque] --> motor[Motor lag and rotor RPM]
+    motor --> thrust[Four rotor thrust forces]
+    motor --> reaction[Reaction yaw torque]
+    state[Current pose velocity and body rate] --> air[Air-relative velocity]
+    air --> drag[Drag and angular damping]
+    optional[Optional inflow ground effect gyro] --> forces
+    thrust --> forces[External forces and torques]
+    reaction --> forces
+    drag --> forces
+    forces --> bullet[PyBullet stepSimulation]
+    gravity[Gravity and contact] --> bullet
+    bullet --> next[Next position velocity attitude and body rate]
+    next --> state
 ```
 
-The altitude calculation is:
-
-\[
-F_{\text{total}} = mg + F_{\text{PID}}
-\]
-
-`F_PID` is a correction force in newtons. At hover it is near zero, so the
-total is near the drone weight `mg`. The example divides this total by four,
-converts the requested force for one motor to PWM, and uses the attitude PID's
-torque request to make the small motor-to-motor differences needed to stay
-level.
-
-### What `PhysicsEngine.step()` does
-
-`engine.step(drone, pwm, torque)` receives a collective PWM command and a
-body-torque request `(roll, pitch, yaw)`. The engine owns the motors' actual
-RPM state and performs the actuator and force part of the loop:
-
-1. Convert the collective PWM to a requested thrust per motor.
-2. Mix the roll, pitch, and yaw torque corrections into four bounded motor
-   thrust requests.
-3. Convert each requested thrust to target RPM using \(T=K_f\,\mathrm{RPM}^2\).
-4. Apply first-order motor lag, so actual RPM cannot jump instantly to target
-   RPM.
-5. Apply each rotor's upward thrust, reaction yaw torque, and rotor-dependent
-   body drag as PyBullet external forces and torques.
-6. Call `p.stepSimulation()` once to integrate the new motion at 240 Hz.
-
-It returns a `PhysicsStep` containing the new actual motor RPM, the four
-applied motor thrusts, their total, drag force, and updated rigid-body state.
-The retained engine RPM state is why a sudden PWM change produces a smooth
-force response instead of an impossible instantaneous jump.
+The state is position, linear velocity, orientation, and body angular velocity.
+Mass and inertia decide how strongly a given force or torque changes that state.
 
 ---
 
-## Live altitude PID tuning
+## Force inventory
 
-`pid_tuning_hover.py` is a separate tuning tool. It keeps the automatic
-example unchanged and exposes live sliders for the altitude target, `Kp`, `Ki`,
-`Kd`, and altitude-measurement noise. It opens paused. Use the separate
-**Simulation controls** window to start, stop, reset, exit, or load a preset.
+| Force or effect | Physical source | Contribution to flight | Engine status | Detailed lesson |
+| --- | --- | --- | --- | --- |
+| Gravity | Earth attracts the drone mass. | Weight pulls down; level hover needs total thrust equal to `mg`. | PyBullet gravity | [Module 1: mass and weight](../01-mass-and-forces/index.md#mass-and-weight) and [free fall](02-drone-free-fall/index.md) |
+| Rotor thrust | Propellers accelerate air downward. | Four upward rotor forces create lift; a tilted lift vector accelerates the drone sideways. | Active | [Module 3: propeller dynamics](../03-propeller-aerodynamics/index.md) |
+| Lever-arm roll and pitch torque | Different rotor thrusts act away from the centre of mass. | Rotates the drone to roll or pitch. | Active | [Module 2: force and torque](../02-urdf-engine/index.md#force-center-of-mass-and-torque) and [Module 4 mixer](../04-motor-mixer-pid/index.md#x-frame-mixing) |
+| Rotor reaction yaw torque | Each spinning propeller twists the frame in the opposite direction. | CW/CCW pairs cancel in hover; unequal pairs turn yaw. | Active | [Module 3: propeller dynamics](../03-propeller-aerodynamics/index.md) |
+| Rotor-dependent linear drag | Spinning rotors interact with air moving through the body frame. | Slows translation; retained for compatibility with earlier course examples. | Active | [Module 4: relative air velocity and drag](../04-motor-mixer-pid/index.md#relative-air-velocity-and-drag) |
+| Quadratic body drag | Air pushes on the frame, arms, battery, and camera. | Opposes air-relative motion, limiting forward and vertical speed. | Active | TBD — planned aerodynamics lesson |
+| Wind-relative airspeed | Moving air changes the velocity seen by the airframe. Wind itself is not a standalone force. | Changes drag direction and magnitude; a crosswind causes drift through drag. | Active, zero wind by default | [Module 4: crosswind experiment](../04-motor-mixer-pid/index.md#crosswind-experiment) |
+| Angular damping | Air resists roll, pitch, and yaw rates. | Reduces rotational overshoot and helps the body stop rotating. | Active | TBD — planned aerodynamics lesson |
+| Rotor inflow and blade flapping | Forward airspeed changes flow through the rotor disk and blade lift. | Can reduce thrust and add in-plane resistance during fast flight. | Optional, off | TBD — planned advanced aerodynamics lesson |
+| Ground effect | Downwash is constrained near a surface below a rotor. | Increases effective lift near the ground or a surface. | Optional, off | TBD — planned takeoff and landing lesson |
+| Gyroscopic torque | Rotors carry angular momentum while the body rotates. | Couples body rotation with unequal rotor speeds; most visible in aggressive manoeuvres. | Optional, off | TBD — planned advanced attitude lesson |
+| Contact normal and friction | Ground or target collision geometry pushes back against penetration. | Stops or redirects the drone at ground/target contact. | PyBullet contact solver | [Module 1: free fall and contact](../01-mass-and-forces/01-free-fall/index.md) |
 
-The response window has two plots: target, true, and measured altitude with
-collective thrust on top; the P, I, D, and summed controller terms below.
+---
 
-```bash
-uv run python examples/06-autonomous-hover/pid_tuning_hover.py
-```
+## Lift and drag in this drone
 
-Start with the default gains `(0.7, 0.05, 1.1)`. Change one gain at a time,
-then move the target slider to create a step response:
+For a quadcopter, **rotor thrust is lift**. There is no fixed wing creating a
+separate lift force: each propeller pushes air down and receives an upward
+reaction. When the drone pitches or rolls, the same thrust vector tilts, so one
+part holds altitude and another part accelerates the drone sideways.
 
-| Gain | What to look for |
+**Drag** is air resistance. It points opposite the drone's velocity relative to
+the air, so a headwind increases drag and a tailwind reduces it. Wind changes
+the air-relative velocity; it is not an extra force by itself.
+
+| Effect | Role in lift or drag | Contribution |
+| --- | --- | --- |
+| Rotor thrust | Lift | The four upward propeller forces support weight and, when tilted, create forward or sideways acceleration. |
+| Quadratic body drag | Translational drag | Air pushes against the frame, arms, battery, and camera; it limits forward, sideways, and vertical speed. |
+| Rotor-dependent linear drag | Translational drag | The course's simpler rotor-air resistance model also opposes body-relative motion. |
+| Blade flapping | Optional in-plane drag | Fast horizontal airflow across a rotor creates a force opposing that motion. |
+| Rotor inflow | Lift modifier | Forward airflow through the propeller disk can reduce thrust at the same RPM. |
+| Ground effect | Lift modifier | Restricted downwash near a surface can increase effective rotor thrust. |
+| Angular damping | Rotational drag | Air resists roll, pitch, and yaw rate rather than linear motion. |
+
+---
+
+## Model inputs that are not forces
+
+| Model input | Why it matters | Defined in |
+| --- | --- | --- |
+| Mass | Converts net force to linear acceleration through `F = ma`. | Drone model and URDF |
+| Inertia tensor | Converts net torque to roll, pitch, and yaw acceleration. | URDF inertial block |
+| Rotor positions | Set each thrust force's lever arm and torque authority. | Drone model and URDF rotor links |
+| Motor time constant | Delays RPM and therefore thrust after a PWM change. | Drone model |
+| Physics timestep | Sets the 240 Hz integration interval and the 120 Hz control interval. | Physics settings |
+| Collision shape | Decides where PyBullet can create contact forces. | URDF collision geometry |
+
+---
+
+## Modules that define or calculate forces
+
+| Module | Responsibility |
 | --- | --- |
-| `Kp` | More lift response, but excessive values overshoot and oscillate. |
-| `Ki` | Removes steady altitude error, but can build up and overshoot. |
-| `Kd` | Damps vertical motion; this first version keeps vertical-velocity sensing ideal. |
-
-Changing a gain resets the altitude integrator so the graph shows the new
-setting clearly. **Reset** retains your gain, target, and noise sliders while
-restarting the vehicle and graph. The presets replace those slider values with
-one deliberate scenario: stable, gentle, aggressive, or noisy.
-
-**Units matter:** collective thrust and all four lower PID traces are forces in
-newtons. The PID output is a correction force; the controller adds it to the
-drone weight `mg` to obtain total thrust. Only after that does the simulation
-convert each motor's thrust share to a PWM command in microseconds.
-
-Keep noise at `0` for the first experiment. Then increase **Altitude noise
-sigma (m)**: it changes only the measurement given to the PID, not the true
-physical altitude or the vertical-velocity input. The seeded noise can be
-reproduced with `--seed`.
-
-For a non-interactive run, output a chart and CSV trace:
-
-```bash
-uv run python examples/06-autonomous-hover/pid_tuning_hover.py \
-  --headless --seconds 12 --output pid-tuning-run
-```
-
-In the GUI, add `--output runs/my-tune` before tuning, then press Esc when the
-run is finished. It saves `my-tune.csv`, `my-tune.png`, and `my-tune.json`.
-The JSON file preserves the final target, PID gains, noise setting, and seed so
-you can record or repeat a tuning session.
-
-Run the repeatable controller and noise check with:
-
-```bash
-uv run python examples/06-autonomous-hover/pid_tuning_hover.py --self-check
-```
+| `examples/common/drone_physics.py` | Calculates and applies thrust, reaction torque, drag, damping, and optional aerodynamic effects. |
+| `examples/common/drone_model.py` | Defines mass, actuator constants, force coefficients, wind, and optional-force settings. |
+| `examples/common/pybullet_utils.py` | Defines world gravity and creates the PyBullet physical world. |
+| `examples/common/assets/full_drone.urdf` | Defines mass, inertia, rotor locations, and collision geometry used by PyBullet. |
 
 ---
 
-## Physics-engine validation
+## Capstone lessons
 
-The detailed Step 5 lesson explains the reusable engine and its seven
-validation scenarios. Continue to [physics-engine validation](05-physics-engine-validation/index.md)
-before tuning new controller gains.
+1. [Step 1: Initialize the simulation environment](01-initialize-environment/index.md)
+2. [Step 2: Drone free fall](02-drone-free-fall/index.md)
+3. [Drone hover capstone](03-drone-hover/index.md)
+4. [Step 5: Physics-engine validation](05-physics-engine-validation/index.md)
+
+The hover capstone turns this force inventory into a controlled flight. The
+validation lesson tests individual predictions before controller gains are
+tuned.
 
 ---
 
 Prerequisite: [Module 5: Battery voltage sag](../05-battery-voltage-sag/index.md).
+Next: [Module 7: Optical navigation](../07-optical-navigation/index.md).
