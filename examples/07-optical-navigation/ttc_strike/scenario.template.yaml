@@ -1,0 +1,39 @@
+# Copy this file, adjust one setting at a time, then pass it with --config.
+# Values use SI units: metres, seconds, kilograms, newtons, and radians where
+# noted. Omitted settings keep the Python dataclass defaults.
+
+simulation:
+  scene:
+    launch_position: [-5.25, 0.0, 0.05]  # Drone start position in world x/y/z [m].
+    target_center: [20.0, 0.0, 1.0]      # Red target centre in world x/y/z [m].
+    target_size_m: 2.0                   # Target cube edge length [m]; scene-only, not a TTC input.
+  physical_forces:
+    body_drag:
+      enabled: true                       # Enable quadratic air resistance on the drone body.
+    angular_damping:
+      enabled: true                       # Enable aerodynamic resistance to roll, pitch, and yaw rate.
+    wind:
+      enabled: true                       # Use the world-frame wind velocity when calculating airspeed.
+      world_velocity_mps: [0.0, 0.0, 0.0]  # Wind in world x/y/z [m/s]; zero means still air.
+    rotor_aerodynamics:
+      enabled: false                      # Optional rotor inflow and blade-flapping model.
+    ground_effect:
+      enabled: false                      # Optional lift increase close to a surface below a rotor.
+    gyroscopic:
+      enabled: false                      # Optional rotor angular-momentum torque.
+
+runtime:
+  physical_setup:
+    camera:
+      camera_width_px: 640                # Body-camera image width [pixels].
+      camera_height_px: 480               # Body-camera image height [pixels].
+      camera_hz: 30                       # Camera/detector update rate [Hz].
+      camera_fov_deg: 90.0                # Camera horizontal field of view [degrees].
+      camera_look_down_deg: 0.0           # Downward camera mounting angle [degrees].
+  mission:
+    takeoff_altitude_m: 15.0              # Altitude that must settle before visual tracking starts [m].
+    impact_altitude_m: 1.0                # Desired altitude at target contact [m].
+    forward_speed_mps: 13.0               # Desired body-forward tracking velocity [m/s].
+    nominal_pitch_deg: 20.0               # Initial forward-pitch teaching value [degrees].
+  ttc:
+    commit_box_height_fraction: 0.1       # Image-height fraction that permits commit after target loss.
