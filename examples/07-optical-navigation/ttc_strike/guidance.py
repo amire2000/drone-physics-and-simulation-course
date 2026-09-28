@@ -59,8 +59,8 @@ class StrikeGuidance:
       altitude trajectory while moving forward.
 
     ``ABORT`` reuses ``altitude_pid`` with zero altitude error to damp vertical
-    velocity, and ``COMMIT`` holds the last command rather than updating any
-    PID from missing camera measurements.
+    velocity. ``COMMIT`` freezes the last pitch and descent-rate target, then
+    continues the barometer-driven vertical PID without camera measurements.
     """
 
     def __init__(self, config: StrikeConfig) -> None:
@@ -72,6 +72,8 @@ class StrikeGuidance:
         self.vertical_velocity_pid = PID(*config.vertical_velocity_pid_gains)
         self.last_command = GuidanceCommand(self.phase, config.hover_thrust_n, 0.0, None)
         self.commit_deadline_s: float | None = None
+        self.commit_descent_velocity_mps: float | None = None
+        self.last_tracking_descent_velocity_mps: float | None = None
 
     def update(self, data: GuidanceInput) -> GuidanceCommand:
         """Advance the guidance state machine by one control tick.
@@ -84,7 +86,8 @@ class StrikeGuidance:
           forward-velocity and vertical-velocity trajectory command.
         - Losing the target enters ``COMMIT`` only after a valid final TTC
           observation; it otherwise enters ``ABORT``.
-        - ``COMMIT`` returns the final valid command until its TTC deadline.
+        - ``COMMIT`` keeps the final pitch and descent-rate target while its
+          vertical PID updates collective thrust until the TTC deadline.
         - ``ABORT`` removes pitch and damps vertical motion with hover thrust.
 
         Returns a ``GuidanceCommand`` for the current phase. ``reset_ttc``
@@ -105,6 +108,7 @@ class StrikeGuidance:
             if ready and stable and data.last_observation:
                 self.phase = FlightPhase.TRACK
                 self.forward_pid.reset()
+                self.last_tracking_descent_velocity_mps = None
                 # The camera estimate was accumulated during takeoff. Ignore
                 # it for this first track command and reset the tracker, so a
                 # fresh observation starts the tracking phase.
@@ -115,25 +119,38 @@ class StrikeGuidance:
         if self.phase == FlightPhase.TRACK and not data.target_visible:
             # TRACK uses live camera observations to update the trajectory. If
             # the target leaves view after the configured commit condition,
-            # freeze the latest command for the short predicted remaining time.
-            # If there is no reliable final observation, stop tracking instead.
+            # freeze the final pitch and corrected descent-rate target for the
+            # short predicted remaining time. If there is no reliable final
+            # observation, stop tracking instead.
             if data.commit_ready and data.last_observation:
                 self.phase = FlightPhase.COMMIT
                 self.commit_deadline_s = data.now_s + data.last_observation.ttc_s + self.config.commit_timeout_margin_s
+                # A control tick can run after the last camera frame. Preserve
+                # the descent target from the last *valid TTC* observation,
+                # not a later no-observation altitude-hold command.
+                self.commit_descent_velocity_mps = self.last_tracking_descent_velocity_mps
             else:
                 self.phase = FlightPhase.ABORT
 
         if self.phase == FlightPhase.COMMIT:
-            # COMMIT deliberately reuses the final valid pitch, thrust, and
-            # trajectory rather than reacting to missing image measurements.
-            # The simulator can use commit_expired to end this bounded phase.
-            return GuidanceCommand(
+            # Keep lateral guidance blind and fixed, but keep altitude control
+            # closed-loop: constant thrust would eventually arrest descent or
+            # cause a climb as the airframe attitude and velocity change.
+            desired_vz = self.commit_descent_velocity_mps or 0.0
+            vertical_force = self.config.hover_thrust_n + self.vertical_velocity_pid.update(
+                desired_vz - data.barometer.vertical_velocity_mps,
+                0.0,
+            )
+            thrust = vertical_force / max(cos(data.measured_pitch_rad), 0.5)
+            command = GuidanceCommand(
                 self.phase,
-                self.last_command.thrust_n,
+                thrust,
                 self.last_command.pitch_target_rad,
                 self.last_command.trajectory,
                 commit_expired=data.now_s > (self.commit_deadline_s or data.now_s),
             )
+            self.last_command = command
+            return command
 
         if self.phase == FlightPhase.ABORT:
             # ABORT removes the forward-pitch command and asks the altitude
@@ -156,14 +173,9 @@ class StrikeGuidance:
             0.0,
         )
         pitch = max(0.0, min(self.config.max_pitch_rad, pitch_correction))
-        corrected_vz = max(
-            -self.config.max_descent_velocity_mps,
-            min(
-                self.config.max_climb_velocity_mps,
-                trajectory.vertical_velocity_mps
-                + self.config.vertical_position_correction * (trajectory.altitude_target_m - data.barometer.altitude_m),
-            ),
-        )
+        corrected_vz = self._corrected_vertical_velocity(trajectory, data.barometer.altitude_m)
+        if data.observation is not None:
+            self.last_tracking_descent_velocity_mps = corrected_vz
         vertical_force = self.config.hover_thrust_n + self.vertical_velocity_pid.update(
             corrected_vz - data.barometer.vertical_velocity_mps,
             0.0,
@@ -175,3 +187,14 @@ class StrikeGuidance:
         command = GuidanceCommand(self.phase, thrust, pitch, trajectory)
         self.last_command = command
         return command
+
+    def _corrected_vertical_velocity(self, trajectory: TrajectoryCommand, altitude_m: float) -> float:
+        """Return the bounded descent target after altitude-error correction."""
+        return max(
+            -self.config.max_descent_velocity_mps,
+            min(
+                self.config.max_climb_velocity_mps,
+                trajectory.vertical_velocity_mps
+                + self.config.vertical_position_correction * (trajectory.altitude_target_m - altitude_m),
+            ),
+        )

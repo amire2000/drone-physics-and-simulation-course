@@ -48,7 +48,9 @@ def self_check() -> None:
     assert hold.pitch_target_rad == config.nominal_pitch_rad and hold.trajectory.vertical_velocity_mps == 0.0
     committed = guidance.update(GuidanceInput(0.3, reading, None, observation, False, True))
     assert committed.phase == FlightPhase.COMMIT
-    assert committed.thrust_n == hold.thrust_n and committed.pitch_target_rad == hold.pitch_target_rad
+    assert committed.pitch_target_rad == hold.pitch_target_rad
+    settled_commit = guidance.update(GuidanceInput(0.4, BarometerReading(reading.altitude_m, -4.5), None, observation, False, True))
+    assert settled_commit.thrust_n > committed.thrust_n, "Commit must preserve the last TTC descent target"
     print("TTC strike component self-check passed")
 
 

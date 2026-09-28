@@ -292,8 +292,10 @@ flowchart TD
     step --> physics
 ```
 
-`commit` holds the last valid pitch/thrust command until contact or its TTC
-deadline. After contact, thrust and torque are set to zero for the configured
+`commit` holds the last valid pitch and corrected descent-rate target until
+contact or its TTC deadline. The barometer-driven vertical PID still updates
+collective thrust, so a fixed command cannot turn a terminal descent into a
+climb. After contact, thrust and torque are set to zero for the configured
 aftermath window. The wide PyBullet camera is only a scene view; the controller
 uses the body-fixed forward camera.
 
@@ -425,10 +427,11 @@ flowchart TD
     hold_alt --> track
     visible -->|no| armed{commit armed?}
     armed -->|no| abort[abort and hold altitude]
-    armed -->|yes| commit[hold last command]
+    armed -->|yes| commit[freeze pitch and descent target]
     phase -->|commit| commit
     phase -->|abort| abort
-    commit --> deadline{deadline passed?}
+    commit --> commit_vz[barometer vertical PID\nupdate collective thrust]
+    commit_vz --> deadline{deadline passed?}
     deadline -->|yes| expired[report timeout]
     deadline -->|no| commit
     abort --> abort_command[zero pitch + vertical damping]
