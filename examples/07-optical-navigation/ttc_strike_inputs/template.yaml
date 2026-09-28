@@ -5,7 +5,7 @@ simulation:
     target_center: [20.0, 0.0, 1.0]      # Target center [m].
     target_size_m: 2.0                   # Target cube edge length [m].
   vehicle_model:
-    vehicle_mass_kg: 0.65                # Simulated vehicle mass [kg].
+    profile: default                      # Shared vehicle profile; linked URDF owns mass/inertia.
     gravity_mps2: 9.81                   # Simulator gravity [m/s²].
   physical_forces:
     body_drag:

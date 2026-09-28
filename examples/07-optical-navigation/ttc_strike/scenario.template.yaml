@@ -3,6 +3,9 @@
 # noted. Omitted settings keep the Python dataclass defaults.
 
 simulation:
+  vehicle_model:
+    profile: default                      # Shared vehicle; its URDF supplies mass and inertia.
+    gravity_mps2: 9.81                    # Downward gravitational acceleration [m/s²].
   scene:
     launch_position: [-5.25, 0.0, 0.05]  # Drone start position in world x/y/z [m].
     target_center: [20.0, 0.0, 1.0]      # Red target centre in world x/y/z [m].
@@ -10,17 +13,37 @@ simulation:
   physical_forces:
     body_drag:
       enabled: true                       # Enable quadratic air resistance on the drone body.
+      air_density_kg_m3: 1.225            # Air density [kg/m³].
+      cd_area_m2: [0.012, 0.012, 0.020]  # Override profile drag area in body x/y/z [m²].
     angular_damping:
       enabled: true                       # Enable aerodynamic resistance to roll, pitch, and yaw rate.
+      coefficients_nm_per_rad_s: [0.0012, 0.0012, 0.0020]  # Override profile roll/pitch/yaw damping.
     wind:
       enabled: true                       # Use the world-frame wind velocity when calculating airspeed.
       world_velocity_mps: [0.0, 0.0, 0.0]  # Wind in world x/y/z [m/s]; zero means still air.
     rotor_aerodynamics:
       enabled: false                      # Optional rotor inflow and blade-flapping model.
+      propeller_diameter_m: 0.14          # Override profile propeller diameter [m].
+      inflow_coefficient: 0.35            # Forward-flight thrust-loss scale.
+      blade_flapping_coefficient: 0.10    # In-plane rotor force scale.
     ground_effect:
       enabled: false                      # Optional lift increase close to a surface below a rotor.
+      ground_effect_height_m: 0.35        # Search depth below each rotor [m].
+      ground_effect_coefficient: 0.10     # Ground-effect strength.
+      ground_effect_max_multiplier: 1.25  # Maximum rotor thrust multiplier.
     gyroscopic:
       enabled: false                      # Optional rotor angular-momentum torque.
+      rotor_inertia_kg_m2: 0.000005       # Override profile rotor polar inertia [kg·m²].
+  sensor_model:
+    barometer_noise_sigma_m: 0.0         # Synthetic altitude noise standard deviation [m].
+    barometer_bias_m: 0.0                # Synthetic altitude bias [m].
+    random_seed: 7                       # Reproducible sensor-noise seed.
+  display:
+    environment_size_px: [960, 540]      # Wide environment render size [px].
+    opencv_window_position_px: [20, 80]  # Camera-window screen position [px].
+    plot_window_position_px: [700, 80]   # Plot-window screen position [px].
+  recording:
+    post_impact_seconds: 3.0             # Simulation time retained after collision [s].
 
 runtime:
   physical_setup:
@@ -35,5 +58,30 @@ runtime:
     impact_altitude_m: 1.0                # Desired altitude at target contact [m].
     forward_speed_mps: 13.0               # Desired body-forward tracking velocity [m/s].
     nominal_pitch_deg: 20.0               # Initial forward-pitch teaching value [degrees].
+  flight_limits:
+    max_descent_velocity_mps: 4.5         # Maximum descent rate [m/s].
+    max_climb_velocity_mps: 3.0           # Maximum climb rate [m/s].
+    max_pitch_deg: 20.0                   # Maximum requested pitch [deg].
+    takeoff_altitude_tolerance_m: 0.2     # Takeoff altitude-ready band [m].
+    takeoff_velocity_tolerance_mps: 0.5   # Takeoff stability band [m/s].
+    commit_timeout_margin_s: 5.0          # Extra commit deadline after the last valid TTC [s].
   ttc:
     commit_box_height_fraction: 0.1       # Image-height fraction that permits commit after target loss.
+    min_ttc_s: 0.2                        # Minimum accepted TTC [s].
+    ttc_growth_old_weight: 0.65           # Previous bbox-growth smoothing weight.
+    min_growth_px_per_s: 0.01             # Minimum accepted approach growth [px/s].
+  sensor_filters:
+    barometer_velocity_old_weight: 0.7    # Previous vertical-speed estimate weight.
+  pid:
+    altitude:
+      gains: [0.7, 0.05, 1.1]             # [kp, ki, kd]: altitude error to collective thrust.
+      integral_limit: 0.5                 # Altitude-integral clamp.
+    forward_speed:
+      gains: [0.03, 0.0, 0.002]           # [kp, ki, kd]: forward-speed error to pitch target.
+      integral_limit: 0.2                 # Forward-speed integral clamp.
+    pitch_attitude:
+      gains: [0.008, 0.0, 0.006]          # [kp, ki, kd]: pitch error to motor torque.
+    vertical_velocity:
+      gains: [1.0, 0.0, 0.0]              # [kp, ki, kd]: descent-rate error to collective thrust.
+  vertical_control:
+    vertical_position_correction: 0.8     # Position error to vertical-velocity correction.

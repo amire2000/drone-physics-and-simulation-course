@@ -85,9 +85,18 @@ class StrikeSimulation:
             self._print_summary(result, summary_data)
             return result
 
+        def finish_if_disconnected(now_s: float) -> StrikeResult | None:
+            """Save the partial run when closing the PyBullet GUI disconnects its server."""
+            if p.isConnected():
+                return None
+            return finish(False, command.phase.value, now_s, "PyBullet physics server closed")
+
         try:
             for step in range(round(max_seconds / time_step)):
                 now_s = step * time_step
+                disconnected = finish_if_disconnected(now_s)
+                if disconnected:
+                    return disconnected
                 position, _ = p.getBasePositionAndOrientation(drone)
                 sample = barometer.sample(position[2], now_s)
                 if sample:
@@ -158,6 +167,9 @@ class StrikeSimulation:
                 pwm = engine.pwm_from_thrust(clamp(collective / 4, 0.0, model.max_thrust_per_motor_n))
                 incoming_velocity = p.getBaseVelocity(drone)[0]
                 flight_step = engine.step(drone, pwm, torque)
+                disconnected = finish_if_disconnected(now_s)
+                if disconnected:
+                    return disconnected
                 position, _ = p.getBasePositionAndOrientation(drone)
                 velocity, _ = p.getBaseVelocity(drone)
                 pitch_rad = p.getEulerFromQuaternion(p.getBasePositionAndOrientation(drone)[1])[1]
@@ -189,6 +201,13 @@ class StrikeSimulation:
                     time.sleep(time_step)
             print(f"Strike timed out in {command.phase.value} phase")
             return finish(False, command.phase.value, max_seconds)
+        except p.error:
+            # The GUI can close between two PyBullet calls (for example while
+            # the forward camera renders).  Preserve telemetry in that case;
+            # other PyBullet failures remain visible to the caller.
+            if not p.isConnected():
+                return finish(False, command.phase.value, now_s, "PyBullet physics server closed")
+            raise
         finally:
             if writer:
                 writer.release()

@@ -3,7 +3,7 @@
 from dataclasses import dataclass, field, replace
 from math import radians
 
-from common.drone_model import DEFAULT_DRONE_MODEL, DEFAULT_PHYSICS_SETTINGS, DroneModel, PhysicsSettings
+from common.drone_model import DroneModel, PhysicsSettings, load_drone_profile
 
 
 @dataclass(frozen=True)
@@ -11,9 +11,9 @@ class SimulationConfig:
     """Simulator scene, vehicle model, synthetic sensors, and display defaults."""
 
     launch_position: tuple[float, float, float] = (-5.25, 0.0, 0.05)
-    target_center: tuple[float, float, float] = (20.0, 0.0, 1.0)
+    target_center: tuple[float, float, float] = (30.0, 0.0, 1.0)
     target_size_m: float = 2.0
-    vehicle_mass_kg: float = 0.65
+    drone_profile: str = "default"
     gravity_mps2: float = 9.81
     barometer_noise_sigma_m: float = 0.0
     barometer_bias_m: float = 0.0
@@ -26,11 +26,11 @@ class SimulationConfig:
     wind_world_mps: tuple[float, float, float] = (0.0, 0.0, 0.0)
     air_density_kg_m3: float = 1.225
     body_drag_enabled: bool = True
-    body_drag_cd_area_m2: tuple[float, float, float] = (0.012, 0.012, 0.020)
+    body_drag_cd_area_m2: tuple[float, float, float] | None = None
     angular_damping_enabled: bool = True
-    angular_damping_nm_per_rad_s: tuple[float, float, float] = (0.0012, 0.0012, 0.0020)
+    angular_damping_nm_per_rad_s: tuple[float, float, float] | None = None
     rotor_aerodynamics_enabled: bool = False
-    propeller_diameter_m: float = 0.14
+    propeller_diameter_m: float | None = None
     inflow_coefficient: float = 0.35
     blade_flapping_coefficient: float = 0.10
     ground_effect_enabled: bool = False
@@ -38,28 +38,29 @@ class SimulationConfig:
     ground_effect_coefficient: float = 0.10
     ground_effect_max_multiplier: float = 1.25
     gyroscopic_torque_enabled: bool = False
-    rotor_inertia_kg_m2: float = 5e-6
+    rotor_inertia_kg_m2: float | None = None
 
     @property
     def drone_model(self) -> DroneModel:
-        """Return the shared drone model with this scenario's mass."""
-        return replace(DEFAULT_DRONE_MODEL, mass_kg=self.vehicle_mass_kg)
+        """Return the selected shared drone model with URDF-derived mass."""
+        return load_drone_profile(self.drone_profile).model
 
     @property
     def physics_settings(self) -> PhysicsSettings:
         """Return shared physics settings resolved from this scenario's force model."""
+        profile_settings = load_drone_profile(self.drone_profile).physics_settings
         return replace(
-            DEFAULT_PHYSICS_SETTINGS,
+            profile_settings,
             gravity_z_mps2=-self.gravity_mps2,
             wind_enabled=self.wind_enabled,
             wind_world_mps=self.wind_world_mps,
             air_density_kg_m3=self.air_density_kg_m3,
             body_drag_enabled=self.body_drag_enabled,
-            body_drag_cd_area_m2=self.body_drag_cd_area_m2,
+            body_drag_cd_area_m2=self.body_drag_cd_area_m2 if self.body_drag_cd_area_m2 is not None else profile_settings.body_drag_cd_area_m2,
             angular_damping_enabled=self.angular_damping_enabled,
-            angular_damping_nm_per_rad_s=self.angular_damping_nm_per_rad_s,
+            angular_damping_nm_per_rad_s=self.angular_damping_nm_per_rad_s if self.angular_damping_nm_per_rad_s is not None else profile_settings.angular_damping_nm_per_rad_s,
             rotor_aerodynamics_enabled=self.rotor_aerodynamics_enabled,
-            propeller_diameter_m=self.propeller_diameter_m,
+            propeller_diameter_m=self.propeller_diameter_m if self.propeller_diameter_m is not None else profile_settings.propeller_diameter_m,
             inflow_coefficient=self.inflow_coefficient,
             blade_flapping_coefficient=self.blade_flapping_coefficient,
             ground_effect_enabled=self.ground_effect_enabled,
@@ -67,7 +68,7 @@ class SimulationConfig:
             ground_effect_coefficient=self.ground_effect_coefficient,
             ground_effect_max_multiplier=self.ground_effect_max_multiplier,
             gyroscopic_torque_enabled=self.gyroscopic_torque_enabled,
-            rotor_inertia_kg_m2=self.rotor_inertia_kg_m2,
+            rotor_inertia_kg_m2=self.rotor_inertia_kg_m2 if self.rotor_inertia_kg_m2 is not None else profile_settings.rotor_inertia_kg_m2,
         )
 
 
@@ -113,7 +114,7 @@ class StrikeConfig:
 
     @property
     def hover_thrust_n(self) -> float:
-        return self.simulation.vehicle_mass_kg * self.simulation.gravity_mps2
+        return self.simulation.drone_model.mass_kg * self.simulation.gravity_mps2
 
     @property
     def nominal_pitch_rad(self) -> float:

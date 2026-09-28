@@ -1,6 +1,8 @@
 # Default TTC strike scenario. Values are grouped by ownership so field-tuned
 # runtime settings do not get confused with simulator-only setup.
 simulation:
+  vehicle_model:
+    profile: default                    # Shared drone profile; URDF supplies mass/inertia.
   scene:
     launch_position: [-5.25, 0.0, 0.05]  # Initial world position in metres.
     target_center: [20.0, 0.0, 1.0]      # Red cube center in world coordinates.

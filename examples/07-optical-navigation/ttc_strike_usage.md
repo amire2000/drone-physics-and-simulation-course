@@ -61,6 +61,17 @@ runtime:
 
 `simulation` describes the reproducible test bench (scene, camera, GUI, and recording). `runtime` contains parameters to calibrate on the physical vehicle (camera mounting, mission targets, TTC policy, filters, and controllers). Any omitted value uses the default in the dataclasses in `ttc_strike/config.py`.
 
+`simulation.vehicle_model.profile` selects the physical drone. `default` keeps
+the course quadcopter; `seven_inch_trainer` selects the generic 1.5 kg,
+seven-inch vehicle. The linked URDF supplies mass and inertia, while the
+profile supplies motor, propeller, drag, and damping data. Use the dedicated
+seven-inch scenario when starting a comparison:
+
+```bash
+uv run python examples/07-optical-navigation/ttc_diagonal_strike.py \
+  --config examples/07-optical-navigation/ttc_strike/seven_inch_trainer.yaml
+```
+
 ## Command-line options
 
 | Option | Purpose |

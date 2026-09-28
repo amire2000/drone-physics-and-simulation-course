@@ -1,7 +1,11 @@
-"""Typed physical model, clock settings, and state used by course simulations."""
+"""Typed drone profiles, physical models, clock settings, and state."""
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
+from functools import lru_cache
 from pathlib import Path
+from xml.etree import ElementTree
+
+import yaml
 
 
 @dataclass(frozen=True)
@@ -71,6 +75,78 @@ class PhysicsSettings:
 
 
 @dataclass(frozen=True)
+class DroneProfile:
+    """One reusable vehicle definition: URDF mass plus actuator and aero constants."""
+
+    name: str
+    model: DroneModel
+    physics_settings: PhysicsSettings
+
+
+def _profile_path(name: str) -> Path:
+    """Return the YAML path for one named shared drone profile."""
+    path = Path(__file__).parent / "drone_profiles" / f"{name}.yaml"
+    if not path.is_file():
+        raise ValueError(f"unknown drone profile '{name}'")
+    return path
+
+
+def _base_mass_from_urdf(path: Path) -> float:
+    """Read the base-link mass from the URDF, the source of rigid-body mass."""
+    try:
+        root = ElementTree.parse(path).getroot()
+        mass = root.find("./link[@name='base_link']/inertial/mass")
+        if mass is None or "value" not in mass.attrib:
+            raise ValueError("base_link needs an inertial mass")
+        value = float(mass.attrib["value"])
+    except (ElementTree.ParseError, ValueError) as exc:
+        raise ValueError(f"invalid drone URDF '{path}': {exc}") from exc
+    if value <= 0:
+        raise ValueError(f"invalid drone URDF '{path}': mass must be positive")
+    return value
+
+
+@lru_cache(maxsize=None)
+def load_drone_profile(name: str = "default") -> DroneProfile:
+    """Load one profile and derive its model mass from the linked URDF."""
+    path = _profile_path(name)
+    try:
+        data = yaml.safe_load(path.read_text())
+    except yaml.YAMLError as exc:
+        raise ValueError(f"invalid drone profile '{path}': {exc}") from exc
+    if not isinstance(data, dict):
+        raise ValueError(f"drone profile '{path}' must be a mapping")
+
+    allowed = {"name", "urdf", "actuators", "aerodynamics"}
+    unknown = set(data) - allowed
+    if unknown:
+        raise ValueError(f"unknown drone profile setting(s): {', '.join(sorted(unknown))}")
+    actuators = data.get("actuators", {})
+    aerodynamics = data.get("aerodynamics", {})
+    if not isinstance(actuators, dict) or not isinstance(aerodynamics, dict):
+        raise ValueError(f"drone profile '{path}' actuator and aerodynamic sections must be mappings")
+
+    urdf_name = data.get("urdf")
+    if not isinstance(urdf_name, str):
+        raise ValueError(f"drone profile '{path}' needs a URDF filename")
+    urdf_path = Path(__file__).parent / "assets" / urdf_name
+    mass_kg = _base_mass_from_urdf(urdf_path)
+    model = DroneModel(
+        mass_kg=mass_kg,
+        urdf_path=urdf_path,
+        **{key: tuple(value) if key == "motor_yaw_signs" else value for key, value in actuators.items()},
+    )
+    settings = replace(
+        PhysicsSettings(),
+        **{
+            key: tuple(value) if key in {"body_drag_cd_area_m2", "angular_damping_nm_per_rad_s"} else value
+            for key, value in aerodynamics.items()
+        },
+    )
+    return DroneProfile(str(data.get("name", name)), model, settings)
+
+
+@dataclass(frozen=True)
 class DroneState:
     """Ideal PyBullet state: position, velocity, quaternion, and body rate."""
 
@@ -104,5 +180,6 @@ class PhysicsStep:
     state: DroneState
 
 
-DEFAULT_DRONE_MODEL = DroneModel()
-DEFAULT_PHYSICS_SETTINGS = PhysicsSettings()
+DEFAULT_DRONE_PROFILE = load_drone_profile()
+DEFAULT_DRONE_MODEL = DEFAULT_DRONE_PROFILE.model
+DEFAULT_PHYSICS_SETTINGS = DEFAULT_DRONE_PROFILE.physics_settings

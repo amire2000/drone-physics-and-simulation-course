@@ -9,7 +9,7 @@ from pathlib import Path
 import cv2
 import pybullet as p
 
-from .config import StrikeConfig
+from .config import SimulationConfig, StrikeConfig
 from .config_loader import load_yaml_config
 from .guidance import FlightPhase, GuidanceInput, StrikeGuidance
 from .sensing import BarometerReading
@@ -20,6 +20,11 @@ from .ttc import BboxTtcTracker
 
 def self_check() -> None:
     config = StrikeConfig()
+    seven_inch = SimulationConfig(drone_profile="seven_inch_trainer")
+    assert config.simulation.drone_model.mass_kg == 0.65
+    assert seven_inch.drone_model.mass_kg == 1.5
+    assert seven_inch.drone_model.max_thrust_per_motor_n == 12.0
+    assert seven_inch.physics_settings.propeller_diameter_m == 0.1778
     tracker = BboxTtcTracker(config)
     assert tracker.update((0, 0, 20, 20), 0.0) is None
     observation = tracker.update((0, 0, 30, 30), 0.1)

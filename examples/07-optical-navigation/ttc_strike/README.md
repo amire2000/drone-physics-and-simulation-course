@@ -25,6 +25,8 @@ parameters:
 
 ```yaml
 simulation:
+  vehicle_model:
+    profile: default
   scene:
     launch_position: [-5.25, 0.0, 0.05]
     target_center: [20.0, 0.0, 1.0]
@@ -63,6 +65,65 @@ creates `SimulationConfig` and `RuntimeConfig` independently, then composes
 them into `StrikeConfig`; the simulator and controllers receive typed config,
 not YAML parsing responsibilities.
 
+### Drone profiles and physical ownership
+
+One scenario can select a complete physical vehicle without copying motor or
+frame values into every example:
+
+```yaml
+simulation:
+  vehicle_model:
+    profile: seven_inch_trainer
+```
+
+| Source | Owns | Do not duplicate here |
+| --- | --- | --- |
+| Vehicle URDF | Mass, inertia, centre of mass, body geometry, rotor locations | Motor capability and aerodynamic coefficients |
+| `examples/common/drone_profiles/*.yaml` | URDF choice, motors, propellers, drag, damping, rotor parameters | Mass or inertia |
+| TTC scenario YAML | Scene, wind, enabled force models, sensor noise, display, recording | Frame dimensions or motor constants |
+| `runtime` YAML | Camera installation, mission targets, TTC policy, limits, PID gains | Vehicle hardware data |
+
+The loader reads the base-link mass from the selected URDF. That same mass is
+used by PyBullet and for `hover_thrust_n`, so a profile cannot accidentally
+use a different mass for physics and control.
+
+```mermaid
+flowchart LR
+    scenario[scenario YAML\nvehicle_model.profile] --> profile[drone profile YAML\nactuators and aerodynamics]
+    profile --> urdf[URDF\nmass, inertia, geometry]
+    profile --> model[DroneModel\nmotors and rotor positions]
+    urdf --> model
+    profile --> settings[PhysicsSettings\nvehicle aero defaults]
+    model --> engine[PhysicsEngine]
+    settings --> engine
+```
+
+| Profile setting | `default` | `seven_inch_trainer` | Effect |
+| --- | ---: | ---: | --- |
+| URDF mass | 0.65 kg | 1.50 kg | Sets weight and hover thrust. |
+| Arm offset | 0.120 m | 0.120 m | Converts unequal motor lift into roll/pitch torque. |
+| Maximum RPM | 24,000 | 20,000 | Caps each motor's target rotational speed. |
+| Maximum thrust per motor | 6.3765 N | 12.0 N | Sets PWM-to-thrust range and climb authority. |
+| Motor time constant | 0.05 s | 0.07 s | Controls motor response delay. |
+| Motor yaw signs | `[1, -1, -1, 1]` | `[1, -1, -1, 1]` | Alternates reaction torque so equal motor thrust does not yaw. |
+| Rotor drag coefficient | 0.000002 | 0.000003 | Scales rotor-dependent drag opposite relative airflow. |
+| Propeller diameter | 0.140 m | 0.1778 m (7 in) | Used by optional inflow, flapping, and ground-effect models. |
+| Body drag area, x/y/z | 0.012 / 0.012 / 0.020 m² | 0.020 / 0.020 / 0.030 m² | Resists vehicle-relative airflow. |
+| Angular damping, roll/pitch/yaw | 0.0012 / 0.0012 / 0.0020 N m/(rad/s) | 0.0018 / 0.0018 / 0.0030 N m/(rad/s) | Resists angular velocity. |
+| Rotor inertia | 0.000005 kg m² | 0.000008 kg m² | Used by the optional gyroscopic-torque model. |
+
+Run the seven-inch scene with:
+
+```bash
+uv run python examples/07-optical-navigation/ttc_diagonal_strike.py \
+  --config examples/07-optical-navigation/ttc_strike/seven_inch_trainer.yaml
+```
+
+The seven-inch profile has 48 N maximum collective thrust and needs 14.715 N
+to hover: 3.679 N per motor. Its mass and motor dynamics differ from the
+course vehicle, so treat the existing PID gains as a starting point and tune
+them before comparing flight results.
+
 ## Module design
 
 ```text
@@ -86,7 +147,7 @@ plain typed data, which keeps TTC and trajectory math easy to test.
 
 ```mermaid
 classDiagram
-    class SimulationConfig { +launch_position +target_center +vehicle_mass_kg +display }
+    class SimulationConfig { +drone_profile +launch_position +target_center +display }
     class RuntimeConfig { +camera +mission +pid +ttc +flight_limits }
     class StrikeConfig { +simulation +runtime +hover_thrust_n }
     class Barometer { +sample(true_altitude_m, now_s) BarometerReading }
@@ -205,6 +266,11 @@ change coefficients. The run CSV records applied body drag, pitch damping,
 gyroscopic pitch torque, and maximum ground-effect multiplier. See
 [`design/missing_flight_forces_plan.md`](../../../design/missing_flight_forces_plan.md)
 for the equations, ownership boundary, and tuning order.
+
+The vehicle profile supplies the default drag area, angular-damping
+coefficients, propeller diameter, and rotor inertia. A scenario may override
+those values in `simulation.physical_forces` for a controlled experiment, but
+the profile is the normal place to change them when the real vehicle changes.
 
 ## TTC-to-drone-step flow
 

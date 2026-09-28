@@ -1,0 +1,15 @@
+# Course quadcopter: its mass and inertia live in assets/full_drone.urdf.
+name: default
+urdf: full_drone.urdf
+actuators:
+  arm_offset_m: 0.12
+  max_rpm: 24000.0
+  max_thrust_per_motor_n: 6.3765
+  motor_time_constant_s: 0.05
+  rotor_drag_coefficient: 0.000002
+  motor_yaw_signs: [1, -1, -1, 1]
+aerodynamics:
+  propeller_diameter_m: 0.14
+  body_drag_cd_area_m2: [0.012, 0.012, 0.020]
+  angular_damping_nm_per_rad_s: [0.0012, 0.0012, 0.0020]
+  rotor_inertia_kg_m2: 0.000005

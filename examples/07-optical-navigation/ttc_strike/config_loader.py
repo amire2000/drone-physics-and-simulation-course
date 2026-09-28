@@ -93,7 +93,11 @@ def load_yaml_config(path: Path) -> StrikeConfig:
         simulation = replace(simulation, plot_window_position_px=tuple(display["plot_window_position_px"]))
     if "target_size_m" in scene:
         simulation = replace(simulation, target_size_m=scene["target_size_m"])
-    simulation = _merge(simulation, vehicle, ("vehicle_mass_kg", "gravity_mps2"), "simulation.vehicle_model")
+    if "profile" in vehicle:
+        if not isinstance(vehicle["profile"], str) or not vehicle["profile"]:
+            raise ValueError("simulation.vehicle_model.profile must be a non-empty profile name")
+        simulation = replace(simulation, drone_profile=vehicle["profile"])
+    simulation = _merge(simulation, {name: value for name, value in vehicle.items() if name != "profile"}, ("gravity_mps2",), "simulation.vehicle_model")
     simulation = _merge(simulation, sensor_model, ("barometer_noise_sigma_m", "barometer_bias_m", "random_seed"), "simulation.sensor_model")
     simulation = _merge(simulation, recording, ("post_impact_seconds",), "simulation.recording")
 
