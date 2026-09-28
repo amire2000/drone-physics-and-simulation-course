@@ -29,8 +29,11 @@ def self_check() -> None:
     assert tracker.update((0, 0, 20, 20), 0.0) is None
     observation = tracker.update((0, 0, 30, 30), 0.1)
     assert observation and observation.ttc_s > 0 and observation.raw_ttc_s > 0 and observation.scale_growth_px_s > 0
-    assert observation.raw_ttc_s != observation.ttc_s, "Raw and filtered TTC should be distinct after smoothing"
-    tracker.update((0, 0, 30, int(config.commit_box_height_px)), 0.2)
+    assert observation.raw_ttc_s != observation.ttc_s, "Raw and alpha-beta TTC should be distinct"
+    tracker.reset()
+    assert tracker.update((0, 0, 20, 20), 1.0) is None, "Reset must discard alpha-beta state"
+    reset_observation = tracker.update((0, 0, 30, int(config.commit_box_height_px)), 1.1)
+    assert reset_observation and reset_observation.ttc_s > 0
     assert tracker.commit_ready, "A large bbox should arm terminal commit"
     planner = TtcDescentPlanner(config)
     trajectory = planner.command(1.0, config.takeoff_altitude_m)

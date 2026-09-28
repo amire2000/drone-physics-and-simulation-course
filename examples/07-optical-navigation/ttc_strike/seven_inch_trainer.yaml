@@ -39,6 +39,8 @@ runtime:
     commit_timeout_margin_s: 5.0
   ttc:
     commit_box_height_fraction: 0.1
+    alpha: 0.85                         # Trust in each measured bbox scale.
+    beta: 0.05                          # Trust in the bbox-scale-rate correction.
   pid:
     altitude:
       gains: [0.7, 0.05, 1.1]           # [kp, ki, kd]: altitude error to collective thrust.

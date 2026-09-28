@@ -89,7 +89,8 @@ class RuntimeConfig:
     max_climb_velocity_mps: float = 3.0
     min_ttc_s: float = 0.2
     commit_box_height_fraction: float = 0.1
-    ttc_growth_old_weight: float = 0.65
+    ttc_alpha: float = 0.85
+    ttc_beta: float = 0.05
     min_growth_px_per_s: float = 0.01
     barometer_velocity_old_weight: float = 0.7
     altitude_pid_gains: tuple[float, float, float] = (0.7, 0.05, 1.1)

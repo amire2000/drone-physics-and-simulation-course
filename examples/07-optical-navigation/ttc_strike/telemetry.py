@@ -137,8 +137,8 @@ def make_plot(config: StrikeConfig, scene: SceneConfig) -> TelemetryPlot:
     guidance_axis.legend((thrust_line, pitch_line, measured_pitch_line), ("collective thrust", "pitch target", "pitch measured"), loc="upper left")
 
     raw_growth_line, = growth_axis.plot([], [], "--", color="#f97316", alpha=0.8, label="raw bbox growth")
-    filtered_growth_line, = growth_axis.plot([], [], color="#2563eb", linewidth=2, label="filtered bbox growth")
-    growth_axis.set(xlabel="time (s)", ylabel="growth (px/s)", title="Bounding-box growth filter")
+    filtered_growth_line, = growth_axis.plot([], [], color="#2563eb", linewidth=2, label="alpha-beta estimated growth")
+    growth_axis.set(xlabel="time (s)", ylabel="growth (px/s)", title="Alpha-beta bbox growth filter")
     growth_axis.grid(alpha=0.25)
     growth_axis.legend()
     figure.tight_layout()

@@ -37,6 +37,13 @@ def _boolean(value: object, name: str) -> bool:
     return value
 
 
+def _unit_interval(value: object, name: str) -> float:
+    """Return one finite filter gain in the inclusive range zero to one."""
+    if isinstance(value, bool) or not isinstance(value, Real) or not isfinite(float(value)) or not 0.0 <= float(value) <= 1.0:
+        raise ValueError(f"{name} must be a finite number from 0 to 1")
+    return float(value)
+
+
 def _merge(instance, values: dict, names: tuple[str, ...], section_name: str):
     unknown = set(values) - set(names)
     if unknown:
@@ -140,7 +147,11 @@ def load_yaml_config(path: Path) -> StrikeConfig:
     runtime = _merge(runtime, camera, ("camera_width_px", "camera_height_px", "camera_hz", "camera_fov_deg", "camera_look_down_deg"), "runtime.physical_setup.camera")
     runtime = _merge(runtime, mission, ("takeoff_altitude_m", "impact_altitude_m", "forward_speed_mps", "nominal_pitch_deg"), "runtime.mission")
     runtime = _merge(runtime, limits, ("max_descent_velocity_mps", "max_climb_velocity_mps", "max_pitch_deg", "takeoff_altitude_tolerance_m", "takeoff_velocity_tolerance_mps", "commit_timeout_margin_s"), "runtime.flight_limits")
-    runtime = _merge(runtime, ttc, ("min_ttc_s", "commit_box_height_fraction", "ttc_growth_old_weight", "min_growth_px_per_s"), "runtime.ttc")
+    if "alpha" in ttc:
+        runtime = replace(runtime, ttc_alpha=_unit_interval(ttc["alpha"], "runtime.ttc.alpha"))
+    if "beta" in ttc:
+        runtime = replace(runtime, ttc_beta=_unit_interval(ttc["beta"], "runtime.ttc.beta"))
+    runtime = _merge(runtime, {name: value for name, value in ttc.items() if name not in {"alpha", "beta"}}, ("min_ttc_s", "commit_box_height_fraction", "min_growth_px_per_s"), "runtime.ttc")
     runtime = _merge(runtime, filters, ("barometer_velocity_old_weight",), "runtime.sensor_filters")
     runtime = _merge(runtime, vertical, ("vertical_position_correction",), "runtime.vertical_control")
 

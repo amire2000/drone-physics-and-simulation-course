@@ -65,7 +65,8 @@ runtime:
   ttc:
     min_ttc_s: 0.2                       # Minimum accepted TTC [s].
     commit_box_height_fraction: 0.04     # Bbox height fraction to arm commit.
-    ttc_growth_old_weight: 0.65          # Previous growth smoothing weight.
+    alpha: 0.85                          # Trust in the latest bbox-scale measurement [0..1].
+    beta: 0.05                           # Trust in bbox-scale-rate correction [0..1].
     min_growth_px_per_s: 0.01            # Minimum approach growth [px/s].
   sensor_filters:
     barometer_velocity_old_weight: 0.7   # Previous vertical-speed weight.

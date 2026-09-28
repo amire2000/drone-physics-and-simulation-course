@@ -37,3 +37,5 @@ runtime:
     nominal_pitch_deg: 20.0      # Initial forward pitch request.
   ttc:
     commit_box_height_fraction: 0.1  # Bbox height fraction that arms commit.
+    alpha: 0.85                       # Trust in each measured bbox scale.
+    beta: 0.05                        # Trust in the bbox-scale-rate correction.

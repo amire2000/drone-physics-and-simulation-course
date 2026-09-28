@@ -192,11 +192,18 @@ classDiagram
 ## TTC and altitude math
 
 The detector supplies only a rectangle. Let `s = sqrt(width_px * height_px)`.
-Approach is the positive filtered growth `g = (s_now - s_previous) / dt`, and
-`TTC = s / g`.
+The alpha-beta filter predicts scale and growth, measures the scale residual
+`r = s_measured - (s_previous + g_previous dt)`, then corrects:
 
-The telemetry view shows the dashed raw bbox growth and solid filtered growth
-directly during tracking. This is easier to interpret than TTC because TTC
+`s_estimated = s_predicted + alpha r`
+
+`g_estimated = g_previous + beta r / dt`
+
+Guidance receives `TTC = s_estimated / g_estimated` when estimated growth is
+positive enough.
+
+The telemetry view shows the dashed raw bbox growth and solid alpha-beta
+estimated growth directly during tracking. This is easier to interpret than TTC because TTC
 divides by growth and therefore explodes when growth is close to zero. Raw and
 filtered TTC remain in the CSV for offline analysis; raw TTC is blank when raw
 growth is zero or negative.
@@ -226,7 +233,8 @@ against a real vehicle.
 | `max_climb_velocity_mps` | `3.0` | Upward velocity limit. |
 | `camera_fov_deg` | `90.0` | Rendering FOV only; not a TTC range scale. |
 | `commit_box_height_fraction` | `0.1` | Image-height threshold that arms commit. |
-| `ttc_growth_old_weight` | `0.65` | Smoothing weight for bbox growth. |
+| `ttc.alpha` | `0.85` | Trust in each measured bbox scale. |
+| `ttc.beta` | `0.05` | Trust in the scale-rate correction. |
 | `min_growth_px_per_s` | `0.01` | Rejects zero/negative approach growth. |
 | `commit_timeout_margin_s` | `5.0` | Extra time after the last TTC during commit. |
 | `post_impact_seconds` | `3.0` | Time recorded after contact. |
