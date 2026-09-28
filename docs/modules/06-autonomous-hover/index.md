@@ -37,6 +37,25 @@ Mass and inertia decide how strongly a given force or torque changes that state.
 
 ---
 
+## Forces
+
+| # | Effect | Basic model | Priority |
+|---|---|---|---|
+| 1 | **Gravity** | \(F_g = mg\) | Essential |
+| 2 | **Motor thrust** | \(T_i=k_T\omega_i^2\) | Essential |
+| 3 | **Motor reaction torque** | \(\tau_i=k_Q\omega_i^2\) | Essential |
+| 4 | **Roll/pitch torque from thrust** | \(\tau_i=r_i\times F_i\) | Essential |
+| 5 | **Quadratic body drag** | \(F_D=-\frac{1}{2}\rho C_D A\lvert v_{air}\rvert v_{air}\) | Essential |
+| 6 | **Rotor-dependent linear drag** | \(F_D=-k_r\sum_i\omega_i v_{air}\) | Essential |
+| 7 | **Angular/rotational damping** | \(\tau_D=-k_\omega\omega\) | Recommended |
+| 8 | **Motor dynamics** | \(\dot\omega=(\omega_{cmd}-\omega)/\tau_m\) | Recommended |
+| 9 | **Rotor inflow / blade flapping** | modifies thrust and in-plane force | Optional |
+| 10 | **Propeller gyroscopic torque** | \(\tau_g=\Omega\times H\) | Optional |
+| 11 | **Wind** | use \(v_{air}=v_{drone}-v_{wind}\) | Recommended |
+| 12 | **Ground effect** | thrust increase near ground | Optional |
+| 13 | **Battery voltage sag (not implemented)** | voltage/current → max RPM | Later |
+| 14 | **Prop wash / induced airflow (not implemented)** | modifies local airflow | Advanced |
+
 ## Force inventory
 
 | Force or effect | Physical source | Contribution to flight | Engine status | Detailed lesson |
