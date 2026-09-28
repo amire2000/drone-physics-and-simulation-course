@@ -27,7 +27,7 @@ Press `q` or `Esc` in the simulation window to abort safely. The process also st
 
 ```bash
 uv run python examples/07-optical-navigation/ttc_diagonal_strike.py \
-  --config examples/07-optical-navigation/ttc_strike/scenario.yaml
+  --config examples/07-optical-navigation/ttc_strike/config/scenario.yaml
 ```
 
 Ready-to-run configurations are in [`ttc_strike_inputs/`](ttc_strike_inputs/):
@@ -69,7 +69,7 @@ seven-inch scenario when starting a comparison:
 
 ```bash
 uv run python examples/07-optical-navigation/ttc_diagonal_strike.py \
-  --config examples/07-optical-navigation/ttc_strike/seven_inch_trainer.yaml
+  --config examples/07-optical-navigation/ttc_strike/config/seven_inch_trainer.yaml
 ```
 
 ## Command-line options

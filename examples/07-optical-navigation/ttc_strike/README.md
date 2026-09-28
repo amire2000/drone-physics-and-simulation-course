@@ -20,7 +20,7 @@ For the complete command, YAML, output, and troubleshooting guide, see
 ### Scenario YAML
 
 Initial conditions can be changed without editing Python. The sample
-`scenario.yaml` groups simulator setup separately from field-tunable runtime
+`config/scenario.yaml` groups simulator setup separately from field-tunable runtime
 parameters:
 
 ```yaml
@@ -41,7 +41,7 @@ Run it with:
 
 ```bash
 uv run python examples/07-optical-navigation/ttc_diagonal_strike.py \
-  --config examples/07-optical-navigation/ttc_strike/scenario.yaml
+  --config examples/07-optical-navigation/ttc_strike/config/scenario.yaml
 ```
 
 For the shorter 30 m test, use
@@ -116,7 +116,7 @@ Run the seven-inch scene with:
 
 ```bash
 uv run python examples/07-optical-navigation/ttc_diagonal_strike.py \
-  --config examples/07-optical-navigation/ttc_strike/seven_inch_trainer.yaml
+  --config examples/07-optical-navigation/ttc_strike/config/seven_inch_trainer.yaml
 ```
 
 The seven-inch profile has 48 N maximum collective thrust and needs 14.715 N
@@ -130,6 +130,7 @@ them before comparing flight results.
 ttc_strike/
 ├── config.py       SimulationConfig + RuntimeConfig + StrikeConfig
 ├── config_loader.py grouped YAML parser and validation
+├── config/          bundled default, seven-inch, and template YAML files
 ├── sensing.py      Barometer: altitude and vertical velocity
 ├── ttc.py          BboxTtcTracker: bbox scale growth to TTC
 ├── trajectory.py   TtcDescentPlanner: TTC + altitude to vx/vz target
