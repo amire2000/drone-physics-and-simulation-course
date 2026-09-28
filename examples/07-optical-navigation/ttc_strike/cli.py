@@ -28,7 +28,8 @@ def self_check() -> None:
     tracker = BboxTtcTracker(config)
     assert tracker.update((0, 0, 20, 20), 0.0) is None
     observation = tracker.update((0, 0, 30, 30), 0.1)
-    assert observation and observation.ttc_s > 0 and observation.scale_growth_px_s > 0
+    assert observation and observation.ttc_s > 0 and observation.raw_ttc_s > 0 and observation.scale_growth_px_s > 0
+    assert observation.raw_ttc_s != observation.ttc_s, "Raw and filtered TTC should be distinct after smoothing"
     tracker.update((0, 0, 30, int(config.commit_box_height_px)), 0.2)
     assert tracker.commit_ready, "A large bbox should arm terminal commit"
     planner = TtcDescentPlanner(config)

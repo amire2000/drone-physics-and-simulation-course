@@ -10,6 +10,8 @@ from .config import StrikeConfig
 class TtcObservation:
     box: tuple[int, int, int, int]
     scale_px: float
+    raw_growth_px_s: float
+    raw_ttc_s: float
     scale_growth_px_s: float
     ttc_s: float
 
@@ -42,10 +44,18 @@ class BboxTtcTracker:
             return None
         growth_px_s = (scale_px - self.last_scale_px) / dt_s
         self.last_scale_px, self.last_time_s = scale_px, now_s
+        raw_ttc_s = scale_px / growth_px_s if growth_px_s > 0.0 else float("nan")
         old = self.config.ttc_growth_old_weight
         self.filtered_growth_px_s = old * self.filtered_growth_px_s + (1 - old) * growth_px_s
         if self.filtered_growth_px_s <= self.config.min_growth_px_per_s:
             return None
-        observation = TtcObservation(box, scale_px, self.filtered_growth_px_s, scale_px / self.filtered_growth_px_s)
+        observation = TtcObservation(
+            box,
+            scale_px,
+            growth_px_s,
+            raw_ttc_s,
+            self.filtered_growth_px_s,
+            scale_px / self.filtered_growth_px_s,
+        )
         self.last_observation = observation
         return observation

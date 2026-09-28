@@ -3,7 +3,7 @@
 from dataclasses import dataclass, field
 import csv
 import json
-from math import degrees
+from math import degrees, isfinite
 from pathlib import Path
 
 from common.drone_model import PhysicsStep
@@ -31,8 +31,10 @@ class FlightLog:
     phase: list[str] = field(default_factory=list)
     measured_pitch_deg: list[float] = field(default_factory=list)
     ttc_s: list[float] = field(default_factory=list)
+    raw_ttc_s: list[float] = field(default_factory=list)
     bbox_scale_px: list[float] = field(default_factory=list)
     bbox_growth_px_s: list[float] = field(default_factory=list)
+    raw_bbox_growth_px_s: list[float] = field(default_factory=list)
     body_drag_x_n: list[float] = field(default_factory=list)
     body_drag_z_n: list[float] = field(default_factory=list)
     angular_damping_pitch_torque_nm: list[float] = field(default_factory=list)
@@ -61,8 +63,10 @@ class FlightLog:
         self.pitch_error_deg.append(degrees(command.pitch_target_rad - measured_pitch_rad))
         self.pitch_torque.append(pitch_torque)
         self.ttc_s.append(observation.ttc_s if observation else float("nan"))
+        self.raw_ttc_s.append(observation.raw_ttc_s if observation else float("nan"))
         self.bbox_scale_px.append(observation.scale_px if observation else float("nan"))
         self.bbox_growth_px_s.append(observation.scale_growth_px_s if observation else float("nan"))
+        self.raw_bbox_growth_px_s.append(observation.raw_growth_px_s if observation else float("nan"))
         body_drag = physics_step.body_drag_force_body_n if physics_step else (float("nan"),) * 3
         angular_damping = physics_step.angular_damping_torque_body_nm if physics_step else (float("nan"),) * 3
         gyroscopic = physics_step.gyroscopic_torque_body_nm if physics_step else (float("nan"),) * 3
@@ -88,6 +92,7 @@ class TelemetryPlot:
     trajectory_altitude_axis: object
     guidance_axis: object
     pitch_axis: object
+    growth_axis: object
     lines: tuple[object, ...]
     phase_axes: tuple[object, ...]
     phase_artists: list[object] = field(default_factory=list)
@@ -98,7 +103,7 @@ class TelemetryPlot:
 def make_plot(config: StrikeConfig, scene: SceneConfig) -> TelemetryPlot:
     import matplotlib.pyplot as plt
 
-    figure, (velocity_axis, path_axis, trajectory_axis, guidance_axis) = plt.subplots(4, 1, figsize=(10, 11))
+    figure, (velocity_axis, path_axis, trajectory_axis, guidance_axis, growth_axis) = plt.subplots(5, 1, figsize=(10, 13))
     vx_line, = velocity_axis.plot([], [], label="vx measured", color="#2563eb")
     velocity_command_line, = velocity_axis.plot([], [], "--", label="vx target", color="#2563eb")
     vz_line, = velocity_axis.plot([], [], label="vz vertical", color="#dc2626")
@@ -130,6 +135,12 @@ def make_plot(config: StrikeConfig, scene: SceneConfig) -> TelemetryPlot:
     pitch_axis.set_ylabel("pitch target (deg)")
     guidance_axis.grid(alpha=0.25)
     guidance_axis.legend((thrust_line, pitch_line, measured_pitch_line), ("collective thrust", "pitch target", "pitch measured"), loc="upper left")
+
+    raw_growth_line, = growth_axis.plot([], [], "--", color="#f97316", alpha=0.8, label="raw bbox growth")
+    filtered_growth_line, = growth_axis.plot([], [], color="#2563eb", linewidth=2, label="filtered bbox growth")
+    growth_axis.set(xlabel="time (s)", ylabel="growth (px/s)", title="Bounding-box growth filter")
+    growth_axis.grid(alpha=0.25)
+    growth_axis.legend()
     figure.tight_layout()
     return TelemetryPlot(
         figure,
@@ -139,9 +150,10 @@ def make_plot(config: StrikeConfig, scene: SceneConfig) -> TelemetryPlot:
         trajectory_altitude_axis,
         guidance_axis,
         pitch_axis,
-        (vx_line, velocity_command_line, vz_line, path_line, tracking_path_line, command_vx_line, command_vz_line, command_altitude_line, thrust_line, pitch_line, measured_pitch_line),
-        (velocity_axis, guidance_axis),
-        collision_axes=(velocity_axis, trajectory_axis, guidance_axis),
+        growth_axis,
+        (vx_line, velocity_command_line, vz_line, path_line, tracking_path_line, command_vx_line, command_vz_line, command_altitude_line, thrust_line, pitch_line, measured_pitch_line, raw_growth_line, filtered_growth_line),
+        (velocity_axis, guidance_axis, growth_axis),
+        collision_axes=(velocity_axis, trajectory_axis, guidance_axis, growth_axis),
     )
 
 
@@ -184,7 +196,7 @@ def _refresh_phase_backgrounds(plot: TelemetryPlot, log: FlightLog) -> None:
 
 
 def refresh_plot(plot: TelemetryPlot, log: FlightLog) -> None:
-    vx_line, velocity_command_line, vz_line, path_line, tracking_path_line, command_vx_line, command_vz_line, command_altitude_line, thrust_line, pitch_line, measured_pitch_line = plot.lines
+    vx_line, velocity_command_line, vz_line, path_line, tracking_path_line, command_vx_line, command_vz_line, command_altitude_line, thrust_line, pitch_line, measured_pitch_line, raw_growth_line, filtered_growth_line = plot.lines
     vx_line.set_data(log.time_s, log.vx_mps)
     velocity_command_line.set_data(log.time_s, log.command_vx_mps)
     vz_line.set_data(log.time_s, log.vz_mps)
@@ -199,8 +211,14 @@ def refresh_plot(plot: TelemetryPlot, log: FlightLog) -> None:
     thrust_line.set_data(log.time_s, log.command_thrust_n)
     pitch_line.set_data(log.time_s, log.command_pitch_deg)
     measured_pitch_line.set_data(log.time_s, log.measured_pitch_deg)
+    tracking = [phase == "track" and (log.collision_time_s is None or time <= log.collision_time_s) for phase, time in zip(log.phase, log.time_s)]
+    def tracking_values(values: list[float]) -> list[float]:
+        return [value if active and isfinite(value) else float("nan") for value, active in zip(values, tracking)]
+
+    raw_growth_line.set_data(log.time_s, tracking_values(log.raw_bbox_growth_px_s))
+    filtered_growth_line.set_data(log.time_s, tracking_values(log.bbox_growth_px_s))
     _refresh_phase_backgrounds(plot, log)
-    for axis in (plot.velocity_axis, plot.path_axis, plot.trajectory_axis, plot.trajectory_altitude_axis, plot.guidance_axis, plot.pitch_axis):
+    for axis in (plot.velocity_axis, plot.path_axis, plot.trajectory_axis, plot.trajectory_altitude_axis, plot.guidance_axis, plot.pitch_axis, plot.growth_axis):
         axis.relim()
         axis.autoscale_view()
     plot.figure.canvas.draw_idle()
@@ -232,7 +250,7 @@ def save_csv(log: FlightLog, output: Path) -> None:
     output.parent.mkdir(parents=True, exist_ok=True)
     fields = ("time_s", "phase", "x_m", "y_m", "z_m", "vx_mps", "vz_mps", "command_vx_mps",
               "command_vz_mps", "command_altitude_m", "command_thrust_n", "command_pitch_deg",
-              "measured_pitch_deg", "pitch_error_deg", "pitch_torque", "ttc_s", "bbox_scale_px", "bbox_growth_px_s",
+              "measured_pitch_deg", "pitch_error_deg", "pitch_torque", "ttc_s", "raw_ttc_s", "bbox_scale_px", "bbox_growth_px_s", "raw_bbox_growth_px_s",
               "body_drag_x_n", "body_drag_z_n", "angular_damping_pitch_torque_nm", "gyroscopic_pitch_torque_nm", "ground_effect_max_multiplier")
     with output.open("w", newline="") as stream:
         writer = csv.writer(stream)

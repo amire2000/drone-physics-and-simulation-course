@@ -153,7 +153,7 @@ classDiagram
     class Barometer { +sample(true_altitude_m, now_s) BarometerReading }
     class BarometerReading { +altitude_m +vertical_velocity_mps }
     class BboxTtcTracker { +update(box, now_s) TtcObservation +reset() }
-    class TtcObservation { +box +scale_px +scale_growth_px_s +ttc_s }
+    class TtcObservation { +box +scale_px +raw_growth_px_s +raw_ttc_s +scale_growth_px_s +ttc_s }
     class TtcDescentPlanner { +command(ttc_s, altitude_m) TrajectoryCommand }
     class TrajectoryCommand { +forward_velocity_mps +vertical_velocity_mps +altitude_target_m }
     class StrikeGuidance { +update(GuidanceInput) GuidanceCommand }
@@ -194,6 +194,12 @@ classDiagram
 The detector supplies only a rectangle. Let `s = sqrt(width_px * height_px)`.
 Approach is the positive filtered growth `g = (s_now - s_previous) / dt`, and
 `TTC = s / g`.
+
+The telemetry view shows the dashed raw bbox growth and solid filtered growth
+directly during tracking. This is easier to interpret than TTC because TTC
+divides by growth and therefore explodes when growth is close to zero. Raw and
+filtered TTC remain in the CSV for offline analysis; raw TTC is blank when raw
+growth is zero or negative.
 
 No target size or camera calibration is required. During tracking the planner
 uses barometer altitude `h` and known impact altitude `h*`:

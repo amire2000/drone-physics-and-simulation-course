@@ -103,7 +103,7 @@ Each run is stored below `outputs/ttc_runs/<run-name>/`:
 - `settings.json` — the resolved simulation and runtime settings.
 - `summary.json` — final phase, success/abort status, abort reason, impact speed, and scene details.
 - `telemetry.csv` — time-series data for analysis and comparison.
-- `telemetry.png` — velocity, trajectory, trajectory-command, and guidance plots.
+- `telemetry.png` — velocity, trajectory, trajectory-command, guidance, and raw-versus-filtered bbox-growth plots.
 - `environment.mp4` — optional camera recording when video is enabled.
 
 The pitch columns in `telemetry.csv` are especially useful when tuning: `command_pitch_deg`, `measured_pitch_deg`, `pitch_error_deg`, and `pitch_torque`. Compare the command with the measured attitude to distinguish a slow attitude response from a bad trajectory command.
