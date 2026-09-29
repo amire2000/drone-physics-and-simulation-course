@@ -241,7 +241,7 @@ against a real vehicle.
 | `ttc.beta` | `0.05` | Trust in the scale-rate correction. |
 | `min_growth_px_per_s` | `0.01` | Rejects zero/negative approach growth. |
 | `commit_timeout_margin_s` | `5.0` | Extra time after the last TTC during commit. |
-| `post_impact_seconds` | `3.0` | Time recorded after contact. |
+| `post_impact_seconds` | `3.0` | Passive physics/video time after contact; telemetry freezes at contact. |
 
 `pitch_attitude_pid_gains` is tuned for this strike example as
 `(0.008, 0.0, 0.006)`. It is separate from the shared attitude defaults used

@@ -174,17 +174,20 @@ class StrikeSimulation:
                 velocity, _ = p.getBaseVelocity(drone)
                 pitch_rad = p.getEulerFromQuaternion(p.getBasePositionAndOrientation(drone)[1])[1]
                 pitch_torque = torque[1]
-                # trajectory is observational here: FlightLog plots its vx,
-                # vz, and altitude target beside measured vehicle state.
-                log.append(now_s, position, velocity, command, pitch_rad, pitch_torque, observation, flight_step)
-                if live_plot and step % (physics_hz // config.camera_hz) == 0:
-                    refresh_plot(live_plot, log)
+                if stop_at_s is None:
+                    # Record the collision sample, then freeze telemetry while
+                    # passive post-impact physics continues for the video.
+                    log.append(now_s, position, velocity, command, pitch_rad, pitch_torque, observation, flight_step)
 
-                if not impact_speed and p.getContactPoints(drone, cube):
+                if stop_at_s is None and p.getContactPoints(drone, cube):
                     impact_speed = sqrt(sum(component**2 for component in incoming_velocity))
                     log.mark_collision(now_s, position, incoming_velocity)
                     stop_at_s = now_s + config.post_impact_seconds
                     print(f"Impact: {impact_speed:.1f} m/s; recording aftermath for {config.post_impact_seconds:.0f} s")
+                    if live_plot:
+                        refresh_plot(live_plot, log)
+                elif stop_at_s is None and live_plot and step % (physics_hz // config.camera_hz) == 0:
+                    refresh_plot(live_plot, log)
                 if stop_at_s is not None and now_s >= stop_at_s:
                     # Contact is the geometry-free success condition.  Keep
                     # impact speed as telemetry instead of rejecting a valid
