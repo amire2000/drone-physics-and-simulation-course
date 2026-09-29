@@ -73,6 +73,7 @@ def load_yaml_config(path: Path) -> StrikeConfig:
     physical = _mapping(runtime_data.get("physical_setup"), "runtime.physical_setup")
     camera = _mapping(physical.get("camera"), "runtime.physical_setup.camera")
     mission = _mapping(runtime_data.get("mission"), "runtime.mission")
+    takeoff = _mapping(runtime_data.get("takeoff"), "runtime.takeoff")
     limits = _mapping(runtime_data.get("flight_limits"), "runtime.flight_limits")
     ttc = _mapping(runtime_data.get("ttc"), "runtime.ttc")
     filters = _mapping(runtime_data.get("sensor_filters"), "runtime.sensor_filters")
@@ -146,6 +147,7 @@ def load_yaml_config(path: Path) -> StrikeConfig:
 
     runtime = _merge(runtime, camera, ("camera_width_px", "camera_height_px", "camera_hz", "camera_fov_deg", "camera_look_down_deg"), "runtime.physical_setup.camera")
     runtime = _merge(runtime, mission, ("takeoff_altitude_m", "impact_altitude_m", "forward_speed_mps", "nominal_pitch_deg"), "runtime.mission")
+    runtime = _merge(runtime, takeoff, ("takeoff_max_climb_velocity_mps",), "runtime.takeoff")
     runtime = _merge(runtime, limits, ("max_descent_velocity_mps", "max_climb_velocity_mps", "max_pitch_deg", "takeoff_altitude_tolerance_m", "takeoff_velocity_tolerance_mps", "commit_timeout_margin_s"), "runtime.flight_limits")
     if "alpha" in ttc:
         runtime = replace(runtime, ttc_alpha=_unit_interval(ttc["alpha"], "runtime.ttc.alpha"))

@@ -58,6 +58,8 @@ runtime:
     impact_altitude_m: 1.0                # Desired altitude at target contact [m].
     forward_speed_mps: 13.0               # Desired body-forward tracking velocity [m/s].
     nominal_pitch_deg: 20.0               # Initial forward-pitch teaching value [degrees].
+  takeoff:
+    takeoff_max_climb_velocity_mps: 7.2       # Measured guard: 30 Hz sampling limits physical climb speed to about 8 m/s.
   flight_limits:
     max_descent_velocity_mps: 4.5         # Maximum descent rate [m/s].
     max_climb_velocity_mps: 3.0           # Maximum climb rate [m/s].
@@ -72,10 +74,10 @@ runtime:
     beta: 0.05                            # Trust in bbox-scale-rate correction [0..1].
     min_growth_px_per_s: 0.01             # Minimum accepted approach growth [px/s].
   sensor_filters:
-    barometer_velocity_old_weight: 0.7    # Previous vertical-speed estimate weight.
+    barometer_velocity_old_weight: 0.0    # Previous vertical-speed estimate weight; zero is ideal-simulator response.
   pid:
     altitude:
-      gains: [0.7, 0.05, 1.1]             # [kp, ki, kd]: altitude error to collective thrust.
+      gains: [1.8, 0.05, 2.2]             # [kp, ki, kd]: altitude error to collective thrust.
       integral_limit: 0.5                 # Altitude-integral clamp.
     forward_speed:
       gains: [0.03, 0.0, 0.002]           # [kp, ki, kd]: forward-speed error to pitch target.

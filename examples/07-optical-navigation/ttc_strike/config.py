@@ -82,6 +82,7 @@ class RuntimeConfig:
     camera_fov_deg: float = 90.0
     camera_look_down_deg: float = 0.0
     takeoff_altitude_m: float = 15.0
+    takeoff_max_climb_velocity_mps: float = 7.2
     impact_altitude_m: float = 1.0
     forward_speed_mps: float = 13.0
     nominal_pitch_deg: float = 20.0
@@ -92,8 +93,8 @@ class RuntimeConfig:
     ttc_alpha: float = 0.85
     ttc_beta: float = 0.05
     min_growth_px_per_s: float = 0.01
-    barometer_velocity_old_weight: float = 0.7
-    altitude_pid_gains: tuple[float, float, float] = (0.7, 0.05, 1.1)
+    barometer_velocity_old_weight: float = 0.0
+    altitude_pid_gains: tuple[float, float, float] = (1.8, 0.05, 2.2)
     altitude_integral_limit: float = 0.5
     forward_speed_pid_gains: tuple[float, float, float] = (0.03, 0.0, 0.002)
     forward_pitch_integral_limit: float = 0.2

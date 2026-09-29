@@ -228,6 +228,8 @@ against a real vehicle.
 | Field | Default | Meaning |
 | --- | --- | --- |
 | `takeoff_altitude_m` | `15.0` | Height at which tracking starts. |
+| `takeoff_max_climb_velocity_mps` | `7.2` | Measured guard that limits physical climb speed to about 8 m/s. |
+| `barometer_velocity_old_weight` | `0.0` | Vertical-speed filter memory; zero is the ideal-simulator default. |
 | `impact_altitude_m` | `1.0` | Desired altitude at contact. |
 | `forward_speed_mps` | `13.0` | Nominal body-forward command. |
 | `nominal_pitch_deg` | `20.0` | Initial forward pitch while altitude is held. |
@@ -248,6 +250,12 @@ does not silently remove vertical lift.
 
 `forward_speed_pid_gains` controls the pitch response that tracks the forward
 velocity target; `max_pitch_deg` limits the requested tilt.
+
+During takeoff, the default altitude PID uses `(1.8, 0.05, 2.2)` for faster
+launch and braking. When measured climb speed reaches
+`takeoff_max_climb_velocity_mps`, collective thrust is capped at hover thrust;
+tracking still waits for the normal altitude and vertical-speed settled
+conditions.
 
 The remaining fields tune mass/gravity, barometer noise, PID gains, window
 placement, video resolution, and output paths. Contact is the headless success

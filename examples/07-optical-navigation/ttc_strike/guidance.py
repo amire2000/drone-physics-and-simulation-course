@@ -48,9 +48,9 @@ class StrikeGuidance:
 
     The guidance layer owns three independent PID controllers:
 
-    - ``altitude_pid`` runs only during ``TAKEOFF``. It converts altitude
-      error and measured vertical velocity into extra collective thrust until
-      the vehicle reaches the tracking altitude.
+    - ``altitude_pid`` runs during ``TAKEOFF``. It converts altitude error and
+      measured vertical velocity into collective thrust; a separate speed
+      guard caps thrust at hover above the configured climb limit.
     - ``forward_pid`` runs during ``TRACK``. It converts forward-velocity
       error into a positive pitch target, which tilts the rotor disk to build
       forward speed.
@@ -79,9 +79,9 @@ class StrikeGuidance:
         """Advance the guidance state machine by one control tick.
 
         Phase flow:
-        - ``TAKEOFF`` uses altitude PID with zero pitch until altitude and
-          vertical speed settle; the first fresh camera observation starts
-          ``TRACK``.
+        - ``TAKEOFF`` uses altitude PID with a bounded measured climb rate and
+          zero pitch until altitude and vertical speed settle; the first fresh
+          camera observation starts ``TRACK``.
         - ``TRACK`` converts visible-target TTC and barometer readings into a
           forward-velocity and vertical-velocity trajectory command.
         - Losing the target enters ``COMMIT`` only after a valid final TTC
@@ -96,12 +96,14 @@ class StrikeGuidance:
         """
         if self.phase == FlightPhase.TAKEOFF:
             # Hold pitch at zero while the altitude loop climbs to the camera
-            # observation height. Tracking only starts after altitude and
-            # vertical speed are both within their settled tolerances.
+            # observation height. Above the speed limit, never add more than
+            # hover thrust, so gravity and drag brake the vehicle.
             thrust = self.config.hover_thrust_n + self.altitude_pid.update(
                 self.config.takeoff_altitude_m - data.barometer.altitude_m,
                 data.barometer.vertical_velocity_mps,
             )
+            if data.barometer.vertical_velocity_mps >= self.config.takeoff_max_climb_velocity_mps:
+                thrust = min(thrust, self.config.hover_thrust_n)
             command = GuidanceCommand(self.phase, thrust, 0.0, None)
             ready = data.barometer.altitude_m > self.config.takeoff_altitude_m - self.config.takeoff_altitude_tolerance_m
             stable = abs(data.barometer.vertical_velocity_mps) < self.config.takeoff_velocity_tolerance_mps

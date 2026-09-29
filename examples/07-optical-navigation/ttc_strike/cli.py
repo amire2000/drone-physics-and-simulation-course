@@ -46,6 +46,9 @@ def self_check() -> None:
     assert planner.command(None, config.takeoff_altitude_m).altitude_target_m == config.takeoff_altitude_m
 
     guidance = StrikeGuidance(config)
+    fast_reading = BarometerReading(0.0, config.takeoff_max_climb_velocity_mps + 0.1)
+    guarded_takeoff = guidance.update(GuidanceInput(0.0, fast_reading, None, None, False, False))
+    assert guarded_takeoff.thrust_n <= config.hover_thrust_n
     reading = BarometerReading(config.takeoff_altitude_m, 0.0)
     guidance.update(GuidanceInput(0.0, reading, observation, observation, True, False))
     assert guidance.phase == FlightPhase.TRACK
