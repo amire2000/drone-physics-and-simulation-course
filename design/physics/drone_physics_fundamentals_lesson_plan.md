@@ -1,5 +1,9 @@
 # Drone Physics Fundamentals — Structured Lesson Plan
 
+**Last updated:** 2026-09-23
+**Status:** Active reference
+**Description:** Course-wide physics sequence and capstone model.
+
 **Target:** Students with basic Python and introductory algebra/calculus  
 **Format:** Theory + Python experiments + visualization  
 **Estimated total:** ~30–36 hours  

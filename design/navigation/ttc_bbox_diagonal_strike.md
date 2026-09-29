@@ -1,5 +1,9 @@
 # TTC BBox Diagonal Strike POC
 
+**Last updated:** 2026-09-25
+**Status:** Implemented; tuning continues
+**Description:** Module 7 visual time-to-contact proof of concept.
+
 ## Purpose
 
 This Module 7 proof of concept drives a simulated drone into a red cube using

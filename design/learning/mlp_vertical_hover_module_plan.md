@@ -1,5 +1,9 @@
 # Module 9: Learned vertical hover with a NumPy MLP
 
+**Last updated:** 2026-09-26
+**Status:** Partly implemented
+**Description:** Module 9 policy-learning progression from generated data to PyBullet.
+
 ## Goal
 
 Add a learning module after the current syllabus that introduces an MLP without

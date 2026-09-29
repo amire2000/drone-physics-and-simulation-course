@@ -73,4 +73,4 @@ The bridge will follow the current [Betaflight SITL harness](https://github.com/
   not evidence that the policy generalizes.
 
 The implementation plan is recorded in
-`design/mlp_vertical_hover_module_plan.md`.
+`design/learning/mlp_vertical_hover_module_plan.md`.

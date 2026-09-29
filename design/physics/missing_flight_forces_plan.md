@@ -1,5 +1,9 @@
 # Reusable flight-forces model
 
+**Last updated:** 2026-09-27
+**Status:** Partly implemented
+**Description:** Shared aerodynamic-force ownership, switches, and tuning order.
+
 ## Goal
 
 Make aerodynamic forces a shared part of `PhysicsEngine`, so Module 6 hover,

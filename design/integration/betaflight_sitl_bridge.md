@@ -1,5 +1,9 @@
 # Betaflight 2026.6.2 SITL bridge design
 
+**Last updated:** 2026-09-27
+**Status:** Planned
+**Description:** UDP protocol and setup contract for Module 8.
+
 ## Goal
 
 Connect the course PyBullet quadcopter to Betaflight SITL without duplicating

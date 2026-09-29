@@ -280,7 +280,7 @@ torque are implemented as optional effects and default to off.
 Use the commented [`template.yaml`](../ttc_strike_inputs/template.yaml) to
 change coefficients. The run CSV records applied body drag, pitch damping,
 gyroscopic pitch torque, and maximum ground-effect multiplier. See
-[`design/missing_flight_forces_plan.md`](../../../design/missing_flight_forces_plan.md)
+[`design/physics/missing_flight_forces_plan.md`](../../../design/physics/missing_flight_forces_plan.md)
 for the equations, ownership boundary, and tuning order.
 
 The vehicle profile supplies the default drag area, angular-damping

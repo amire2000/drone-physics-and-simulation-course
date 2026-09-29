@@ -44,3 +44,17 @@ Use MkDocs Material. Keep each lesson in `docs/modules/<module>/`, its images
 in `docs/modules/<module>/images/`, and its runnable code in the matching
 `examples/<module>/` folder. After documentation changes, run
 `uv run mkdocs build --strict`.
+
+## Design-document rules
+
+Before implementing a non-trivial physics, control, architecture, integration,
+or research decision, save its plan under `design/` in the matching group:
+`physics/`, `navigation/`, `integration/`, `learning/`, or `research/`.
+Update [`design/README.md`](design/README.md) whenever a design note is added,
+moved, or materially revised.
+
+Each design note must include a clear title, creation or revision date, short
+description, status, key decisions, links to related lessons/examples, and
+Mermaid diagrams when a flow or boundary would be clearer than prose. Use the
+latest Git commit date for existing notes; use the current date for new or
+revised notes.

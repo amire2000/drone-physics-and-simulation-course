@@ -31,4 +31,5 @@ can add varied starts, disturbances, and richer sensor inputs.
 ---
 
 Prerequisite: [Module 8: Betaflight SITL bridge](../08-betaflight-sitl/index.md).
-The implementation roadmap is recorded in `design/mlp_vertical_hover_module_plan.md`.
+The implementation roadmap is recorded in
+`design/learning/mlp_vertical_hover_module_plan.md`.

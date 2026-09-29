@@ -1,5 +1,9 @@
 # Dual controller API: PyBullet or Betaflight
 
+**Last updated:** 2026-09-27
+**Status:** Planned
+**Description:** Boundary for selecting the local or Betaflight low-level controller.
+
 ## Goal
 
 Support two selectable low-level controller backends in one future Module 8

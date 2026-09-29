@@ -1,5 +1,9 @@
 # Propeller thrust-data sources for Module 3
 
+**Last updated:** 2026-09-29
+**Status:** Adopted
+**Description:** Trusted bench-data sources and the selected Module 3 teaching dataset.
+
 ## Recommendation
 
 Use a **small, typed Markdown table** from EMAX's official ECO II 3210

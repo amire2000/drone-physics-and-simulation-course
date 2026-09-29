@@ -166,4 +166,5 @@ network on these examples before it controls a PyBullet hover.
 ---
 
 Previous: [Lesson 1: Build an MLP from scratch with NumPy](../01-numpy-mlp-basics/index.md).
-The implementation roadmap is recorded in `design/mlp_vertical_hover_module_plan.md`.
+The implementation roadmap is recorded in
+`design/learning/mlp_vertical_hover_module_plan.md`.

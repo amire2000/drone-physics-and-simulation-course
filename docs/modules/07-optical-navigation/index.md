@@ -66,7 +66,7 @@ The display labels the current takeoff, track, commit, or abort phase with the
 latest TTC, bbox growth, velocity commands, pitch, and thrust. During commit,
 the last valid pitch and throttle are deliberately held after a large target
 leaves the image. The complete design is recorded in
-`design/ttc_bbox_diagonal_strike.md`. The implementation guide, full
+`design/navigation/ttc_bbox_diagonal_strike.md`. The implementation guide, full
 configuration reference, and TTC-to-control diagrams live beside the code in
 `examples/07-optical-navigation/ttc_strike/README.md`.
 
