@@ -10,6 +10,7 @@ from common.drone_model import PhysicsStep
 
 from .config import SceneConfig, StrikeConfig
 from .guidance import GuidanceCommand
+from .sensing import BarometerReading
 from .ttc import TtcObservation
 
 
@@ -21,6 +22,9 @@ class FlightLog:
     y_m: list[float] = field(default_factory=list)
     vx_mps: list[float] = field(default_factory=list)
     vz_mps: list[float] = field(default_factory=list)
+    barometer_raw_altitude_m: list[float] = field(default_factory=list)
+    barometer_filtered_altitude_m: list[float] = field(default_factory=list)
+    barometer_filtered_vertical_velocity_mps: list[float] = field(default_factory=list)
     command_vx_mps: list[float] = field(default_factory=list)
     command_vz_mps: list[float] = field(default_factory=list)
     command_altitude_m: list[float] = field(default_factory=list)
@@ -44,7 +48,7 @@ class FlightLog:
     collision_position_m: tuple[float, float, float] | None = None
     collision_velocity_mps: tuple[float, float, float] | None = None
 
-    def append(self, now_s: float, position: tuple[float, float, float], velocity: tuple[float, float, float], command: GuidanceCommand, measured_pitch_rad: float = 0.0, pitch_torque: float = 0.0, observation: TtcObservation | None = None, physics_step: PhysicsStep | None = None) -> None:
+    def append(self, now_s: float, position: tuple[float, float, float], velocity: tuple[float, float, float], command: GuidanceCommand, measured_pitch_rad: float = 0.0, pitch_torque: float = 0.0, observation: TtcObservation | None = None, physics_step: PhysicsStep | None = None, barometer: BarometerReading | None = None) -> None:
         """Record state, guidance, and optional applied shared-force telemetry."""
         self.time_s.append(now_s)
         self.x_m.append(position[0])
@@ -52,6 +56,9 @@ class FlightLog:
         self.y_m.append(position[1])
         self.vx_mps.append(velocity[0])
         self.vz_mps.append(velocity[2])
+        self.barometer_raw_altitude_m.append(barometer.raw_altitude_m if barometer and barometer.raw_altitude_m is not None else float("nan"))
+        self.barometer_filtered_altitude_m.append(barometer.altitude_m if barometer else float("nan"))
+        self.barometer_filtered_vertical_velocity_mps.append(barometer.vertical_velocity_mps if barometer else float("nan"))
         trajectory = command.trajectory
         self.command_vx_mps.append(trajectory.forward_velocity_mps if trajectory else float("nan"))
         self.command_vz_mps.append(trajectory.vertical_velocity_mps if trajectory else float("nan"))
@@ -93,6 +100,7 @@ class TelemetryPlot:
     guidance_axis: object
     pitch_axis: object
     growth_axis: object
+    barometer_axis: object
     lines: tuple[object, ...]
     phase_axes: tuple[object, ...]
     phase_artists: list[object] = field(default_factory=list)
@@ -103,7 +111,7 @@ class TelemetryPlot:
 def make_plot(config: StrikeConfig, scene: SceneConfig) -> TelemetryPlot:
     import matplotlib.pyplot as plt
 
-    figure, (velocity_axis, path_axis, trajectory_axis, guidance_axis, growth_axis) = plt.subplots(5, 1, figsize=(10, 13))
+    figure, (velocity_axis, path_axis, trajectory_axis, guidance_axis, growth_axis, barometer_axis) = plt.subplots(6, 1, figsize=(10, 16))
     vx_line, = velocity_axis.plot([], [], label="vx measured", color="#2563eb")
     velocity_command_line, = velocity_axis.plot([], [], "--", label="vx target", color="#2563eb")
     vz_line, = velocity_axis.plot([], [], label="vz vertical", color="#dc2626")
@@ -141,6 +149,13 @@ def make_plot(config: StrikeConfig, scene: SceneConfig) -> TelemetryPlot:
     growth_axis.set(xlabel="time (s)", ylabel="growth (px/s)", title="Alpha-beta bbox growth filter")
     growth_axis.grid(alpha=0.25)
     growth_axis.legend()
+
+    raw_altitude_line, = barometer_axis.plot([], [], "--", color="#f97316", alpha=0.8, label="raw barometer altitude")
+    filtered_altitude_line, = barometer_axis.plot([], [], color="#2563eb", linewidth=2, label="filtered barometer altitude")
+    true_altitude_line, = barometer_axis.plot([], [], ":", color="#16a34a", label="true PyBullet altitude")
+    barometer_axis.set(xlabel="time (s)", ylabel="altitude (m)", title="BMP388 altitude EMA filter")
+    barometer_axis.grid(alpha=0.25)
+    barometer_axis.legend()
     figure.tight_layout()
     return TelemetryPlot(
         figure,
@@ -151,9 +166,10 @@ def make_plot(config: StrikeConfig, scene: SceneConfig) -> TelemetryPlot:
         guidance_axis,
         pitch_axis,
         growth_axis,
-        (vx_line, velocity_command_line, vz_line, path_line, tracking_path_line, command_vx_line, command_vz_line, command_altitude_line, thrust_line, pitch_line, measured_pitch_line, raw_growth_line, filtered_growth_line),
-        (velocity_axis, guidance_axis, growth_axis),
-        collision_axes=(velocity_axis, trajectory_axis, guidance_axis, growth_axis),
+        barometer_axis,
+        (vx_line, velocity_command_line, vz_line, path_line, tracking_path_line, command_vx_line, command_vz_line, command_altitude_line, thrust_line, pitch_line, measured_pitch_line, raw_growth_line, filtered_growth_line, raw_altitude_line, filtered_altitude_line, true_altitude_line),
+        (velocity_axis, guidance_axis, growth_axis, barometer_axis),
+        collision_axes=(velocity_axis, trajectory_axis, guidance_axis, growth_axis, barometer_axis),
     )
 
 
@@ -196,7 +212,7 @@ def _refresh_phase_backgrounds(plot: TelemetryPlot, log: FlightLog) -> None:
 
 
 def refresh_plot(plot: TelemetryPlot, log: FlightLog) -> None:
-    vx_line, velocity_command_line, vz_line, path_line, tracking_path_line, command_vx_line, command_vz_line, command_altitude_line, thrust_line, pitch_line, measured_pitch_line, raw_growth_line, filtered_growth_line = plot.lines
+    vx_line, velocity_command_line, vz_line, path_line, tracking_path_line, command_vx_line, command_vz_line, command_altitude_line, thrust_line, pitch_line, measured_pitch_line, raw_growth_line, filtered_growth_line, raw_altitude_line, filtered_altitude_line, true_altitude_line = plot.lines
     vx_line.set_data(log.time_s, log.vx_mps)
     velocity_command_line.set_data(log.time_s, log.command_vx_mps)
     vz_line.set_data(log.time_s, log.vz_mps)
@@ -217,8 +233,11 @@ def refresh_plot(plot: TelemetryPlot, log: FlightLog) -> None:
 
     raw_growth_line.set_data(log.time_s, tracking_values(log.raw_bbox_growth_px_s))
     filtered_growth_line.set_data(log.time_s, tracking_values(log.bbox_growth_px_s))
+    raw_altitude_line.set_data(log.time_s, log.barometer_raw_altitude_m)
+    filtered_altitude_line.set_data(log.time_s, log.barometer_filtered_altitude_m)
+    true_altitude_line.set_data(log.time_s, log.z_m)
     _refresh_phase_backgrounds(plot, log)
-    for axis in (plot.velocity_axis, plot.path_axis, plot.trajectory_axis, plot.trajectory_altitude_axis, plot.guidance_axis, plot.pitch_axis, plot.growth_axis):
+    for axis in (plot.velocity_axis, plot.path_axis, plot.trajectory_axis, plot.trajectory_altitude_axis, plot.guidance_axis, plot.pitch_axis, plot.growth_axis, plot.barometer_axis):
         axis.relim()
         axis.autoscale_view()
     plot.figure.canvas.draw_idle()
@@ -248,7 +267,7 @@ def save_plot(log: FlightLog, config: StrikeConfig, scene: SceneConfig, output: 
 def save_csv(log: FlightLog, output: Path) -> None:
     """Write measured state and every high-level command for offline tuning."""
     output.parent.mkdir(parents=True, exist_ok=True)
-    fields = ("time_s", "phase", "x_m", "y_m", "z_m", "vx_mps", "vz_mps", "command_vx_mps",
+    fields = ("time_s", "phase", "x_m", "y_m", "z_m", "vx_mps", "vz_mps", "barometer_raw_altitude_m", "barometer_filtered_altitude_m", "barometer_filtered_vertical_velocity_mps", "command_vx_mps",
               "command_vz_mps", "command_altitude_m", "command_thrust_n", "command_pitch_deg",
               "measured_pitch_deg", "pitch_error_deg", "pitch_torque", "ttc_s", "raw_ttc_s", "bbox_scale_px", "bbox_growth_px_s", "raw_bbox_growth_px_s",
               "body_drag_x_n", "body_drag_z_n", "angular_damping_pitch_torque_nm", "gyroscopic_pitch_torque_nm", "ground_effect_max_multiplier")

@@ -32,8 +32,6 @@ simulation:
       enabled: false                      # Optional rotor angular-momentum torque.
       rotor_inertia_kg_m2: 0.000005       # One rotor's polar inertia [kg·m²].
   sensor_model:
-    barometer_noise_sigma_m: 0.0         # Synthetic altitude noise [m].
-    barometer_bias_m: 0.0                # Synthetic altitude bias [m].
     random_seed: 7                       # Reproducible sensor noise seed.
   display:
     environment_size_px: [960, 540]      # Wide environment render size.
@@ -68,8 +66,14 @@ runtime:
     alpha: 0.85                          # Trust in the latest bbox-scale measurement [0..1].
     beta: 0.05                           # Trust in bbox-scale-rate correction [0..1].
     min_growth_px_per_s: 0.01            # Minimum approach growth [px/s].
-  sensor_filters:
-    barometer_velocity_old_weight: 0.7   # Previous vertical-speed weight.
+  sensors:
+    barometer:
+      sample_hz: 40.0                     # BMP388 altitude update rate [Hz], separate from the camera.
+      altitude_noise_sigma_m: 0.10        # Full-bandwidth BMP388 altitude RMS noise [m].
+      altitude_bias_m: 0.0                # Fixed calibration/reference offset [m].
+      drift_sigma_m_per_sqrt_s: 0.0       # Optional slow random-walk field drift [m/sqrt(s)].
+      altitude_old_weight: 0.80           # Previous filtered altitude weight [0..1].
+      velocity_old_weight: 0.95           # Smooth noisy differentiated altitude into vertical speed [0..1].
   pid:
     altitude:
       gains: [0.7, 0.05, 1.1]            # [kp, ki, kd].

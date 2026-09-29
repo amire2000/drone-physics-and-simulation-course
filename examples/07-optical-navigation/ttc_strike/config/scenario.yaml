@@ -39,3 +39,11 @@ runtime:
     commit_box_height_fraction: 0.1  # Bbox height fraction that arms commit.
     alpha: 0.85                       # Trust in each measured bbox scale.
     beta: 0.05                        # Trust in the bbox-scale-rate correction.
+  sensors:
+    barometer:
+      sample_hz: 40.0                 # BMP388 barometer rate, independent of the camera.
+      altitude_noise_sigma_m: 0.10    # BMP388 full-bandwidth altitude RMS noise [m].
+      altitude_bias_m: 0.0            # Fixed takeoff-reference offset [m].
+      drift_sigma_m_per_sqrt_s: 0.0   # Disabled slow field-drift random walk [m/sqrt(s)].
+      altitude_old_weight: 0.80       # Smooth raw altitude before control [0..1].
+      velocity_old_weight: 0.95       # Smooth noisy differentiated altitude into vertical speed [0..1].

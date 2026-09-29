@@ -177,7 +177,7 @@ class StrikeSimulation:
                 if stop_at_s is None:
                     # Record the collision sample, then freeze telemetry while
                     # passive post-impact physics continues for the video.
-                    log.append(now_s, position, velocity, command, pitch_rad, pitch_torque, observation, flight_step)
+                    log.append(now_s, position, velocity, command, pitch_rad, pitch_torque, observation, flight_step, baro)
 
                 if stop_at_s is None and p.getContactPoints(drone, cube):
                     impact_speed = sqrt(sum(component**2 for component in incoming_velocity))

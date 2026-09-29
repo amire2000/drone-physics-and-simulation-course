@@ -54,12 +54,29 @@ runtime:
   mission:
   flight_limits:
   ttc:
-  sensor_filters:
+  sensors:
   pid:
   vertical_control:
 ```
 
 `simulation` describes the reproducible test bench (scene, camera, GUI, and recording). `runtime` contains parameters to calibrate on the physical vehicle (camera mounting, mission targets, TTC policy, filters, and controllers). Any omitted value uses the default in the dataclasses in `ttc_strike/config.py`.
+
+`runtime.sensors.barometer` models a BMP388 altitude sensor independently of
+the camera. `altitude_noise_sigma_m: 0.10` is the BMP388 full-bandwidth
+datasheet noise converted from 1.2 Pa to altitude. Use `altitude_bias_m` for
+the takeoff-reference error and enable `drift_sigma_m_per_sqrt_s` only when
+you want a seeded slow field-drift experiment. The default drift is zero.
+The default `velocity_old_weight: 0.95` smooths differentiated 40 Hz altitude
+noise before the vertical controller uses it.
+
+`altitude_old_weight: 0.80` smooths raw barometer altitude before the guidance
+controller uses it. Every new run logs raw altitude, filtered altitude, and
+filtered vertical speed. To graph an existing run without rerunning PyBullet:
+
+```bash
+uv run python examples/07-optical-navigation/plot_barometer_csv.py \
+  /tmp/ttc-barometer-check/bmp388-40hz-graph
+```
 
 `simulation.vehicle_model.profile` selects the physical drone. `default` keeps
 the course quadcopter; `seven_inch_trainer` selects the generic 1.5 kg,

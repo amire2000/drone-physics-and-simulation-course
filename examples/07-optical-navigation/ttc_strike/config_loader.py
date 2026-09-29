@@ -44,6 +44,27 @@ def _unit_interval(value: object, name: str) -> float:
     return float(value)
 
 
+def _positive(value: object, name: str) -> float:
+    """Return one positive finite physical rate."""
+    if isinstance(value, bool) or not isinstance(value, Real) or not isfinite(float(value)) or float(value) <= 0.0:
+        raise ValueError(f"{name} must be a positive finite number")
+    return float(value)
+
+
+def _non_negative(value: object, name: str) -> float:
+    """Return one non-negative finite physical magnitude."""
+    if isinstance(value, bool) or not isinstance(value, Real) or not isfinite(float(value)) or float(value) < 0.0:
+        raise ValueError(f"{name} must be a non-negative finite number")
+    return float(value)
+
+
+def _finite(value: object, name: str) -> float:
+    """Return one finite signed physical value."""
+    if isinstance(value, bool) or not isinstance(value, Real) or not isfinite(float(value)):
+        raise ValueError(f"{name} must be a finite number")
+    return float(value)
+
+
 def _merge(instance, values: dict, names: tuple[str, ...], section_name: str):
     unknown = set(values) - set(names)
     if unknown:
@@ -76,7 +97,8 @@ def load_yaml_config(path: Path) -> StrikeConfig:
     takeoff = _mapping(runtime_data.get("takeoff"), "runtime.takeoff")
     limits = _mapping(runtime_data.get("flight_limits"), "runtime.flight_limits")
     ttc = _mapping(runtime_data.get("ttc"), "runtime.ttc")
-    filters = _mapping(runtime_data.get("sensor_filters"), "runtime.sensor_filters")
+    sensors = _mapping(runtime_data.get("sensors"), "runtime.sensors")
+    barometer = _mapping(sensors.get("barometer"), "runtime.sensors.barometer")
     pid = _mapping(runtime_data.get("pid"), "runtime.pid")
     vertical = _mapping(runtime_data.get("vertical_control"), "runtime.vertical_control")
     forces = _mapping(simulation_data.get("physical_forces"), "simulation.physical_forces")
@@ -106,7 +128,7 @@ def load_yaml_config(path: Path) -> StrikeConfig:
             raise ValueError("simulation.vehicle_model.profile must be a non-empty profile name")
         simulation = replace(simulation, drone_profile=vehicle["profile"])
     simulation = _merge(simulation, {name: value for name, value in vehicle.items() if name != "profile"}, ("gravity_mps2",), "simulation.vehicle_model")
-    simulation = _merge(simulation, sensor_model, ("barometer_noise_sigma_m", "barometer_bias_m", "random_seed"), "simulation.sensor_model")
+    simulation = _merge(simulation, sensor_model, ("random_seed",), "simulation.sensor_model")
     simulation = _merge(simulation, recording, ("post_impact_seconds",), "simulation.recording")
 
     if "enabled" in body_drag:
@@ -154,7 +176,21 @@ def load_yaml_config(path: Path) -> StrikeConfig:
     if "beta" in ttc:
         runtime = replace(runtime, ttc_beta=_unit_interval(ttc["beta"], "runtime.ttc.beta"))
     runtime = _merge(runtime, {name: value for name, value in ttc.items() if name not in {"alpha", "beta"}}, ("min_ttc_s", "commit_box_height_fraction", "min_growth_px_per_s"), "runtime.ttc")
-    runtime = _merge(runtime, filters, ("barometer_velocity_old_weight",), "runtime.sensor_filters")
+    if "sample_hz" in barometer:
+        runtime = replace(runtime, barometer_sample_hz=_positive(barometer["sample_hz"], "runtime.sensors.barometer.sample_hz"))
+    if "altitude_noise_sigma_m" in barometer:
+        runtime = replace(runtime, barometer_noise_sigma_m=_non_negative(barometer["altitude_noise_sigma_m"], "runtime.sensors.barometer.altitude_noise_sigma_m"))
+    if "altitude_bias_m" in barometer:
+        runtime = replace(runtime, barometer_bias_m=_finite(barometer["altitude_bias_m"], "runtime.sensors.barometer.altitude_bias_m"))
+    if "drift_sigma_m_per_sqrt_s" in barometer:
+        runtime = replace(runtime, barometer_drift_sigma_m_per_sqrt_s=_non_negative(barometer["drift_sigma_m_per_sqrt_s"], "runtime.sensors.barometer.drift_sigma_m_per_sqrt_s"))
+    if "altitude_old_weight" in barometer:
+        runtime = replace(runtime, barometer_altitude_old_weight=_unit_interval(barometer["altitude_old_weight"], "runtime.sensors.barometer.altitude_old_weight"))
+    if "velocity_old_weight" in barometer:
+        runtime = replace(runtime, barometer_velocity_old_weight=_unit_interval(barometer["velocity_old_weight"], "runtime.sensors.barometer.velocity_old_weight"))
+    unknown = set(barometer) - {"sample_hz", "altitude_noise_sigma_m", "altitude_bias_m", "drift_sigma_m_per_sqrt_s", "altitude_old_weight", "velocity_old_weight"}
+    if unknown:
+        raise ValueError(f"unknown runtime.sensors.barometer setting(s): {', '.join(sorted(unknown))}")
     runtime = _merge(runtime, vertical, ("vertical_position_correction",), "runtime.vertical_control")
 
     for name, field_name in (("altitude", "altitude_pid_gains"), ("forward_speed", "forward_speed_pid_gains"), ("pitch_attitude", "pitch_attitude_pid_gains"), ("vertical_velocity", "vertical_velocity_pid_gains")):

@@ -15,8 +15,6 @@ class SimulationConfig:
     target_size_m: float = 2.0
     drone_profile: str = "default"
     gravity_mps2: float = 9.81
-    barometer_noise_sigma_m: float = 0.0
-    barometer_bias_m: float = 0.0
     random_seed: int = 7
     post_impact_seconds: float = 3.0
     environment_size_px: tuple[int, int] = (960, 540)
@@ -93,7 +91,12 @@ class RuntimeConfig:
     ttc_alpha: float = 0.85
     ttc_beta: float = 0.05
     min_growth_px_per_s: float = 0.01
-    barometer_velocity_old_weight: float = 0.0
+    barometer_sample_hz: float = 40.0
+    barometer_noise_sigma_m: float = 0.10
+    barometer_bias_m: float = 0.0
+    barometer_drift_sigma_m_per_sqrt_s: float = 0.0
+    barometer_altitude_old_weight: float = 0.80
+    barometer_velocity_old_weight: float = 0.95
     altitude_pid_gains: tuple[float, float, float] = (1.8, 0.05, 2.2)
     altitude_integral_limit: float = 0.5
     forward_speed_pid_gains: tuple[float, float, float] = (0.03, 0.0, 0.002)

@@ -229,7 +229,12 @@ against a real vehicle.
 | --- | --- | --- |
 | `takeoff_altitude_m` | `15.0` | Height at which tracking starts. |
 | `takeoff_max_climb_velocity_mps` | `7.2` | Measured guard that limits physical climb speed to about 8 m/s. |
-| `barometer_velocity_old_weight` | `0.0` | Vertical-speed filter memory; zero is the ideal-simulator default. |
+| `barometer.sample_hz` | `40.0` | BMP388 altitude update rate, independent of the camera. |
+| `barometer.altitude_noise_sigma_m` | `0.10` | Full-bandwidth BMP388 RMS altitude noise. |
+| `barometer.altitude_bias_m` | `0.0` | Constant takeoff-reference/calibration offset. |
+| `barometer.drift_sigma_m_per_sqrt_s` | `0.0` | Optional seeded slow random-walk drift; zero disables it. |
+| `barometer.altitude_old_weight` | `0.80` | Raw-altitude EMA memory before altitude control and velocity inference. |
+| `barometer.velocity_old_weight` | `0.95` | Vertical-speed filter memory that suppresses noisy altitude differentiation. |
 | `impact_altitude_m` | `1.0` | Desired altitude at contact. |
 | `forward_speed_mps` | `13.0` | Nominal body-forward command. |
 | `nominal_pitch_deg` | `20.0` | Initial forward pitch while altitude is held. |
@@ -257,10 +262,31 @@ launch and braking. When measured climb speed reaches
 tracking still waits for the normal altitude and vertical-speed settled
 conditions.
 
-The remaining fields tune mass/gravity, barometer noise, PID gains, window
+The barometer's `0.10 m` sample noise comes from the BMP388 full-bandwidth
+`1.2 Pa` datasheet figure. Its larger accuracy specifications describe
+calibration and temperature effects, so they are represented by a fixed bias
+or optional slow drift rather than fresh noise every sample. The default
+`velocity_old_weight: 0.95` is necessary because differentiated 40 Hz altitude
+noise would otherwise look like several metres per second of vertical motion.
+Prop wash is not
+yet modeled. The remaining fields tune mass/gravity, PID gains, window
 placement, video resolution, and output paths. Contact is the headless success
 condition; impact speed is reported for analysis rather than used as a hidden
 pass/fail gate.
+
+The final telemetry subplot appears after the alpha-beta bbox-growth graph. It
+compares raw BMP388 altitude, EMA-filtered altitude used by guidance, and the
+true PyBullet altitude. Existing runs can be analysed without rerunning
+PyBullet:
+
+```bash
+uv run python examples/07-optical-navigation/plot_barometer_csv.py \
+  outputs/ttc_runs/your-run
+```
+
+The command reads the run's `telemetry.csv` and `settings.json`, recreates the
+seeded sensor stream, and writes `telemetry_barometer.png` beside them. This
+offline plot is analysis-only for historical runs.
 
 Every run creates a unique folder under `outputs/ttc_runs/` containing
 `settings.json`, `telemetry.csv`, and `telemetry.png` (plus `environment.mp4`

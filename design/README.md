@@ -35,3 +35,4 @@ content belongs in `docs/`; runnable work belongs in `examples/`.
 | Updated | Document | Description | Status |
 | --- | --- | --- | --- |
 | 2026-09-29 | [Propeller thrust-data sources](research/propeller-thrust-data-sources.md) | Trusted bench-data sources and the selected Module 3 teaching dataset. | Adopted |
+| 2026-09-29 | [BMP388 barometer sensor model](research/bmp388-barometer-sensor-model.md) | Datasheet-grounded runtime altitude-noise model for the TTC example. | Implemented |
