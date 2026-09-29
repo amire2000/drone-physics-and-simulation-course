@@ -22,7 +22,9 @@ def self_check() -> None:
     config = StrikeConfig()
     seven_inch = SimulationConfig(drone_profile="seven_inch_trainer")
     assert config.simulation.drone_model.mass_kg == 0.65
+    assert config.simulation.drone_model.rotor_positions_m[0] == (0.12, 0.12, 0.02)
     assert seven_inch.drone_model.mass_kg == 1.5
+    assert seven_inch.drone_model.rotor_positions_m[0] == (0.12, 0.12, 0.025)
     assert seven_inch.drone_model.max_thrust_per_motor_n == 12.0
     assert seven_inch.physics_settings.propeller_diameter_m == 0.1778
     tracker = BboxTtcTracker(config)

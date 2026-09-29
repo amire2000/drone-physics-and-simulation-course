@@ -2,7 +2,6 @@
 name: seven_inch_trainer
 urdf: seven_inch_trainer.urdf
 actuators:
-  arm_offset_m: 0.12
   max_rpm: 20000.0
   max_thrust_per_motor_n: 12.0
   motor_time_constant_s: 0.07

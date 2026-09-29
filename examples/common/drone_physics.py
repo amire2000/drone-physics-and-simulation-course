@@ -2,6 +2,7 @@
 
 from math import pi, sqrt
 
+import numpy as np
 import pybullet as p
 
 from .drone_model import DEFAULT_DRONE_MODEL, DEFAULT_PHYSICS_SETTINGS, DroneModel, PhysicsSettings, PhysicsStep
@@ -40,6 +41,15 @@ class PhysicsEngine:
         self.model = model
         self.settings = settings
         self._motor_rpms = (0.0, 0.0, 0.0, 0.0)
+        yaw_torque_per_newton = model.torque_coefficient / model.thrust_coefficient
+        allocation = np.array(
+            [
+                [y for _, y, _ in model.rotor_positions_m],
+                [-x for x, _, _ in model.rotor_positions_m],
+                [yaw_sign * yaw_torque_per_newton for yaw_sign in model.motor_yaw_signs],
+            ]
+        )
+        self._torque_allocation_pseudoinverse = np.linalg.pinv(allocation)
 
     def reset(self, initial_rpms: tuple[float, float, float, float] | None = None) -> None:
         """Reset motor state, optionally priming all rotor RPM values for a test."""
@@ -84,13 +94,7 @@ class PhysicsEngine:
         """Mix collective and body torque while scaling corrections at motor limits."""
         roll_torque, pitch_torque, yaw_torque = torque_nm
         collective = clamp(collective_thrust_n, 0.0, self.model.max_thrust_per_motor_n)
-        arm = self.model.arm_offset_m
-        deltas = tuple(
-            y * roll_torque / (4 * arm**2)
-            - x * pitch_torque / (4 * arm**2)
-            + yaw_sign * yaw_torque / (4 * self.model.torque_coefficient / self.model.thrust_coefficient)
-            for (x, y), yaw_sign in zip(self.model.motor_positions_m, self.model.motor_yaw_signs)
-        )
+        deltas = tuple(float(value) for value in self._torque_allocation_pseudoinverse @ np.array((roll_torque, pitch_torque, yaw_torque)))
         scale = 1.0
         for delta in deltas:
             if delta > 0:

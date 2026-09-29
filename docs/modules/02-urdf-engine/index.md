@@ -32,6 +32,8 @@ heading around the vertical Z axis. Roll and pitch arrive later with control.
   `inertial`, `visual`, and `collision` blocks with an isolated editable drone.
 - [Real racing-quad case study](real-drone/index.md) — inspect a runnable,
   course-focused adaptation of a Racer drone URDF.
+- [Define a complete quadcopter](drone-definition/index.md) — assign every
+  vehicle, world, and controller property to the correct configuration source.
 
 ---
 

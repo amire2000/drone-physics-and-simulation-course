@@ -42,7 +42,7 @@ class SimulationConfig:
 
     @property
     def drone_model(self) -> DroneModel:
-        """Return the selected shared drone model with URDF-derived mass."""
+        """Return the selected shared drone model with URDF-derived geometry."""
         return load_drone_profile(self.drone_profile).model
 
     @property

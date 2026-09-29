@@ -14,7 +14,7 @@ This runnable `racing_quad.urdf` is a small adaptation of the public
 [Racer URDF from gym-pybullet-drones](https://github.com/learnsyslab/gym-pybullet-drones/blob/main/gym_pybullet_drones/assets/racer.urdf).
 It keeps the reference model's `0.83 kg` base mass, diagonal inertia, cylinder
 collision shape, and four rotor locations. It replaces the external mesh and
-the simulator-specific `&lt;properties&gt;` block with simple course geometry.
+the simulator-specific `<properties>` block with simple course geometry.
 
 ```mermaid
 flowchart LR
@@ -85,4 +85,4 @@ positions. Those positions are where Module 3 and Module 6 can apply thrust.
 
 ---
 
-Back to the [Module 2 overview](../index.md). Previous: [URDF anatomy](../urdf-anatomy/index.md). Next: [Module 3: Propeller aerodynamics](../../03-propeller-aerodynamics/index.md).
+Back to the [Module 2 overview](../index.md). Previous: [URDF anatomy](../urdf-anatomy/index.md). Next: [define a complete quadcopter](../drone-definition/index.md).

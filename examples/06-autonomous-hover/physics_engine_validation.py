@@ -1,7 +1,7 @@
 """Validate gravity, thrust, torque, and wind with the Module 6 physics engine."""
 
 import argparse
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 import sys
 
@@ -123,6 +123,19 @@ def angular_damping_validation() -> ValidationResult:
     return ValidationResult("angular damping", torque, "N m", "negative against roll rate")
 
 
+def mixer_geometry_validation() -> ValidationResult:
+    """Verify longer URDF rotor lever arms need smaller thrust differences for roll torque."""
+    baseline_engine = PhysicsEngine()
+    wider_model = replace(MODEL, rotor_positions_m=tuple((2.0 * x, 2.0 * y, z) for x, y, z in MODEL.rotor_positions_m))
+    wider_engine = PhysicsEngine(wider_model)
+    baseline = baseline_engine._mix_motor_thrusts(3.0, (0.02, 0.0, 0.0))
+    wider = wider_engine._mix_motor_thrusts(3.0, (0.02, 0.0, 0.0))
+    baseline_span = max(baseline) - min(baseline)
+    wider_span = max(wider) - min(wider)
+    assert wider_span < baseline_span
+    return ValidationResult("URDF mixer geometry", wider_span / baseline_span, "ratio", "longer arms need less thrust difference")
+
+
 def optional_forces_validation() -> ValidationResult:
     """Verify optional rotor, ground, and gyro effects are configurable and bounded."""
     settings = PhysicsSettings(
@@ -154,6 +167,7 @@ def run_validation(selected: str) -> list[ValidationResult]:
         "wind": wind_validation,
         "body-drag": body_drag_validation,
         "angular-damping": angular_damping_validation,
+        "mixer-geometry": mixer_geometry_validation,
         "optional-forces": optional_forces_validation,
     }
     if selected == "all":
@@ -183,14 +197,14 @@ def print_results(results: list[ValidationResult], selected: str) -> None:
     for result in results:
         print(f"{result.name:>22}: {result.measurement:.3f} {result.unit} ({result.expectation})")
     if selected == "all":
-        print(f"{len(results)}/10 checks passed")
+        print(f"{len(results)}/11 checks passed")
     print("========================================")
 
 
 def main() -> None:
     """Run selected validations, print measurements, and optionally save their plot."""
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--scenario", choices=("all", "gravity", "hover", "vertical", "roll", "pitch", "yaw", "wind", "body-drag", "angular-damping", "optional-forces"), default="all")
+    parser.add_argument("--scenario", choices=("all", "gravity", "hover", "vertical", "roll", "pitch", "yaw", "wind", "body-drag", "angular-damping", "mixer-geometry", "optional-forces"), default="all")
     parser.add_argument("--headless", action="store_true", help="Use PyBullet DIRECT mode")
     parser.add_argument("--plot", type=Path, default=Path("outputs/physics_engine_validation.png"))
     parser.add_argument("--no-plot", action="store_true", help="Do not save the result plot")

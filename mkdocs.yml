@@ -39,6 +39,7 @@ nav:
       - Overview: modules/02-urdf-engine/index.md
       - URDF anatomy: modules/02-urdf-engine/urdf-anatomy/index.md
       - Real racing-quad case study: modules/02-urdf-engine/real-drone/index.md
+      - Define a complete quadcopter: modules/02-urdf-engine/drone-definition/index.md
   - "Module 3: Propeller aerodynamics":
       - Overview: modules/03-propeller-aerodynamics/index.md
       - Motor KV: modules/03-propeller-aerodynamics/motor-kv/index.md

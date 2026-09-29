@@ -83,16 +83,17 @@ simulation:
 | TTC scenario YAML | Scene, wind, enabled force models, sensor noise, display, recording | Frame dimensions or motor constants |
 | `runtime` YAML | Camera installation, mission targets, TTC policy, limits, PID gains | Vehicle hardware data |
 
-The loader reads the base-link mass from the selected URDF. That same mass is
-used by PyBullet and for `hover_thrust_n`, so a profile cannot accidentally
-use a different mass for physics and control.
+The loader reads base-link mass, center of mass, inertia, and rotor locations
+from the selected URDF. The same mass is used by PyBullet and for
+`hover_thrust_n`, while the same rotor locations are used by PyBullet force
+links and the mixer, so geometry cannot drift between physics and control.
 
 ```mermaid
 flowchart LR
     scenario[scenario YAML\nvehicle_model.profile] --> profile[drone profile YAML\nactuators and aerodynamics]
     profile --> urdf[URDF\nmass, inertia, geometry]
-    profile --> model[DroneModel\nmotors and rotor positions]
-    urdf --> model
+    profile --> model[DroneModel\nmotor constants]
+    urdf --> model[DroneModel\nmass, inertia, rotor geometry]
     profile --> settings[PhysicsSettings\nvehicle aero defaults]
     model --> engine[PhysicsEngine]
     settings --> engine
@@ -101,7 +102,7 @@ flowchart LR
 | Profile setting | `default` | `seven_inch_trainer` | Effect |
 | --- | ---: | ---: | --- |
 | URDF mass | 0.65 kg | 1.50 kg | Sets weight and hover thrust. |
-| Arm offset | 0.120 m | 0.120 m | Converts unequal motor lift into roll/pitch torque. |
+| Rotor joint locations | ±0.120 m | ±0.120 m | URDF lever arms convert unequal motor lift into roll/pitch torque. |
 | Maximum RPM | 24,000 | 20,000 | Caps each motor's target rotational speed. |
 | Maximum thrust per motor | 6.3765 N | 12.0 N | Sets PWM-to-thrust range and climb authority. |
 | Motor time constant | 0.05 s | 0.07 s | Controls motor response delay. |

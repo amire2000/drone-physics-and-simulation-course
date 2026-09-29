@@ -2,7 +2,6 @@
 name: default
 urdf: full_drone.urdf
 actuators:
-  arm_offset_m: 0.12
   max_rpm: 24000.0
   max_thrust_per_motor_n: 6.3765
   motor_time_constant_s: 0.05
