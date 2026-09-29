@@ -2,11 +2,20 @@
 name: seven_inch_trainer
 urdf: seven_inch_trainer.urdf
 actuators:
-  max_rpm: 20000.0
+  motor_kv_rpm_per_v: 900.9009009
   max_thrust_per_motor_n: 12.0
   motor_time_constant_s: 0.07
   rotor_drag_coefficient: 0.000003
   motor_yaw_signs: [1, -1, -1, 1]
+battery:
+  cell_count: 6
+  cell_voltage_full_v: 4.2
+  cell_voltage_nominal_v: 3.7
+  cell_voltage_empty_v: 3.3
+  capacity_ah: 1.8
+  internal_resistance_ohm: 0.015
+  max_discharge_current_a: 180.0
+  full_throttle_current_per_motor_a: 45.0
 aerodynamics:
   propeller_diameter_m: 0.1778
   body_drag_cd_area_m2: [0.020, 0.020, 0.030]

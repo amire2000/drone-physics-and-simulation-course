@@ -55,6 +55,69 @@ combination. Never choose a propeller from KV alone.
 
 ---
 
+## KV inside this simulation
+
+The shared flight engine now uses KV as the link between a battery and motor
+speed. It does not treat KV as a direct thrust number.
+
+```mermaid
+flowchart LR
+    pwm[PWM and motor mixer] --> fraction[Motor command fraction]
+    fraction --> current[Calibrated current demand]
+    battery[Battery cells, charge, resistance] --> voltage[Bus voltage]
+    current --> voltage
+    voltage --> rpm[KV times bus voltage]
+    rpm --> lag[Motor response lag]
+    lag --> thrust[Thrust equals kT times RPM squared]
+```
+
+For one motor command fraction (u), the engine uses:
+
+$$\mathrm{RPM}_{target}=uK_VV_{bus}.$$
+
+The same calibrated propeller curve then gives:
+
+$$T_{rotor}=k_T\mathrm{RPM}_{actual}^2.$$
+
+At 90% of the reference bus voltage, the available RPM is about 90%, and the
+same-propeller thrust is about (0.9^2=81\%\). Motor lag remains active, so
+the actual RPM changes smoothly rather than jumping instantly.
+
+### Battery profile data
+
+KV and the pack belong together in `examples/common/drone_profiles/<name>.yaml`:
+
+```yaml
+actuators:
+  motor_kv_rpm_per_v: 1621.6216216
+  max_thrust_per_motor_n: 6.3765
+  motor_time_constant_s: 0.05
+
+battery:
+  cell_count: 4
+  cell_voltage_full_v: 4.2
+  cell_voltage_nominal_v: 3.7
+  cell_voltage_empty_v: 3.3
+  capacity_ah: 1.5
+  internal_resistance_ohm: 0.025
+  max_discharge_current_a: 120.0
+  full_throttle_current_per_motor_a: 30.0
+```
+
+| Setting | Effect on flight |
+| --- | --- |
+| `cell_count` and `cell_voltage_*_v` | Set full, nominal, and depleted pack voltage. |
+| `motor_kv_rpm_per_v` | Converts bus voltage into no-load RPM ceiling. |
+| `capacity_ah` | Decides how quickly state of charge falls. |
+| `internal_resistance_ohm` | Causes an immediate voltage drop when current rises. |
+| `max_discharge_current_a` | Limits the calibrated current demand from all four motors. |
+| `full_throttle_current_per_motor_a` | Calibrates current demand for this motor and propeller pair. |
+
+Battery mass still belongs in the URDF inertial block because it changes the
+drone's weight and inertia. The profile describes only electrical behavior.
+
+---
+
 ## Hands-on: compare KV and voltage
 
 ```bash
@@ -72,6 +135,17 @@ and thrust during a flight.
 
 See [Configuration takeoff comparison](../configuration-comparison/index.md)
 to watch the same 1750 KV motor take off on 4S and 6S with the same PWM.
+
+Try the voltage-sag experiment:
+
+```bash
+uv run python examples/03-propeller-aerodynamics/kv_battery_sag.py
+uv run python examples/03-propeller-aerodynamics/kv_battery_sag.py --profile seven_inch_trainer --throttle 0.8
+```
+
+It writes `outputs/kv_battery_sag.png`. Compare the fresh pack with a low
+state of charge and twice the internal resistance. The lower voltage curve
+causes lower RPM and lower thrust even though the PWM command stays constant.
 
 ---
 
@@ -110,6 +184,10 @@ and propeller combination.
 </form>
 <form class="quiz" data-answer="c" data-explanation="Propeller load, motor size, battery voltage, ESC limits, and airflow all affect real RPM and thrust.">
   <fieldset><legend>3. Why is KV alone not enough to predict thrust?</legend><label><input type="radio" name="prop-kv-q3" value="a"> KV makes gravity disappear</label><br><label><input type="radio" name="prop-kv-q3" value="b"> All propellers always make equal thrust</label><br><label><input type="radio" name="prop-kv-q3" value="c"> The battery, motor, ESC, and propeller also matter</label></fieldset><button type="button" class="quiz-check">Check answer</button><p class="quiz-result" aria-live="polite"></p>
+</form>
+
+<form class="quiz" data-answer="a" data-explanation="KV converts bus voltage to RPM. At 90% voltage, RPM is about 90% and the same-propeller thrust is about 81% because thrust follows RPM squared.">
+  <fieldset><legend>4. With the same PWM and propeller, what happens near 90% bus voltage?</legend><label><input type="radio" name="prop-kv-q4" value="a"> RPM is about 90% and thrust about 81%</label><br><label><input type="radio" name="prop-kv-q4" value="b"> Thrust stays exactly unchanged</label><br><label><input type="radio" name="prop-kv-q4" value="c"> KV becomes a battery capacity</label></fieldset><button type="button" class="quiz-check">Check answer</button><p class="quiz-result" aria-live="polite"></p>
 </form>
 
 ---

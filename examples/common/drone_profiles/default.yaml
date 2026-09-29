@@ -2,11 +2,20 @@
 name: default
 urdf: full_drone.urdf
 actuators:
-  max_rpm: 24000.0
+  motor_kv_rpm_per_v: 1621.6216216
   max_thrust_per_motor_n: 6.3765
   motor_time_constant_s: 0.05
   rotor_drag_coefficient: 0.000002
   motor_yaw_signs: [1, -1, -1, 1]
+battery:
+  cell_count: 4
+  cell_voltage_full_v: 4.2
+  cell_voltage_nominal_v: 3.7
+  cell_voltage_empty_v: 3.3
+  capacity_ah: 1.5
+  internal_resistance_ohm: 0.025
+  max_discharge_current_a: 120.0
+  full_throttle_current_per_motor_a: 30.0
 aerodynamics:
   propeller_diameter_m: 0.14
   body_drag_cd_area_m2: [0.012, 0.012, 0.020]

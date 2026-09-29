@@ -13,6 +13,20 @@
 2. Use Ohm's law to calculate voltage sag under current draw.
 3. Scale maximum thrust with available voltage.
 
+The shared `BatteryModel` uses a calibrated full-throttle current for each
+motor/propeller pair. It estimates pack current from motor-command fractions,
+reduces charge by capacity, and applies Ohm's-law sag:
+
+$$V_{bus}=V_{oc}-IR_{pack}.$$
+
+The motor model then converts bus voltage through KV before calculating thrust:
+
+$$\mathrm{RPM}_{target}=uK_VV_{bus},\qquad T=k_T\mathrm{RPM}^2.$$
+
+This is a useful teaching model, not a full ESC and winding-resistance model.
+Motor resistance, no-load current, temperature, and ESC switching losses are
+future refinements.
+
 ---
 
 ## Numerical integration and timestep

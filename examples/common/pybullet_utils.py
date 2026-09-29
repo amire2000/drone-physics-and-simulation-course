@@ -59,6 +59,8 @@ def state_text(step: PhysicsStep, stabilized: bool) -> str:
     state = step.state
     return (
         f"PWM command: {step.collective_pwm_us:.0f} us\n"
+        f"Battery: {step.bus_voltage_v:.2f} V, {step.battery_state_of_charge * 100:.0f}% SOC, {step.delivered_current_a:.1f} A{' (limited)' if step.current_limited else ''}\n"
+        f"KV RPM ceiling: {step.available_rpm_per_motor:.0f}\n"
         f"Rotor RPM: {', '.join(f'{value:.0f}' for value in step.motor_rpms)}\n"
         f"Motor thrusts: {', '.join(f'{value:.2f}' for value in step.motor_thrusts_n)} N\n"
         f"Total thrust: {step.total_thrust_n:.2f} N\n"

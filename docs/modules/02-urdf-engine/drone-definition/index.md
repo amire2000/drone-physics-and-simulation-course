@@ -43,6 +43,7 @@ it hides XML parsing and produces one resolved model for every caller.
 | Body/arm geometry and collision shape | URDF `<visual>` and `<collision>` blocks | They describe where the physical body exists. |
 | Rotor location and orientation | URDF fixed `rotor_0` through `rotor_3` joints | Motor force must be applied at the actual lever arm. |
 | Motor maximum RPM/thrust and response lag | Vehicle profile YAML | These are actuator measurements, not standard URDF data. |
+| Battery cells, voltage, capacity, and resistance | Vehicle profile YAML | They define electrical power available to the motor/propeller pair. |
 | Propeller diameter/inertia, drag area, damping | Vehicle profile YAML | These are aerodynamic model parameters. |
 | Motor CW/CCW direction | Vehicle profile YAML | It defines reaction-yaw torque sign in the mixer. |
 | Gravity, wind, air density, enabled force models | Scenario YAML | They describe this simulated world, not the vehicle. |

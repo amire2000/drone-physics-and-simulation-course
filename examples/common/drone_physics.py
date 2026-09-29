@@ -5,6 +5,7 @@ from math import pi, sqrt
 import numpy as np
 import pybullet as p
 
+from .battery import BatteryModel
 from .drone_model import DEFAULT_DRONE_MODEL, DEFAULT_PHYSICS_SETTINGS, DroneModel, PhysicsSettings, PhysicsStep
 from .pybullet_sensors import read_state, world_to_body_vector
 
@@ -41,6 +42,7 @@ class PhysicsEngine:
         self.model = model
         self.settings = settings
         self._motor_rpms = (0.0, 0.0, 0.0, 0.0)
+        self._battery = BatteryModel(model.battery)
         yaw_torque_per_newton = model.torque_coefficient / model.thrust_coefficient
         allocation = np.array(
             [
@@ -51,9 +53,10 @@ class PhysicsEngine:
         )
         self._torque_allocation_pseudoinverse = np.linalg.pinv(allocation)
 
-    def reset(self, initial_rpms: tuple[float, float, float, float] | None = None) -> None:
-        """Reset motor state, optionally priming all rotor RPM values for a test."""
+    def reset(self, initial_rpms: tuple[float, float, float, float] | None = None, state_of_charge: float = 1.0) -> None:
+        """Reset motor RPM and battery charge, optionally priming RPM values for a test."""
         self._motor_rpms = initial_rpms or (0.0, 0.0, 0.0, 0.0)
+        self._battery.reset(state_of_charge)
 
     def pwm_from_thrust(self, thrust_n: float) -> float:
         """Convert a one-motor thrust request to PWM using this engine's model."""
@@ -63,10 +66,14 @@ class PhysicsEngine:
         """Convert collective PWM to one-motor requested thrust for this model."""
         return thrust_from_pwm(pwm_us, self.model)
 
-    def step(self, drone: int, collective_pwm_us: float, body_torque_nm: tuple[float, float, float]) -> PhysicsStep:
-        """Mix commands, advance motors, apply forces, integrate, and return the new state."""
+    def step(self, drone: int, collective_pwm_us: float, body_torque_nm: tuple[float, float, float], bus_voltage_v: float | None = None) -> PhysicsStep:
+        """Mix commands, resolve battery voltage, advance motors, apply forces, and integrate once."""
         requested_thrusts = self._mix_motor_thrusts(self.thrust_from_pwm(collective_pwm_us), body_torque_nm)
-        target_rpms = tuple(rpm_from_thrust(thrust, self.model) for thrust in requested_thrusts)
+        nominal_target_rpms = tuple(rpm_from_thrust(thrust, self.model) for thrust in requested_thrusts)
+        command_fractions = tuple(clamp(rpm / self.model.max_rpm, 0.0, 1.0) for rpm in nominal_target_rpms)
+        battery_state = self._battery.step(command_fractions, self.settings.time_step_s, bus_voltage_v)
+        voltage_scale = battery_state.bus_voltage_v / self.model.battery.nominal_voltage_v
+        target_rpms = tuple(rpm * voltage_scale * battery_state.motor_command_scale for rpm in nominal_target_rpms)
         self._motor_rpms = self._advance_motor_rpms(target_rpms)
         state = read_state(drone)
         air_velocity_body = self._air_velocity_body(drone, state)
@@ -79,6 +86,12 @@ class PhysicsEngine:
         drag_force = tuple(rotor + body for rotor, body in zip(rotor_drag_force, body_drag_force))
         return PhysicsStep(
             collective_pwm_us,
+            battery_state.state_of_charge,
+            battery_state.bus_voltage_v,
+            battery_state.demand_current_a,
+            battery_state.delivered_current_a,
+            battery_state.current_limited,
+            self.model.motor_kv_rpm_per_v * battery_state.bus_voltage_v,
             self._motor_rpms,
             motor_thrusts,
             total_thrust,

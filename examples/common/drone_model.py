@@ -1,12 +1,14 @@
 """Typed drone profiles, physical models, clock settings, and state."""
 
-from dataclasses import dataclass, replace
+from dataclasses import dataclass, field, replace
 from functools import lru_cache
 from pathlib import Path
 from xml.etree import ElementTree
 
 import numpy as np
 import yaml
+
+from .battery import BatterySpec
 
 
 @dataclass(frozen=True)
@@ -27,12 +29,18 @@ class DroneModel:
     center_of_mass_m: tuple[float, float, float] = (0.0, 0.0, 0.0)
     inertia_kg_m2: tuple[float, float, float, float, float, float] = (0.00348, 0.00348, 0.00396, 0.0, 0.0, 0.0)
     rotor_positions_m: tuple[tuple[float, float, float], ...] = ((0.12, 0.12, 0.02), (0.12, -0.12, 0.02), (-0.12, 0.12, 0.02), (-0.12, -0.12, 0.02))
-    max_rpm: float = 24_000.0
+    motor_kv_rpm_per_v: float = 24000.0 / (4 * 3.7)
     max_thrust_per_motor_n: float = 0.65 * 9.81
     motor_time_constant_s: float = 0.05
     rotor_drag_coefficient: float = 2e-6
     motor_yaw_signs: tuple[int, int, int, int] = (1, -1, -1, 1)
+    battery: BatterySpec = field(default_factory=BatterySpec)
     urdf_path: Path = Path(__file__).parent / "assets" / "full_drone.urdf"
+
+    @property
+    def max_rpm(self) -> float:
+        """Return the nominal-voltage no-load RPM derived from motor KV."""
+        return self.motor_kv_rpm_per_v * self.battery.nominal_voltage_v
 
     @property
     def thrust_coefficient(self) -> float:
@@ -159,14 +167,15 @@ def load_drone_profile(name: str = "default") -> DroneProfile:
     if not isinstance(data, dict):
         raise ValueError(f"drone profile '{path}' must be a mapping")
 
-    allowed = {"name", "urdf", "actuators", "aerodynamics"}
+    allowed = {"name", "urdf", "actuators", "battery", "aerodynamics"}
     unknown = set(data) - allowed
     if unknown:
         raise ValueError(f"unknown drone profile setting(s): {', '.join(sorted(unknown))}")
     actuators = data.get("actuators", {})
+    battery = data.get("battery", {})
     aerodynamics = data.get("aerodynamics", {})
-    if not isinstance(actuators, dict) or not isinstance(aerodynamics, dict):
-        raise ValueError(f"drone profile '{path}' actuator and aerodynamic sections must be mappings")
+    if not isinstance(actuators, dict) or not isinstance(battery, dict) or not isinstance(aerodynamics, dict):
+        raise ValueError(f"drone profile '{path}' actuator, battery, and aerodynamic sections must be mappings")
 
     urdf_name = data.get("urdf")
     if not isinstance(urdf_name, str):
@@ -178,6 +187,7 @@ def load_drone_profile(name: str = "default") -> DroneProfile:
         center_of_mass_m=geometry.center_of_mass_m,
         inertia_kg_m2=geometry.inertia_kg_m2,
         rotor_positions_m=geometry.rotor_positions_m,
+        battery=BatterySpec(**battery),
         urdf_path=urdf_path,
         **{key: tuple(value) if key == "motor_yaw_signs" else value for key, value in actuators.items()},
     )
@@ -216,6 +226,12 @@ class PhysicsStep:
     """Actuator, force, and state result produced by one engine step."""
 
     collective_pwm_us: float
+    battery_state_of_charge: float
+    bus_voltage_v: float
+    demand_current_a: float
+    delivered_current_a: float
+    current_limited: bool
+    available_rpm_per_motor: float
     motor_rpms: tuple[float, float, float, float]
     motor_thrusts_n: tuple[float, float, float, float]
     total_thrust_n: float

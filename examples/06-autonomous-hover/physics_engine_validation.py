@@ -13,6 +13,7 @@ if str(EXAMPLES_ROOT) not in sys.path:
     sys.path.insert(0, str(EXAMPLES_ROOT))
 
 from common.drone_model import DEFAULT_DRONE_MODEL, DEFAULT_PHYSICS_SETTINGS, PhysicsSettings
+from common.battery import BatteryModel
 from common.drone_physics import PWM_HOVER, PhysicsEngine, rpm_from_thrust
 from common.pybullet_utils import create_world, reset_drone
 
@@ -32,9 +33,9 @@ class ValidationResult:
 
 
 def run_steps(engine: PhysicsEngine, drone: int, seconds: float, pwm_us: float, torque_nm: tuple[float, float, float]) -> None:
-    """Advance one fixed motor/torque command for a requested simulation duration."""
+    """Advance one fixed command at the profile reference voltage for repeatable force checks."""
     for _ in range(round(seconds / engine.settings.time_step_s)):
-        engine.step(drone, pwm_us, torque_nm)
+        engine.step(drone, pwm_us, torque_nm, engine.model.battery.nominal_voltage_v)
 
 
 def gravity_validation() -> ValidationResult:
@@ -136,6 +137,31 @@ def mixer_geometry_validation() -> ValidationResult:
     return ValidationResult("URDF mixer geometry", wider_span / baseline_span, "ratio", "longer arms need less thrust difference")
 
 
+def battery_voltage_validation() -> ValidationResult:
+    """Verify a lower bus voltage lowers KV-limited RPM and higher resistance increases sag."""
+    nominal_voltage_v = MODEL.battery.nominal_voltage_v
+    drone = create_world()
+    engine = PhysicsEngine()
+    reset_drone(drone, (0.0, 0.0, 5.0))
+    engine.reset()
+    for _ in range(round(0.5 / SETTINGS.time_step_s)):
+        nominal_step = engine.step(drone, 2000.0, (0.0, 0.0, 0.0), nominal_voltage_v)
+
+    reset_drone(drone, (0.0, 0.0, 5.0))
+    engine.reset()
+    for _ in range(round(0.5 / SETTINGS.time_step_s)):
+        low_voltage_step = engine.step(drone, 2000.0, (0.0, 0.0, 0.0), nominal_voltage_v * 0.9)
+
+    baseline_battery = BatteryModel(MODEL.battery)
+    resistant_battery = BatteryModel(replace(MODEL.battery, internal_resistance_ohm=MODEL.battery.internal_resistance_ohm * 2.0))
+    baseline_bus = baseline_battery.step((1.0, 1.0, 1.0, 1.0), SETTINGS.time_step_s).bus_voltage_v
+    resistant_bus = resistant_battery.step((1.0, 1.0, 1.0, 1.0), SETTINGS.time_step_s).bus_voltage_v
+    rpm_ratio = max(low_voltage_step.motor_rpms) / max(nominal_step.motor_rpms)
+    assert 0.89 < rpm_ratio < 0.91
+    assert resistant_bus < baseline_bus
+    return ValidationResult("battery KV voltage", rpm_ratio, "ratio", "90% bus voltage gives about 90% RPM")
+
+
 def optional_forces_validation() -> ValidationResult:
     """Verify optional rotor, ground, and gyro effects are configurable and bounded."""
     settings = PhysicsSettings(
@@ -168,6 +194,7 @@ def run_validation(selected: str) -> list[ValidationResult]:
         "body-drag": body_drag_validation,
         "angular-damping": angular_damping_validation,
         "mixer-geometry": mixer_geometry_validation,
+        "battery-voltage": battery_voltage_validation,
         "optional-forces": optional_forces_validation,
     }
     if selected == "all":
@@ -197,14 +224,14 @@ def print_results(results: list[ValidationResult], selected: str) -> None:
     for result in results:
         print(f"{result.name:>22}: {result.measurement:.3f} {result.unit} ({result.expectation})")
     if selected == "all":
-        print(f"{len(results)}/11 checks passed")
+        print(f"{len(results)}/12 checks passed")
     print("========================================")
 
 
 def main() -> None:
     """Run selected validations, print measurements, and optionally save their plot."""
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--scenario", choices=("all", "gravity", "hover", "vertical", "roll", "pitch", "yaw", "wind", "body-drag", "angular-damping", "mixer-geometry", "optional-forces"), default="all")
+    parser.add_argument("--scenario", choices=("all", "gravity", "hover", "vertical", "roll", "pitch", "yaw", "wind", "body-drag", "angular-damping", "mixer-geometry", "battery-voltage", "optional-forces"), default="all")
     parser.add_argument("--headless", action="store_true", help="Use PyBullet DIRECT mode")
     parser.add_argument("--plot", type=Path, default=Path("outputs/physics_engine_validation.png"))
     parser.add_argument("--no-plot", action="store_true", help="Do not save the result plot")
