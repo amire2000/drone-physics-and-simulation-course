@@ -16,6 +16,7 @@ content belongs in `docs/`; runnable work belongs in `examples/`.
 | --- | --- | --- | --- |
 | 2026-09-25 | [TTC bounding-box diagonal strike](navigation/ttc_bbox_diagonal_strike.md) | Module 7 visual time-to-contact proof of concept. | Implemented; tuning continues |
 | 2026-09-29 | [Aggressive default TTC takeoff](navigation/aggressive-takeoff-plan.md) | Bounded climb-rate launch for faster tracking tests. | Implemented; 3.5 s target deferred |
+| 2026-09-29 | [IMU-barometer vertical fusion](navigation/imu-barometer-vertical-fusion.md) | ICM-42688-P-inspired vertical estimator for the TTC strike. | Implemented |
 
 ## Integration
 

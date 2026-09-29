@@ -17,7 +17,7 @@ from red_target_detector import detect_red_box
 
 from .config import SceneConfig, StrikeConfig
 from .guidance import FlightPhase, GuidanceCommand, GuidanceInput, StrikeGuidance
-from .sensing import Barometer, BarometerReading
+from .sensing import Barometer, BarometerReading, VerticalEstimator, VerticalImu
 from .telemetry import FlightLog, build_summary, make_plot, move_plot_window, refresh_plot, save_csv, save_plot, save_summary
 from .ttc import BboxTtcTracker, TtcObservation
 from .views import annotate, environment_rgb
@@ -54,6 +54,9 @@ class StrikeSimulation:
         cube = add_red_cube(self.scene.target_center, self.scene.target_size_m)
         add_environment_buildings()
         barometer, tracker, guidance = Barometer(config), BboxTtcTracker(config), StrikeGuidance(config)
+        vertical_imu = VerticalImu(config)
+        vertical_estimator = VerticalEstimator(config, config.launch_position[2])
+        previous_vertical_velocity_mps = 0.0
         attitude_controller = AttitudeController(config.pitch_attitude_pid_gains)
         torque = (0.0, 0.0, 0.0)
         command = GuidanceCommand(FlightPhase.TAKEOFF, config.hover_thrust_n, 0.0, None)
@@ -98,9 +101,12 @@ class StrikeSimulation:
                 if disconnected:
                     return disconnected
                 position, _ = p.getBasePositionAndOrientation(drone)
+                current_vertical_velocity_mps = p.getBaseVelocity(drone)[0][2]
+                imu = vertical_imu.sample((current_vertical_velocity_mps - previous_vertical_velocity_mps) / time_step, now_s)
+                previous_vertical_velocity_mps = current_vertical_velocity_mps
                 sample = barometer.sample(position[2], now_s)
-                if sample:
-                    baro = sample
+                estimate = vertical_estimator.update(imu, time_step, sample)
+                baro = BarometerReading(estimate.altitude_m, estimate.vertical_velocity_mps, sample.raw_altitude_m if sample else None)
 
                 frame = None
                 if step % (physics_hz // config.camera_hz) == 0:

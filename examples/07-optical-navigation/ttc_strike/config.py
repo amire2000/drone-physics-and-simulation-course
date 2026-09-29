@@ -97,6 +97,12 @@ class RuntimeConfig:
     barometer_drift_sigma_m_per_sqrt_s: float = 0.0
     barometer_altitude_old_weight: float = 0.80
     barometer_velocity_old_weight: float = 0.95
+    imu_sample_hz: float = 240.0
+    accelerometer_noise_sigma_mps2: float = 0.0075
+    accelerometer_initial_bias_sigma_mps2: float = 0.0981
+    accelerometer_bias_random_walk_mps2_per_sqrt_s: float = 0.0049
+    vertical_estimator_alpha: float = 0.08
+    vertical_estimator_beta: float = 0.005
     altitude_pid_gains: tuple[float, float, float] = (1.8, 0.05, 2.2)
     altitude_integral_limit: float = 0.5
     forward_speed_pid_gains: tuple[float, float, float] = (0.03, 0.0, 0.002)

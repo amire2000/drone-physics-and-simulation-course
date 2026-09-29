@@ -99,6 +99,8 @@ def load_yaml_config(path: Path) -> StrikeConfig:
     ttc = _mapping(runtime_data.get("ttc"), "runtime.ttc")
     sensors = _mapping(runtime_data.get("sensors"), "runtime.sensors")
     barometer = _mapping(sensors.get("barometer"), "runtime.sensors.barometer")
+    imu = _mapping(sensors.get("imu"), "runtime.sensors.imu")
+    estimator = _mapping(runtime_data.get("vertical_estimator"), "runtime.vertical_estimator")
     pid = _mapping(runtime_data.get("pid"), "runtime.pid")
     vertical = _mapping(runtime_data.get("vertical_control"), "runtime.vertical_control")
     forces = _mapping(simulation_data.get("physical_forces"), "simulation.physical_forces")
@@ -191,6 +193,25 @@ def load_yaml_config(path: Path) -> StrikeConfig:
     unknown = set(barometer) - {"sample_hz", "altitude_noise_sigma_m", "altitude_bias_m", "drift_sigma_m_per_sqrt_s", "altitude_old_weight", "velocity_old_weight"}
     if unknown:
         raise ValueError(f"unknown runtime.sensors.barometer setting(s): {', '.join(sorted(unknown))}")
+    if "sample_hz" in imu:
+        runtime = replace(runtime, imu_sample_hz=_positive(imu["sample_hz"], "runtime.sensors.imu.sample_hz"))
+    for yaml_name, field_name in (
+        ("accelerometer_noise_sigma_mps2", "accelerometer_noise_sigma_mps2"),
+        ("accelerometer_initial_bias_sigma_mps2", "accelerometer_initial_bias_sigma_mps2"),
+        ("accelerometer_bias_random_walk_mps2_per_sqrt_s", "accelerometer_bias_random_walk_mps2_per_sqrt_s"),
+    ):
+        if yaml_name in imu:
+            runtime = replace(runtime, **{field_name: _non_negative(imu[yaml_name], f"runtime.sensors.imu.{yaml_name}")})
+    unknown = set(imu) - {"sample_hz", "accelerometer_noise_sigma_mps2", "accelerometer_initial_bias_sigma_mps2", "accelerometer_bias_random_walk_mps2_per_sqrt_s"}
+    if unknown:
+        raise ValueError(f"unknown runtime.sensors.imu setting(s): {', '.join(sorted(unknown))}")
+    if "alpha" in estimator:
+        runtime = replace(runtime, vertical_estimator_alpha=_unit_interval(estimator["alpha"], "runtime.vertical_estimator.alpha"))
+    if "beta" in estimator:
+        runtime = replace(runtime, vertical_estimator_beta=_unit_interval(estimator["beta"], "runtime.vertical_estimator.beta"))
+    unknown = set(estimator) - {"alpha", "beta"}
+    if unknown:
+        raise ValueError(f"unknown runtime.vertical_estimator setting(s): {', '.join(sorted(unknown))}")
     runtime = _merge(runtime, vertical, ("vertical_position_correction",), "runtime.vertical_control")
 
     for name, field_name in (("altitude", "altitude_pid_gains"), ("forward_speed", "forward_speed_pid_gains"), ("pitch_attitude", "pitch_attitude_pid_gains"), ("vertical_velocity", "vertical_velocity_pid_gains")):

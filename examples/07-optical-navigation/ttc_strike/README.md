@@ -235,6 +235,8 @@ against a real vehicle.
 | `barometer.drift_sigma_m_per_sqrt_s` | `0.0` | Optional seeded slow random-walk drift; zero disables it. |
 | `barometer.altitude_old_weight` | `0.80` | Raw-altitude EMA memory before altitude control and velocity inference. |
 | `barometer.velocity_old_weight` | `0.95` | Vertical-speed filter memory that suppresses noisy altitude differentiation. |
+| `imu.accelerometer_noise_sigma_mps2` | `0.0075` | ICM-42688-P-inspired vertical acceleration noise. |
+| `vertical_estimator.alpha/beta` | `0.08 / 0.005` | Barometer correction gains for fused height and vertical speed. |
 | `impact_altitude_m` | `1.0` | Desired altitude at contact. |
 | `forward_speed_mps` | `13.0` | Nominal body-forward command. |
 | `nominal_pitch_deg` | `20.0` | Initial forward pitch while altitude is held. |

@@ -12,7 +12,7 @@ sys.path[:0] = [str(EXAMPLES_ROOT), str(EXAMPLES_ROOT / "07-optical-navigation")
 
 from ttc_strike.config import RuntimeConfig, StrikeConfig
 from ttc_strike.config_loader import load_yaml_config
-from ttc_strike.sensing import Barometer
+from ttc_strike.sensing import Barometer, BarometerReading, VerticalEstimator, VerticalImuReading
 
 
 class BarometerTest(unittest.TestCase):
@@ -52,6 +52,13 @@ class BarometerTest(unittest.TestCase):
         self.assertIsNotNone(second)
         self.assertEqual(second.raw_altitude_m, 10.0)
         self.assertAlmostEqual(second.altitude_m, 2.0)
+
+    def test_vertical_estimator_barometer_correction(self) -> None:
+        """Correct predicted IMU drift toward the barometer altitude."""
+        config = StrikeConfig(runtime=replace(RuntimeConfig(), vertical_estimator_alpha=0.1, vertical_estimator_beta=0.0))
+        estimator = VerticalEstimator(config, 0.0)
+        estimate = estimator.update(VerticalImuReading(1.0), 1.0, BarometerReading(0.0, 0.0))
+        self.assertAlmostEqual(estimate.altitude_m, 0.9)
 
     def test_yaml_sensor_validation(self) -> None:
         """Load valid runtime sensor settings and reject an invalid rate."""
