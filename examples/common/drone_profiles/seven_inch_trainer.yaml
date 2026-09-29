@@ -16,8 +16,11 @@ battery:
   internal_resistance_ohm: 0.015
   max_discharge_current_a: 180.0
   full_throttle_current_per_motor_a: 45.0
+propeller:
+  name: Generic seven-inch course propeller
+  diameter_in: 7.0
+  source: Pitch, blade count, and mounting details are intentionally unknown for this generic profile.
 aerodynamics:
-  propeller_diameter_m: 0.1778
   body_drag_cd_area_m2: [0.020, 0.020, 0.030]
   angular_damping_nm_per_rad_s: [0.0018, 0.0018, 0.0030]
   rotor_inertia_kg_m2: 0.000008

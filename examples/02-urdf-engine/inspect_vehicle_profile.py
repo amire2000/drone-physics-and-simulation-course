@@ -22,7 +22,7 @@ def main() -> None:
     parser.add_argument("profile", nargs="?", default="default", help="profile name from examples/common/drone_profiles")
     args = parser.parse_args()
     profile = load_drone_profile(args.profile)
-    model, settings = profile.model, profile.physics_settings
+    model, settings, propeller = profile.model, profile.physics_settings, profile.propeller
 
     print(f"profile: {profile.name}")
     print(f"URDF: {model.urdf_path.name}")
@@ -33,7 +33,9 @@ def main() -> None:
         print(f"URDF rotor_{index}: {format_vector(position)} m")
     print(f"profile max thrust per motor: {model.max_thrust_per_motor_n:.3f} N")
     print(f"profile max RPM: {model.max_rpm:.0f}")
-    print(f"profile propeller diameter: {settings.propeller_diameter_m:.4f} m")
+    print(f"profile propeller: {propeller.name}")
+    print(f"profile propeller diameter: {propeller.diameter_in:.2f} in ({settings.propeller_diameter_m:.4f} m)")
+    print(f"profile propeller pitch/blades: {propeller.pitch_in or 'unknown'} in / {propeller.blade_count or 'unknown'}")
     assert len(model.rotor_positions_m) == len(model.motor_yaw_signs) == 4
 
 

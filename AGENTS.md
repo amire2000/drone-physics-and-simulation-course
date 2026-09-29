@@ -19,6 +19,11 @@ responsibilities, separate calculation logic from simulation and UI, and keep
 interfaces small. Prefer composition and introduce abstractions only when they
 support an actual extension or testing need.
 
+## Git rules
+
+When the user asks to commit, show the proposed commit message and wait for
+explicit approval before creating the commit.
+
 ## Documentation rules
 
 When adding a lesson:

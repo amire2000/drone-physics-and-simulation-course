@@ -16,8 +16,15 @@ battery:
   internal_resistance_ohm: 0.025
   max_discharge_current_a: 120.0
   full_throttle_current_per_motor_a: 30.0
+propeller:
+  name: Course 5x4.3x3
+  diameter_in: 5.0
+  pitch_in: 4.3
+  blade_count: 3
+  rotation_set: CW and CCW pair
+  material: polycarbonate
+  source: Course beginner default; replace with your purchased propeller listing.
 aerodynamics:
-  propeller_diameter_m: 0.14
   body_drag_cd_area_m2: [0.012, 0.012, 0.020]
   angular_damping_nm_per_rad_s: [0.0012, 0.0012, 0.0020]
   rotor_inertia_kg_m2: 0.000005

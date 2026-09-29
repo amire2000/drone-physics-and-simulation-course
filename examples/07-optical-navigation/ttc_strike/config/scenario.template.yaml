@@ -23,7 +23,7 @@ simulation:
       world_velocity_mps: [0.0, 0.0, 0.0]  # Wind in world x/y/z [m/s]; zero means still air.
     rotor_aerodynamics:
       enabled: false                      # Optional rotor inflow and blade-flapping model.
-      propeller_diameter_m: 0.14          # Override profile propeller diameter [m].
+      propeller_diameter_m: 0.127         # Override the 5-inch course profile diameter [m].
       inflow_coefficient: 0.35            # Forward-flight thrust-loss scale.
       blade_flapping_coefficient: 0.10    # In-plane rotor force scale.
     ground_effect:

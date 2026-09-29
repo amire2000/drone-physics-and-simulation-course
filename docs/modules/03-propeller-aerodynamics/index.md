@@ -175,11 +175,12 @@ model; Module 4 turns the same relationships into a mixer and PID controller.
 
 ## 6. What this model leaves out
 
-The equations do not simulate motor electrical dynamics, battery-voltage sag,
-blade shape, non-uniform inflow, ground effect, wind, or vehicle drag. Module
-4 introduces vehicle drag, wind-relative velocity, mixing, and PID control.
-Module 5 adds voltage sag. A real vehicle needs measured thrust and torque data
-to calibrate (k_T), (k_Q), and motor response time.
+These first equations do not include detailed motor electrical dynamics, blade
+shape, non-uniform inflow, ground effect, wind, or vehicle drag. Module 4
+introduces vehicle drag, wind-relative velocity, mixing, and PID control.
+Module 5 adds the shared calibrated battery-voltage-sag model. A real vehicle
+needs measured thrust and torque data to calibrate (k_T), (k_Q), and motor
+response time.
 
 ---
 

@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="920" height="440" viewBox="0 0 920 440" role="img" aria-labelledby="title desc">
+  <title id="title">How to read a 5 by 4.3 by 3 propeller listing</title>
+  <desc id="desc">A propeller label with arrows pointing to diameter, pitch, and blade count.</desc>
+  <rect width="920" height="440" rx="28" fill="#f5f8fc"/>
+  <text x="50" y="65" font-family="sans-serif" font-size="31" font-weight="700" fill="#24324a">Read the label: 5×4.3×3</text>
+  <circle cx="260" cy="238" r="114" fill="none" stroke="#8fa4c5" stroke-width="4" stroke-dasharray="9 9"/>
+  <path d="M260 238 C190 135 113 167 131 225 C146 274 202 282 260 238 C318 194 374 202 389 251 C407 309 330 341 260 238" fill="#36a9e1" stroke="#1373a9" stroke-width="6"/>
+  <circle cx="260" cy="238" r="25" fill="#f4a000" stroke="#b56500" stroke-width="5"/>
+  <path d="M143 338 H377" stroke="#2563eb" stroke-width="5"/>
+  <path d="M143 338 l15 -10 v20 z M377 338 l-15 -10 v20 z" fill="#2563eb"/>
+  <text x="190" y="375" font-family="sans-serif" font-size="23" font-weight="700" fill="#1e40af">5 inches wide</text>
+  <rect x="490" y="115" width="365" height="82" rx="14" fill="#172554"/>
+  <text x="542" y="172" font-family="sans-serif" font-size="48" font-weight="700" fill="white">5 × 4.3 × 3</text>
+  <path d="M540 206 L435 290" stroke="#2563eb" stroke-width="4"/><circle cx="435" cy="290" r="7" fill="#2563eb"/>
+  <text x="492" y="244" font-family="sans-serif" font-size="21" font-weight="700" fill="#1e40af">Diameter</text>
+  <path d="M655 206 L655 284" stroke="#ef6c00" stroke-width="4"/><circle cx="655" cy="284" r="7" fill="#ef6c00"/>
+  <text x="602" y="316" font-family="sans-serif" font-size="21" font-weight="700" fill="#b45309">Pitch: 4.3 in/rev*</text>
+  <path d="M788 206 L788 284" stroke="#078348" stroke-width="4"/><circle cx="788" cy="284" r="7" fill="#078348"/>
+  <text x="744" y="316" font-family="sans-serif" font-size="21" font-weight="700" fill="#047857">3 blades</text>
+  <text x="490" y="365" font-family="sans-serif" font-size="18" fill="#475569">* Ideal screw-like travel; real air and propeller load cause slip.</text>
+</svg>

@@ -2,6 +2,7 @@
 
 from dataclasses import dataclass, field, replace
 from functools import lru_cache
+from math import isfinite
 from pathlib import Path
 from xml.etree import ElementTree
 
@@ -19,6 +20,46 @@ class VehicleGeometry:
     center_of_mass_m: tuple[float, float, float]
     inertia_kg_m2: tuple[float, float, float, float, float, float]
     rotor_positions_m: tuple[tuple[float, float, float], ...]
+
+
+@dataclass(frozen=True)
+class PropellerSpec:
+    """Listing facts for one propeller, with only diameter used by the force model."""
+
+    name: str
+    diameter_in: float
+    pitch_in: float | None = None
+    blade_count: int | None = None
+    rotation_set: str | None = None
+    hub_diameter_mm: float | None = None
+    shaft_diameter_mm: float | None = None
+    material: str | None = None
+    weight_g: float | None = None
+    package_count: int | None = None
+    source: str | None = None
+
+    def __post_init__(self) -> None:
+        """Validate listing values while allowing unknown optional product fields."""
+        positive_numbers = {
+            "diameter_in": self.diameter_in,
+            "pitch_in": self.pitch_in,
+            "hub_diameter_mm": self.hub_diameter_mm,
+            "shaft_diameter_mm": self.shaft_diameter_mm,
+            "weight_g": self.weight_g,
+        }
+        if not isinstance(self.name, str) or not self.name.strip():
+            raise ValueError("propeller name must not be empty")
+        for field_name, value in positive_numbers.items():
+            if value is not None and (not isfinite(value) or value <= 0.0):
+                raise ValueError(f"propeller {field_name} must be a positive finite number")
+        for field_name, value in {"blade_count": self.blade_count, "package_count": self.package_count}.items():
+            if value is not None and (not isinstance(value, int) or isinstance(value, bool) or value <= 0):
+                raise ValueError(f"propeller {field_name} must be a positive integer")
+
+    @property
+    def diameter_m(self) -> float:
+        """Convert the listing's inch diameter to the SI unit used by physics."""
+        return self.diameter_in * 0.0254
 
 
 @dataclass(frozen=True)
@@ -73,7 +114,7 @@ class PhysicsSettings:
     angular_damping_enabled: bool = True
     angular_damping_nm_per_rad_s: tuple[float, float, float] = (0.0012, 0.0012, 0.0020)
     rotor_aerodynamics_enabled: bool = False
-    propeller_diameter_m: float = 0.14
+    propeller_diameter_m: float = 0.127
     inflow_coefficient: float = 0.35
     blade_flapping_coefficient: float = 0.10
     ground_effect_enabled: bool = False
@@ -101,6 +142,7 @@ class DroneProfile:
     name: str
     model: DroneModel
     physics_settings: PhysicsSettings
+    propeller: PropellerSpec
 
 
 def _profile_path(name: str) -> Path:
@@ -167,15 +209,25 @@ def load_drone_profile(name: str = "default") -> DroneProfile:
     if not isinstance(data, dict):
         raise ValueError(f"drone profile '{path}' must be a mapping")
 
-    allowed = {"name", "urdf", "actuators", "battery", "aerodynamics"}
+    allowed = {"name", "urdf", "actuators", "battery", "aerodynamics", "propeller"}
     unknown = set(data) - allowed
     if unknown:
         raise ValueError(f"unknown drone profile setting(s): {', '.join(sorted(unknown))}")
     actuators = data.get("actuators", {})
     battery = data.get("battery", {})
     aerodynamics = data.get("aerodynamics", {})
+    propeller_data = data.get("propeller")
     if not isinstance(actuators, dict) or not isinstance(battery, dict) or not isinstance(aerodynamics, dict):
         raise ValueError(f"drone profile '{path}' actuator, battery, and aerodynamic sections must be mappings")
+    if propeller_data is None:
+        legacy_diameter_m = aerodynamics.get("propeller_diameter_m")
+        if legacy_diameter_m is None:
+            raise ValueError(f"drone profile '{path}' needs a propeller section or aerodynamics.propeller_diameter_m")
+        propeller = PropellerSpec("legacy propeller", float(legacy_diameter_m) / 0.0254)
+    elif isinstance(propeller_data, dict):
+        propeller = PropellerSpec(**propeller_data)
+    else:
+        raise ValueError(f"drone profile '{path}' propeller section must be a mapping")
 
     urdf_name = data.get("urdf")
     if not isinstance(urdf_name, str):
@@ -195,12 +247,14 @@ def load_drone_profile(name: str = "default") -> DroneProfile:
         raise ValueError(f"drone profile '{path}' needs one motor_yaw_sign per URDF rotor")
     settings = replace(
         PhysicsSettings(),
+        propeller_diameter_m=propeller.diameter_m,
         **{
             key: tuple(value) if key in {"body_drag_cd_area_m2", "angular_damping_nm_per_rad_s"} else value
             for key, value in aerodynamics.items()
+            if key != "propeller_diameter_m"
         },
     )
-    return DroneProfile(str(data.get("name", name)), model, settings)
+    return DroneProfile(str(data.get("name", name)), model, settings, propeller)
 
 
 @dataclass(frozen=True)

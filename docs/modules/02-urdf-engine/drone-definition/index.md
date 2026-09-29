@@ -94,13 +94,18 @@ not define:
 name: seven_inch_trainer
 urdf: seven_inch_trainer.urdf
 actuators:
-  max_rpm: 20000.0
+  motor_kv_rpm_per_v: 900.9009009
   max_thrust_per_motor_n: 12.0
   motor_time_constant_s: 0.07
   rotor_drag_coefficient: 0.000003
   motor_yaw_signs: [1, -1, -1, 1]
+propeller:
+  name: Generic seven-inch course propeller
+  diameter_in: 7.0
+  pitch_in: null                 # Record only known listing facts.
+  blade_count: null
+  source: Product listing title or URL
 aerodynamics:
-  propeller_diameter_m: 0.1778
   body_drag_cd_area_m2: [0.020, 0.020, 0.030]
   angular_damping_nm_per_rad_s: [0.0018, 0.0018, 0.0030]
   rotor_inertia_kg_m2: 0.000008
@@ -117,7 +122,7 @@ thrust then produces zero net yaw torque when CW and CCW motors alternate.
 | --- | --- | --- | --- |
 | Heavier battery or payload | Mass, center of mass, inertia | Usually no | Yes: hover and altitude PID response. |
 | Longer/wider frame | Rotor joint origins, visuals, collision, inertia | Usually no | Yes: roll/pitch authority changes. |
-| New motors or propellers | No, unless geometry changes | RPM, thrust, lag, yaw direction, propeller diameter/inertia | Yes: thrust range and attitude response change. |
+| New motors or propellers | No, unless geometry changes | KV, thrust, lag, yaw direction, and propeller listing data | Yes: thrust range and attitude response change. |
 | Larger body or camera mount | Collision/visual geometry, inertia | Drag area and damping if measured | Possibly. |
 | Windy day or a new test target | No | No | Scenario only. |
 

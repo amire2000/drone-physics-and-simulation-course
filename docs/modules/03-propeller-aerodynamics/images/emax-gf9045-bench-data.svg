@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="920" height="520" viewBox="0 0 920 520" role="img" aria-labelledby="title desc">
+  <title id="title">Selected EMAX bench-test data for a GF9045 tri-blade propeller</title>
+  <desc id="desc">A chart of thrust and current against throttle, based on four selected manufacturer test rows.</desc>
+  <rect width="920" height="520" rx="28" fill="#f5f8fc"/>
+  <text x="48" y="56" font-family="sans-serif" font-size="28" font-weight="700" fill="#24324a">One real bench-test table: GF9045 tri-blade on ECO II 3210 900 KV</text>
+  <text x="48" y="84" font-family="sans-serif" font-size="16" fill="#52627a">Selected manufacturer rows at about 25 V — course-created chart, not a vendor screenshot</text>
+  <rect x="84" y="125" width="710" height="285" fill="white" stroke="#cbd5e1"/>
+  <line x1="84" y1="410" x2="794" y2="410" stroke="#334155" stroke-width="2"/>
+  <line x1="84" y1="125" x2="84" y2="410" stroke="#334155" stroke-width="2"/>
+  <line x1="794" y1="125" x2="794" y2="410" stroke="#334155" stroke-width="2"/>
+  <g stroke="#dbe4f0" stroke-width="1">
+    <line x1="84" y1="339" x2="794" y2="339"/><line x1="84" y1="268" x2="794" y2="268"/><line x1="84" y1="197" x2="794" y2="197"/><line x1="84" y1="125" x2="794" y2="125"/>
+  </g>
+  <g font-family="sans-serif" font-size="15" fill="#475569">
+    <text x="46" y="414">0</text><text x="30" y="343">850</text><text x="22" y="272">1700</text><text x="22" y="201">2550</text><text x="22" y="130">3400 g</text>
+    <text x="795" y="414">0</text><text x="801" y="343">14</text><text x="801" y="272">28</text><text x="801" y="201">42</text><text x="801" y="130">56 A</text>
+    <text x="181" y="438">30%</text><text x="352" y="438">50%</text><text x="523" y="438">70%</text><text x="689" y="438">100%</text>
+  </g>
+  <text x="80" y="112" font-family="sans-serif" font-size="17" font-weight="700" fill="#2563eb">thrust (g)</text>
+  <text x="731" y="112" font-family="sans-serif" font-size="17" font-weight="700" fill="#d9480f">current (A)</text>
+  <polyline points="196,377 367,315 538,243 709,125" fill="none" stroke="#2563eb" stroke-width="5"/>
+  <polyline points="196,396 367,360 538,294 709,130" fill="none" stroke="#d9480f" stroke-width="5" stroke-dasharray="10 7"/>
+  <g fill="#2563eb" stroke="white" stroke-width="3"><circle cx="196" cy="377" r="7"/><circle cx="367" cy="315" r="7"/><circle cx="538" cy="243" r="7"/><circle cx="709" cy="125" r="7"/></g>
+  <g fill="#d9480f" stroke="white" stroke-width="3"><circle cx="196" cy="396" r="7"/><circle cx="367" cy="360" r="7"/><circle cx="538" cy="294" r="7"/><circle cx="709" cy="130" r="7"/></g>
+  <text x="300" y="486" font-family="sans-serif" font-size="18" fill="#334155">throttle command</text>
+  <text x="48" y="478" font-family="sans-serif" font-size="14" fill="#64748b">397 g / 2.68 A</text>
+  <text x="660" y="478" font-family="sans-serif" font-size="14" fill="#64748b">3408 g / 54.90 A</text>
+</svg>
