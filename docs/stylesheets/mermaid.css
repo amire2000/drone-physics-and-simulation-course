@@ -1,0 +1,61 @@
+.mermaid-open-button {
+  align-items: center;
+  cursor: zoom-in;
+  display: inline-flex;
+  gap: 0.35rem;
+  margin: 0.25rem 0 1rem;
+}
+
+.mermaid-open-button:focus-visible {
+  outline: 0.15rem solid var(--md-primary-fg-color, #4051b5);
+  outline-offset: 0.15rem;
+}
+
+.mermaid-dialog {
+  border: 0;
+  border-radius: 0.5rem;
+  max-height: 95vh;
+  max-width: 95vw;
+  padding: 0.75rem;
+  width: max-content;
+}
+
+.mermaid-dialog::backdrop {
+  background: rgb(0 0 0 / 70%);
+}
+
+.mermaid-dialog__header {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.mermaid-dialog__close {
+  cursor: pointer;
+  font-size: 1.5rem;
+  line-height: 1;
+}
+
+.mermaid-dialog__content {
+  max-height: 85vh;
+  max-width: 90vw;
+  overflow: auto;
+}
+
+.mermaid-dialog__content svg {
+  display: block;
+  height: auto;
+  max-height: 82vh;
+  max-width: 90vw !important;
+  width: 90vw;
+}
+
+@media (max-width: 600px) {
+  .mermaid-dialog {
+    max-width: calc(100vw - 1rem);
+    padding: 0.5rem;
+  }
+
+  .mermaid-dialog__content {
+    max-width: calc(100vw - 2rem);
+  }
+}

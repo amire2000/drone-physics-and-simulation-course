@@ -12,6 +12,7 @@ extra_javascript:
   - https://unpkg.com/mathjax@3/es5/tex-mml-chtml.js
 extra_css:
   - stylesheets/quiz.css
+  - stylesheets/mermaid.css
 markdown_extensions:
   - admonition
   - pymdownx.details
