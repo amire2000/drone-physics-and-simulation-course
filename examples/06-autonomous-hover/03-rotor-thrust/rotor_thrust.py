@@ -20,6 +20,7 @@ from common.pybullet_utils import create_world, reset_drone
 from common.runner import run_topic
 from common.simulation_utils import ReducedState, advance_motor_rpm, capture_scene_frame, clamp, integrate_reduced_state, rpm_from_thrust, thrust_from_pwm
 from common.telemetry import Sample
+from common.tk_controls import TkSimulationControls
 
 START_HEIGHT_M = 1.0
 DEFAULT_SECONDS = 1.0
@@ -201,31 +202,48 @@ def run_experiment(
     seconds: float,
     frames: list[np.ndarray] | None = None,
     realtime: bool = False,
+    controls: TkSimulationControls | None = None,
 ) -> list[Sample]:
     """Run the cumulative Topic 3 loop through PyBullet."""
     if seconds <= 0.0:
         raise ValueError("seconds must be positive")
-    reset_drone(drone, (0.0, 0.0, START_HEIGHT_M))
     p.setGravity(0.0, 0.0, 0.0)
-    battery = BatteryModel(profile.model.battery)
-    motor_rpms = (0.0, 0.0, 0.0, 0.0)
     time_step = profile.physics_settings.time_step_s
-    samples: list[Sample] = []
-    for step in range(round(seconds / time_step)):
-        motor_rpms, battery_state = advance_motor_state(profile, battery, motor_rpms, pwm_us)
-        apply_gravity(drone, profile)
-        # =============================================================================
-        # ! TOPIC 3 NEW FORCE CALL: rotor thrust follows previous-topic gravity.
-        # ! This is the lesson's new force contribution before integration.
-        # =============================================================================
-        motor_thrusts = apply_rotor_thrust(drone, profile, motor_rpms)
-        # Topic 3 closes the cumulative force loop with one PyBullet integration step.
-        p.stepSimulation()
-        samples.append(capture_pybullet_sample(drone, profile, step, pwm_us, motor_rpms, motor_thrusts, battery_state))
-        capture_scene_frame(step, profile.physics_settings.physics_hz, frames, GIF_FPS)
-        if realtime:
-            time.sleep(time_step)
-    return samples
+    total_steps = None if controls is not None else round(seconds / time_step)
+    while True:
+        reset_drone(drone, (0.0, 0.0, START_HEIGHT_M))
+        if frames is not None:
+            frames.clear()
+        battery = BatteryModel(profile.model.battery)
+        motor_rpms = (0.0, 0.0, 0.0, 0.0)
+        samples: list[Sample] = []
+        step = 0
+        while total_steps is None or step < total_steps:
+            if controls is not None:
+                action = controls.poll()
+                if action == "exit":
+                    return samples
+                if action == "restart":
+                    break
+                if action == "pause":
+                    time.sleep(1 / 60)
+                    continue
+            motor_rpms, battery_state = advance_motor_state(profile, battery, motor_rpms, pwm_us)
+            apply_gravity(drone, profile)
+            # =============================================================================
+            # ! TOPIC 3 NEW FORCE CALL: rotor thrust follows previous-topic gravity.
+            # ! This is the lesson's new force contribution before integration.
+            # =============================================================================
+            motor_thrusts = apply_rotor_thrust(drone, profile, motor_rpms)
+            # Topic 3 closes the cumulative force loop with one PyBullet integration step.
+            p.stepSimulation()
+            samples.append(capture_pybullet_sample(drone, profile, step, pwm_us, motor_rpms, motor_thrusts, battery_state))
+            capture_scene_frame(step, profile.physics_settings.physics_hz, frames, GIF_FPS)
+            if realtime:
+                time.sleep(time_step)
+            step += 1
+        if controls is None:
+            return samples
 
 
 # endregion
@@ -259,7 +277,13 @@ def run_reduced_order(profile: DroneProfile, pwm_us: float, seconds: float) -> l
     return samples
 
 
-def run_pybullet_topic(drone: int, profile: DroneProfile, args: argparse.Namespace, frames: list[np.ndarray] | None) -> list[Sample]:
+def run_pybullet_topic(
+    drone: int,
+    profile: DroneProfile,
+    args: argparse.Namespace,
+    frames: list[np.ndarray] | None,
+    controls: TkSimulationControls | None,
+) -> list[Sample]:
     """Adapt the Topic 3 PyBullet loop to the common runner interface."""
     return run_experiment(
         drone,
@@ -268,6 +292,7 @@ def run_pybullet_topic(drone: int, profile: DroneProfile, args: argparse.Namespa
         args.seconds,
         frames,
         realtime=not (args.headless or args.self_check),
+        controls=controls,
     )
 
 

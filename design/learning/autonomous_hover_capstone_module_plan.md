@@ -1,7 +1,7 @@
 # Module 6: Autonomous takeoff and precision hover
 
 **Last updated:** 2026-10-07
-**Status:** Partly implemented (Topics 0–3)
+**Status:** Partly implemented (Topics 0–4 and 11)
 **Description:** Capstone module that assembles the course drone model into a
 validated autonomous flight. Each topic owns a cumulative simulation loop and
 adds one force, behavior, or control method while common utilities keep the

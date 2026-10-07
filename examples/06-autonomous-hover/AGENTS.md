@@ -58,6 +58,15 @@ summary/output handling, and GUI exit handling. It must receive topic-owned
 loop and validation callables; it must never apply a force or hide the topic's
 cumulative force order.
 
+Interactive PyBullet runs use the shared `examples/common/tk_controls.py`
+external Tk window for Start, Pause, Restart, and Quit. The runner owns the window
+lifecycle; each topic loop polls it and owns the reset of its physics state.
+Do not put Tk calls in force methods or duplicate control windows in topics.
+
+Interactive topics may use `examples/common/safety.py` for conservative
+auto-pause limits. Safety checks may pause and explain a run, but they must not
+apply forces or become a hidden controller.
+
 The shared `Sample` dataset is passive telemetry only:
 
 - topic loops create and populate samples;

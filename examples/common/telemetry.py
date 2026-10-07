@@ -28,6 +28,15 @@ class Sample:
     motor_kv_rpm_per_v: float | None = None
     nominal_battery_voltage_v: float | None = None
     hover_thrust_target_n: float | None = None
+    roll_rad: float | None = None
+    pitch_rad: float | None = None
+    yaw_rad: float | None = None
+    roll_rate_rad_s: float | None = None
+    pitch_rate_rad_s: float | None = None
+    yaw_rate_rad_s: float | None = None
+    roll_torque_nm: float | None = None
+    pitch_torque_nm: float | None = None
+    yaw_torque_nm: float | None = None
     position_world_m: Vector3 | None = None
     velocity_world_mps: Vector3 | None = None
     acceleration_world_mps2: Vector3 | None = None
@@ -65,6 +74,15 @@ SCALAR_FIELDS = (
     "motor_kv_rpm_per_v",
     "nominal_battery_voltage_v",
     "hover_thrust_target_n",
+    "roll_rad",
+    "pitch_rad",
+    "yaw_rad",
+    "roll_rate_rad_s",
+    "pitch_rate_rad_s",
+    "yaw_rate_rad_s",
+    "roll_torque_nm",
+    "pitch_torque_nm",
+    "yaw_torque_nm",
     "battery_current_a",
     "battery_soc",
     "target_altitude_m",
@@ -177,6 +195,12 @@ def print_summary(samples: list[Sample], title: str = "Simulation summary") -> N
         ("motor_kv_rpm_per_v", "Motor KV", "RPM/V"),
         ("nominal_battery_voltage_v", "Nominal battery voltage", "V"),
         ("hover_thrust_target_n", "Hover thrust target", "N"),
+        ("roll_rad", "Roll", "rad"),
+        ("pitch_rad", "Pitch", "rad"),
+        ("roll_rate_rad_s", "Roll rate", "rad/s"),
+        ("pitch_rate_rad_s", "Pitch rate", "rad/s"),
+        ("roll_torque_nm", "Roll torque", "N·m"),
+        ("pitch_torque_nm", "Pitch torque", "N·m"),
         ("battery_current_a", "Battery current", "A"),
         ("battery_soc", "Battery state of charge", "%"),
     )

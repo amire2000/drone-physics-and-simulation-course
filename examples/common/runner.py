@@ -10,9 +10,10 @@ from .drone_model import DroneProfile, load_drone_profile
 from .pybullet_recording import save_gif
 from .simulation_utils import wait_for_exit
 from .telemetry import Sample, print_summary, save_results
+from .tk_controls import TkSimulationControls
 
 CreateWorld = Callable[[DroneProfile], tuple[int, DroneProfile]]
-PyBulletLoop = Callable[[int, DroneProfile, argparse.Namespace, list[np.ndarray] | None], list[Sample]]
+PyBulletLoop = Callable[[int, DroneProfile, argparse.Namespace, list[np.ndarray] | None, TkSimulationControls | None], list[Sample]]
 ReducedLoop = Callable[[DroneProfile, argparse.Namespace], list[Sample]]
 Validator = Callable[[list[Sample], DroneProfile, argparse.Namespace], None]
 
@@ -41,10 +42,13 @@ def run_topic(
         return
 
     client = p.connect(p.DIRECT if args.headless or args.self_check else p.GUI)
+    controls: TkSimulationControls | None = None
     try:
         drone, profile = create_world(profile)
         frames: list[object] | None = [] if args.gif else None
-        samples = run_pybullet(drone, profile, args, frames)
+        if not args.headless and not args.self_check:
+            controls = TkSimulationControls(summary_title)
+        samples = run_pybullet(drone, profile, args, frames, controls)
         print_summary(samples, summary_title)
         if args.output:
             save_results(samples, args.output, profile, graph_fields, graph_title)
@@ -59,9 +63,11 @@ def run_topic(
 
                 with Image.open(args.gif) as animation:
                     assert animation.n_frames > 1, "The GIF should contain multiple scene frames"
-        elif not args.headless:
+        elif not args.headless and not (controls and controls.closed):
             print("Experiment complete. Press Q or Esc in the PyBullet window to exit.")
             wait_for_exit()
     finally:
+        if controls is not None:
+            controls.close()
         if p.isConnected(client):
             p.disconnect(client)

@@ -19,6 +19,7 @@ from common.pybullet_utils import create_world, reset_drone
 from common.runner import run_topic
 from common.simulation_utils import ReducedState, capture_scene_frame, integrate_reduced_state
 from common.telemetry import Sample
+from common.tk_controls import TkSimulationControls
 
 START_HEIGHT_M = 2.0
 RUN_SECONDS = 1.0
@@ -135,9 +136,15 @@ def run_reduced_order(profile: DroneProfile) -> list[Sample]:
     return samples
 
 
-def run_pybullet_topic(drone: int, profile: DroneProfile, args: argparse.Namespace, frames: list[np.ndarray] | None) -> list[Sample]:
+def run_pybullet_topic(
+    drone: int,
+    profile: DroneProfile,
+    args: argparse.Namespace,
+    frames: list[np.ndarray] | None,
+    controls: TkSimulationControls | None,
+) -> list[Sample]:
     """Select the Topic 2 rendered or headless PyBullet loop."""
-    return measure_experiment(drone, profile, frames) if args.headless or args.self_check else run_gui(drone, profile, frames)
+    return measure_experiment(drone, profile, frames) if args.headless or args.self_check else run_gui(drone, profile, frames, controls)
 
 
 def run_reduced_topic(profile: DroneProfile, args: argparse.Namespace) -> list[Sample]:
@@ -145,28 +152,49 @@ def run_reduced_topic(profile: DroneProfile, args: argparse.Namespace) -> list[S
     return run_reduced_order(profile)
 
 
-def run_gui(drone: int, profile: DroneProfile, frames: list[np.ndarray] | None = None) -> list[Sample]:
+def run_gui(
+    drone: int,
+    profile: DroneProfile,
+    frames: list[np.ndarray] | None = None,
+    controls: TkSimulationControls | None = None,
+) -> list[Sample]:
     """Run the same experiment visibly and leave the final state for inspection."""
-    reset_experiment(drone)
     p.setGravity(0.0, 0.0, 0.0)
     p.resetDebugVisualizerCamera(cameraDistance=3.0, cameraYaw=45, cameraPitch=-20, cameraTargetPosition=(0, 0, 1.0))
-    samples: list[Sample] = []
     time_step = profile.physics_settings.time_step_s
-    previous_velocity = 0.0
-    for step in range(round(RUN_SECONDS / time_step) + 1):
-        sample = capture_sample(drone, profile, step * time_step, time_step, previous_velocity)
-        samples.append(sample)
-        previous_velocity = sample.vertical_velocity_mps
-        capture_scene_frame(step, profile.physics_settings.physics_hz, frames, GIF_FPS)
-        p.addUserDebugText(
-            f"gravity/contact  t={sample.time_s:.2f}s  z={sample.altitude_m:.2f}m  vz={sample.vertical_velocity_mps:.2f}m/s",
-            (0.3, -0.4, 1.7), textSize=1.2,
-        )
-        if step < round(RUN_SECONDS / time_step):
-            apply_gravity(drone, profile)
-            p.stepSimulation()
-            time.sleep(time_step)
-    return samples
+    total_steps = None if controls is not None else round(RUN_SECONDS / time_step)
+    while True:
+        reset_experiment(drone)
+        if frames is not None:
+            frames.clear()
+        samples: list[Sample] = []
+        previous_velocity = 0.0
+        step = 0
+        while total_steps is None or step <= total_steps:
+            if controls is not None:
+                action = controls.poll()
+                if action == "exit":
+                    return samples
+                if action == "restart":
+                    break
+                if action == "pause":
+                    time.sleep(1 / 60)
+                    continue
+            sample = capture_sample(drone, profile, step * time_step, time_step, previous_velocity)
+            samples.append(sample)
+            previous_velocity = sample.vertical_velocity_mps
+            capture_scene_frame(step, profile.physics_settings.physics_hz, frames, GIF_FPS)
+            p.addUserDebugText(
+                f"gravity/contact  t={sample.time_s:.2f}s  z={sample.altitude_m:.2f}m  vz={sample.vertical_velocity_mps:.2f}m/s",
+                (0.3, -0.4, 1.7), textSize=1.2,
+            )
+            if total_steps is None or step < total_steps:
+                apply_gravity(drone, profile)
+                p.stepSimulation()
+                time.sleep(time_step)
+            step += 1
+        if controls is None:
+            return samples
 
 
 def validate_results(samples: list[Sample], profile: DroneProfile, args: argparse.Namespace) -> None:
