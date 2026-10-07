@@ -123,14 +123,21 @@ def run_flight(drone: int, vehicle: Vehicle, controller, mixer, *, target_altitu
     return samples
 
 
-def run_position_flight(drone: int, vehicle: Vehicle, position_controller, velocity_controller, attitude_controller, mixer, *, home_position_m: tuple[float, float, float], target_offset_m: tuple[float, float, float], target_source=None, takeoff_seconds: float, hover_seconds: float, physics_hz: int, control_hz: int, show_gui: bool, max_total_thrust_n: float, max_tilt_rad: float) -> list[PositionFlightSample]:
+def run_position_flight(drone: int, vehicle: Vehicle, position_controller, velocity_controller, attitude_controller, mixer, *, home_position_m: tuple[float, float, float], target_offset_m: tuple[float, float, float], target_source=None, takeoff_seconds: float, hover_seconds: float, physics_hz: int, control_hz: int, show_gui: bool, max_total_thrust_n: float, max_tilt_rad: float, position_control_hz: int | None = None, velocity_control_hz: int | None = None) -> list[PositionFlightSample]:
     """Run position-to-velocity-to-attitude control with a shared motor mixer."""
     dt = 1.0 / physics_hz
-    control_steps = physics_hz // control_hz
+    attitude_steps = max(1, round(physics_hz / control_hz))
+    position_steps = max(1, round(physics_hz / (position_control_hz or control_hz)))
+    velocity_steps = max(1, round(physics_hz / (velocity_control_hz or control_hz)))
+    attitude_dt = attitude_steps * dt
+    position_dt = position_steps * dt
+    velocity_dt = velocity_steps * dt
     motor_rpms = [0.0] * 4
     samples: list[PositionFlightSample] = []
     target_offset = target_offset_m
     target_attitude = (0.0, 0.0, 0.0)
+    desired_velocity = (0.0, 0.0, 0.0)
+    desired_acceleration = (0.0, 0.0, 0.0)
     motor_thrusts = (0.0, 0.0, 0.0, 0.0)
     position_controller.reset()
     velocity_controller.reset()
@@ -140,18 +147,25 @@ def run_position_flight(drone: int, vehicle: Vehicle, position_controller, veloc
     while total_steps is None or step < total_steps:
         if not p.isConnected():
             break
-        if target_source is not None and step % control_steps == 0:
+        if target_source is not None and step % position_steps == 0:
             next_target = target_source.read()
             if next_target is None:
                 break
             target_offset = next_target
         position, velocity, attitude, body_rates = read_full_state(drone)
-        if step % control_steps == 0:
+        # ! Module 04 position ADRC/PID: update position feedback at its own rate.
+        if step % position_steps == 0:
             target_position = tuple(home + offset for home, offset in zip(home_position_m, target_offset))
-            desired_velocity = position_controller.update(target_position, position, velocity, 1.0 / control_hz)
-            desired_acceleration = velocity_controller.update(desired_velocity, velocity, 1.0 / control_hz)
+            desired_velocity = position_controller.update(target_position, position, velocity, position_dt)
+
+        # ! Module 04 velocity ADRC/PID: update velocity feedback independently of attitude control.
+        if step % velocity_steps == 0:
+            desired_acceleration = velocity_controller.update(desired_velocity, velocity, velocity_dt)
+
+        # ! Module 04 attitude/rate ADRC/PID: consume the latest acceleration command at the fast loop rate.
+        if step % attitude_steps == 0:
             collective, target_attitude = acceleration_to_attitude_thrust(desired_acceleration, attitude[2], vehicle.mass_kg, 9.81, max_total_thrust_n, max_tilt_rad)
-            torque, _ = attitude_controller.update_attitude_rate(attitude, body_rates, target_attitude, 1.0 / control_hz)
+            torque, _ = attitude_controller.update_attitude_rate(attitude, body_rates, target_attitude, attitude_dt)
             motor_thrusts = mixer.mix(collective, torque)
         alpha = min(1.0, dt / vehicle.motor_time_constant_s)
         target_rpms = [(thrust / vehicle.thrust_coefficient) ** 0.5 for thrust in motor_thrusts]

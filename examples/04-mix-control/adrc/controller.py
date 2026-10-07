@@ -30,7 +30,7 @@ class LinearADRC:
         """Clear extended-state estimates before a new flight."""
         self.z1 = self.z2 = self.z3 = self.previous_output = 0.0
 
-    def update(self, reference: float, measurement: float, dt: float) -> float:
+    def update(self, reference: float, measurement: float, dt: float, measurement_rate: float = 0.0, damping: float = 0.0) -> float:
         """Estimate total disturbance and return bounded ADRC control output."""
         # ESO: z1 estimates output, z2 its rate, and z3 the lumped disturbance.
         estimation_error = self.z1 - measurement
@@ -38,7 +38,7 @@ class LinearADRC:
         self.z2 += dt * (self.z3 + self.b0 * self.previous_output - self.beta2 * estimation_error)
         self.z3 += dt * (-self.beta3 * estimation_error)
         # Nonlinear plant inversion is reduced here to u = (u0 - disturbance) / b0.
-        desired_output = self.kp * (reference - self.z1) - self.kd * self.z2
+        desired_output = self.kp * (reference - self.z1) - self.kd * self.z2 - damping * measurement_rate
         self.previous_output = clamp((desired_output - self.z3) / self.b0, -self.output_limit, self.output_limit)
         return self.previous_output
 

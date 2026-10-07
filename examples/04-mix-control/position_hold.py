@@ -11,7 +11,7 @@ from common.position import PositionLimits, TargetSliders
 from common.mixer import Mixer
 from common.simulation import load_vehicle, run_position_flight
 from main import (
-    CONTROL_HZ,
+CONTROL_HZ,
     MAX_THRUST_PER_MOTOR_N,
     MOTOR_TIME_CONSTANT_S,
     MOTOR_YAW_SIGNS,
@@ -29,15 +29,18 @@ POSITION_TARGET_LIMITS = ((-5.0, 5.0), (-5.0, 5.0), (0.0, 5.0))
 MAX_VELOCITY_MPS = (2.0, 2.0, 1.5)
 MAX_ACCELERATION_MPS2 = (5.0, 5.0, 5.0)
 MAX_TILT_RAD = 0.35
+POSITION_CONTROL_HZ = 30
+VELOCITY_CONTROL_HZ = 60
 POSITION_PID_GAINS = ((0.8, 0.0, 0.0), (0.8, 0.0, 0.0), (0.8, 0.0, 0.0))
 POSITION_PID_INTEGRAL_LIMIT = 1.0
 VELOCITY_PID_GAINS = ((1.5, 0.0, 0.0), (1.5, 0.0, 0.0), (2.0, 0.0, 0.0))
 VELOCITY_PID_INTEGRAL_LIMIT = 1.0
 POSITION_ADRC_B0 = (1.0, 1.0, 1.0)
-POSITION_ADRC_CONTROL_BANDWIDTH = (0.4, 0.4, 0.7)
+POSITION_ADRC_CONTROL_BANDWIDTH = (0.4, 0.4, 1.1)
 POSITION_ADRC_OBSERVER_BANDWIDTH = (2.0, 2.0, 3.0)
+POSITION_ADRC_DAMPING = 0.6
 VELOCITY_ADRC_B0 = (1.0, 1.0, 1.0)
-VELOCITY_ADRC_CONTROL_BANDWIDTH = (0.6, 0.6, 1.0)
+VELOCITY_ADRC_CONTROL_BANDWIDTH = (0.6, 0.6, 1.5)
 VELOCITY_ADRC_OBSERVER_BANDWIDTH = (3.0, 3.0, 4.0)
 
 
@@ -49,7 +52,7 @@ def build_outer_loops(name: str):
             PIDVelocityConfig(VELOCITY_PID_GAINS, VELOCITY_PID_INTEGRAL_LIMIT, MAX_ACCELERATION_MPS2),
         )
     return (
-            ADRCPositionConfig(POSITION_ADRC_B0, POSITION_ADRC_CONTROL_BANDWIDTH, POSITION_ADRC_OBSERVER_BANDWIDTH, MAX_VELOCITY_MPS),
+            ADRCPositionConfig(POSITION_ADRC_B0, POSITION_ADRC_CONTROL_BANDWIDTH, POSITION_ADRC_OBSERVER_BANDWIDTH, MAX_VELOCITY_MPS, POSITION_ADRC_DAMPING),
         ADRCVelocityConfig(VELOCITY_ADRC_B0, VELOCITY_ADRC_CONTROL_BANDWIDTH, VELOCITY_ADRC_OBSERVER_BANDWIDTH, MAX_ACCELERATION_MPS2),
     )
 
@@ -90,7 +93,7 @@ def main() -> None:
         if not args.headless and not args.self_check:
             target_source = TargetSliders(PositionLimits(POSITION_TARGET_LIMITS, MAX_VELOCITY_MPS, MAX_ACCELERATION_MPS2), POSITION_TARGET_DEFAULT_M)
         target = (1.0, 0.0, TARGET_ALTITUDE_M) if args.self_check else POSITION_TARGET_DEFAULT_M
-        samples = run_position_flight(drone, vehicle, position_controller, velocity_controller, attitude_controller, mixer, home_position_m=home_position, target_offset_m=target, target_source=target_source, takeoff_seconds=TAKEOFF_SECONDS, hover_seconds=HOVER_SECONDS, physics_hz=PHYSICS_HZ, control_hz=CONTROL_HZ, show_gui=not args.headless and not args.self_check, max_total_thrust_n=MAX_THRUST_PER_MOTOR_N * 4.0, max_tilt_rad=MAX_TILT_RAD)
+        samples = run_position_flight(drone, vehicle, position_controller, velocity_controller, attitude_controller, mixer, home_position_m=home_position, target_offset_m=target, target_source=target_source, takeoff_seconds=TAKEOFF_SECONDS, hover_seconds=HOVER_SECONDS, physics_hz=PHYSICS_HZ, control_hz=CONTROL_HZ, position_control_hz=POSITION_CONTROL_HZ, velocity_control_hz=VELOCITY_CONTROL_HZ, show_gui=not args.headless and not args.self_check, max_total_thrust_n=MAX_THRUST_PER_MOTOR_N * 4.0, max_tilt_rad=MAX_TILT_RAD)
         if args.self_check:
             final = samples[-1]
             assert abs(final.position_relative_m[0] - target[0]) < 0.35, final.position_relative_m
