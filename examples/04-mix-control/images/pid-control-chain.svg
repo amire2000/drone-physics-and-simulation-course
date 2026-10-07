@@ -1,14 +1,65 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1120" height="190" viewBox="0 0 1120 190" role="img" aria-labelledby="title desc">
-  <title id="title">PID position control chain</title>
-  <desc id="desc">Target position feeds PID position and velocity loops, PID attitude and rate loops, the motor mixer, and the drone. Feedback returns from the drone.</desc>
-  <style>text{font-family:Arial,sans-serif;fill:#17202a} .box{stroke:#24527a;stroke-width:2;rx:10} .pid{fill:#dceeff} .io{fill:#fff3cd} .arrow{stroke:#34495e;stroke-width:2;marker-end:url(#a)} .label{font-size:14px;font-weight:bold} .small{font-size:12px}</style>
-  <defs><marker id="a" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#34495e"/></marker></defs>
-  <rect class="box io" x="20" y="65" width="140" height="60"/><text class="label" x="90" y="91" text-anchor="middle">Target position</text><text class="small" x="90" y="110" text-anchor="middle">home-relative XYZ</text>
-  <rect class="box pid" x="195" y="65" width="145" height="60"/><text class="label" x="267" y="91" text-anchor="middle">PID position</text><text class="small" x="267" y="110" text-anchor="middle">desired velocity</text>
-  <rect class="box pid" x="375" y="65" width="145" height="60"/><text class="label" x="447" y="91" text-anchor="middle">PID velocity</text><text class="small" x="447" y="110" text-anchor="middle">desired acceleration</text>
-  <rect class="box pid" x="555" y="65" width="145" height="60"/><text class="label" x="627" y="91" text-anchor="middle">PID attitude/rate</text><text class="small" x="627" y="110" text-anchor="middle">body torque</text>
-  <rect class="box" fill="#e8f8f5" x="735" y="65" width="125" height="60"/><text class="label" x="797" y="91" text-anchor="middle">Mixer</text><text class="small" x="797" y="110" text-anchor="middle">four motors</text>
-  <rect class="box io" x="895" y="65" width="190" height="60"/><text class="label" x="990" y="91" text-anchor="middle">PyBullet drone</text><text class="small" x="990" y="110" text-anchor="middle">position, attitude, rates</text>
-  <path class="arrow" d="M160 95h35M340 95h35M520 95h35M700 95h35M860 95h35"/>
-  <path class="arrow" d="M990 145V170H267V125" fill="none"/><text class="small" x="630" y="185" text-anchor="middle">feedback measurements</text>
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="560" viewBox="0 0 1400 560" role="img" aria-labelledby="title desc">
+  <title id="title">PID position, velocity, attitude, rate, thrust, and motor mixer control chain</title>
+  <desc id="desc">Position and velocity PID controllers produce acceleration. The acceleration conversion produces target attitude and collective thrust. PID attitude and rate controllers produce torque, and the mixer combines thrust and torque into four motor thrust commands.</desc>
+  <style>
+    text{font-family:Arial,sans-serif;fill:#17202a}
+    .box{stroke:#24527a;stroke-width:2;rx:10}
+    .command{fill:#fff3cd}
+    .pid{fill:#dceeff}
+    .map{fill:#eaf2f8;stroke:#2874a6}
+    .mixer{fill:#e8f8f5;stroke:#18745b}
+    .plant{fill:#f2e6ff;stroke:#7040a0}
+    .arrow{stroke:#34495e;stroke-width:2;fill:none;marker-end:url(#arrow)}
+    .feedback{stroke:#8e44ad;stroke-width:2;fill:none;stroke-dasharray:7 5;marker-end:url(#arrow-purple)}
+    .label{font-size:14px;font-weight:bold}
+    .small{font-size:12px}
+    .branch{font-size:13px;font-weight:bold;fill:#52616b}
+  </style>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#34495e"/></marker>
+    <marker id="arrow-purple" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#8e44ad"/></marker>
+  </defs>
+
+  <text class="branch" x="30" y="30">Outer position branch</text>
+  <rect class="box command" x="30" y="50" width="145" height="64"/>
+  <text class="label" x="102" y="77" text-anchor="middle">Target position</text><text class="small" x="102" y="98" text-anchor="middle">XYZ (m)</text>
+  <rect class="box pid" x="220" y="50" width="145" height="64"/>
+  <text class="label" x="292" y="77" text-anchor="middle">PID position</text><text class="small" x="292" y="98" text-anchor="middle">error (m) → v (m/s)</text>
+  <rect class="box pid" x="410" y="50" width="145" height="64"/>
+  <text class="label" x="482" y="77" text-anchor="middle">PID velocity</text><text class="small" x="482" y="98" text-anchor="middle">error (m/s) → a (m/s²)</text>
+  <rect class="box map" x="600" y="50" width="190" height="64"/>
+  <text class="label" x="695" y="77" text-anchor="middle">Acceleration conversion</text><text class="small" x="695" y="98" text-anchor="middle">acceleration_to_attitude_thrust()</text>
+  <path class="arrow" d="M175 82h45M365 82h45M555 82h45"/>
+
+  <text class="branch" x="600" y="150">Inner attitude / rate branch</text>
+  <rect class="box command" x="700" y="170" width="150" height="64"/>
+  <text class="label" x="775" y="197" text-anchor="middle">Target attitude</text><text class="small" x="775" y="218" text-anchor="middle">roll, pitch, yaw (rad)</text>
+  <rect class="box pid" x="900" y="170" width="150" height="64"/>
+  <text class="label" x="975" y="197" text-anchor="middle">PID attitude</text><text class="small" x="975" y="218" text-anchor="middle">error (rad) → rates</text>
+  <rect class="box pid" x="1100" y="170" width="150" height="64"/>
+  <text class="label" x="1175" y="197" text-anchor="middle">PID rate</text><text class="small" x="1175" y="218" text-anchor="middle">error (rad/s) → torque</text>
+  <path class="arrow" d="M850 202h50M1050 202h50"/>
+  <path class="arrow" d="M760 114v56M695 114v146H775v20"/>
+
+  <rect class="box command" x="700" y="280" width="150" height="64"/>
+  <text class="label" x="775" y="307" text-anchor="middle">Collective thrust</text><text class="small" x="775" y="328" text-anchor="middle">total thrust (N)</text>
+  <path class="arrow" d="M775 234v46"/>
+  <rect class="box mixer" x="900" y="280" width="160" height="64"/>
+  <text class="label" x="980" y="307" text-anchor="middle">Motor mixer</text><text class="small" x="980" y="328" text-anchor="middle">thrust + torque</text>
+  <rect class="box plant" x="1110" y="280" width="220" height="64"/>
+  <text class="label" x="1220" y="307" text-anchor="middle">Four motor thrusts</text><text class="small" x="1220" y="328" text-anchor="middle">N → PyBullet drone</text>
+  <path class="arrow" d="M1250 202v58H980v20M850 312h50M1060 312h50"/>
+
+  <text class="branch" x="30" y="390">Feedback sensors</text>
+  <rect class="box command" x="220" y="410" width="145" height="55"/>
+  <text class="small" x="292" y="433" text-anchor="middle">Position sensor</text><text class="small" x="292" y="451" text-anchor="middle">position (m)</text>
+  <rect class="box command" x="410" y="410" width="145" height="55"/>
+  <text class="small" x="482" y="433" text-anchor="middle">Velocity sensor</text><text class="small" x="482" y="451" text-anchor="middle">velocity (m/s)</text>
+  <path class="feedback" d="M1120 344V385H292M292 385v25M482 385v25"/>
+  <path class="feedback" d="M292 410V114M482 410V114"/>
+  <path class="feedback" d="M1330 300H1360V145H975V170"/>
+  <path class="feedback" d="M1330 320H1380V125H1175V170"/>
+  <text class="small" x="700" y="382" text-anchor="middle">state-feedback bus from the PyBullet drone</text>
+  <text class="small" x="1130" y="140" text-anchor="middle">attitude estimate (rad)</text>
+  <text class="small" x="1280" y="120" text-anchor="middle">gyro body rates (rad/s)</text>
 </svg>
