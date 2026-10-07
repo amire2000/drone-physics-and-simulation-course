@@ -77,11 +77,16 @@ class Controller:
         for loop in (self.altitude, *self.attitude, *self.rate):
             loop.reset()
 
-    def update(self, position_z_m: float, velocity_z_mps: float, attitude_rad: tuple[float, float, float], body_rates_rad_s: tuple[float, float, float], target_altitude_m: float, dt: float, mass_kg: float, gravity_mps2: float) -> tuple[float, tuple[float, float, float], tuple[float, float, float]]:
+    def update_attitude_rate(self, attitude_rad: tuple[float, float, float], body_rates_rad_s: tuple[float, float, float], target_attitude_rad: tuple[float, float, float], dt: float) -> tuple[tuple[float, float, float], tuple[float, float, float]]:
+        """Return body torque for an externally supplied attitude setpoint."""
+        desired_rates = tuple(loop.update(target, angle, dt) for loop, target, angle in zip(self.attitude, target_attitude_rad, attitude_rad))
+        torque = tuple(loop.update(target, measured, dt) for loop, target, measured in zip(self.rate, desired_rates, body_rates_rad_s))
+        return torque, desired_rates
+
+    def update(self, position_z_m: float, velocity_z_mps: float, attitude_rad: tuple[float, float, float], body_rates_rad_s: tuple[float, float, float], target_altitude_m: float, target_attitude_rad: tuple[float, float, float], dt: float, mass_kg: float, gravity_mps2: float) -> tuple[float, tuple[float, float, float], tuple[float, float, float]]:
         """Return collective thrust, body torque, and desired angular rates."""
         # ADRC altitude output is commanded vertical acceleration in m/s².
         altitude_acceleration = self.altitude.update(target_altitude_m, position_z_m, dt)
         collective_thrust = clamp(mass_kg * (gravity_mps2 + altitude_acceleration), 0.0, self.config.max_total_thrust_n)
-        desired_rates = tuple(loop.update(0.0, angle, dt) for loop, angle in zip(self.attitude, attitude_rad))
-        torque = tuple(loop.update(target, measured, dt) for loop, target, measured in zip(self.rate, desired_rates, body_rates_rad_s))
+        torque, desired_rates = self.update_attitude_rate(attitude_rad, body_rates_rad_s, target_attitude_rad, dt)
         return collective_thrust, torque, desired_rates

@@ -7,6 +7,8 @@ import time
 import pybullet as p
 import pybullet_data
 
+from common.position import acceleration_to_attitude_thrust
+
 
 @dataclass(frozen=True)
 class Vehicle:
@@ -31,6 +33,16 @@ class FlightSample:
     body_rates_rad_s: tuple[float, float, float]
     motor_thrusts_n: tuple[float, ...]
     collective_thrust_n: float
+
+
+@dataclass(frozen=True)
+class PositionFlightSample:
+    """State record for position and velocity-control validation."""
+
+    time_s: float
+    position_relative_m: tuple[float, float, float]
+    velocity_world_mps: tuple[float, float, float]
+    attitude_rad: tuple[float, float, float]
 
 
 def load_vehicle(urdf_path: Path, max_thrust_per_motor_n: float, motor_time_constant_s: float, yaw_signs: tuple[int, ...]) -> tuple[int, Vehicle]:
@@ -58,6 +70,15 @@ def read_state(drone: int) -> tuple[float, tuple[float, float, float], tuple[flo
     return position[2], p.getEulerFromQuaternion(quaternion), body_rates
 
 
+def read_full_state(drone: int) -> tuple[tuple[float, float, float], tuple[float, float, float], tuple[float, float, float], tuple[float, float, float]]:
+    """Read world position, world velocity, Euler attitude, and body rates."""
+    position, quaternion = p.getBasePositionAndOrientation(drone)
+    velocity, angular_velocity_world = p.getBaseVelocity(drone)
+    rotation = p.getMatrixFromQuaternion(quaternion)
+    body_rates = tuple(sum(rotation[3 * row + axis] * angular_velocity_world[row] for row in range(3)) for axis in range(3))
+    return tuple(position), tuple(velocity), p.getEulerFromQuaternion(quaternion), body_rates
+
+
 def apply_motor_forces(drone: int, vehicle: Vehicle, motor_thrusts_n: tuple[float, ...], motor_rpms: list[float]) -> None:
     """Apply rotor thrust and reaction yaw torque in the URDF body frame."""
     # Rotor force is +Z in the body frame; reaction torque follows each signed rotor direction.
@@ -66,21 +87,27 @@ def apply_motor_forces(drone: int, vehicle: Vehicle, motor_thrusts_n: tuple[floa
         p.applyExternalTorque(drone, -1, (0.0, 0.0, yaw_sign * vehicle.torque_coefficient * rpm**2), p.LINK_FRAME)
 
 
-def run_flight(drone: int, vehicle: Vehicle, controller, mixer, *, target_altitude_m: float, takeoff_seconds: float, hover_seconds: float, physics_hz: int, control_hz: int, show_gui: bool) -> list[FlightSample]:
+def run_flight(drone: int, vehicle: Vehicle, controller, mixer, *, target_altitude_m: float, takeoff_seconds: float, hover_seconds: float, physics_hz: int, control_hz: int, show_gui: bool, command_source=None) -> list[FlightSample]:
     """Run the takeoff and hover experiment with either injected controller."""
     dt = 1.0 / physics_hz
     control_steps = physics_hz // control_hz
     motor_rpms = [0.0] * 4
     samples: list[FlightSample] = []
     controller.reset()
+    target_attitude_rad = (0.0, 0.0, 0.0)
     total_steps = None if show_gui else round((takeoff_seconds + hover_seconds) / dt)
     step = 0
     while total_steps is None or step < total_steps:
         if not p.isConnected():
             break
+        if command_source is not None:
+            next_target = command_source.read()
+            if next_target is None:
+                break
+            target_attitude_rad = next_target
         altitude, attitude, body_rates = read_state(drone)
         if step % control_steps == 0:
-            collective, torque, _ = controller.update(altitude, p.getBaseVelocity(drone)[0][2], attitude, body_rates, target_altitude_m, 1.0 / control_hz, vehicle.mass_kg, 9.81)
+            collective, torque, _ = controller.update(altitude, p.getBaseVelocity(drone)[0][2], attitude, body_rates, target_altitude_m, target_attitude_rad, 1.0 / control_hz, vehicle.mass_kg, 9.81)
             motor_thrusts = mixer.mix(collective, torque)
         alpha = min(1.0, dt / vehicle.motor_time_constant_s)
         target_rpms = [(thrust / vehicle.thrust_coefficient) ** 0.5 for thrust in motor_thrusts]
@@ -90,6 +117,50 @@ def run_flight(drone: int, vehicle: Vehicle, controller, mixer, *, target_altitu
         p.stepSimulation()
         sample = FlightSample(step * dt, *read_state(drone), actual_thrusts, sum(actual_thrusts))
         samples.append(sample)
+        if show_gui:
+            time.sleep(dt)
+        step += 1
+    return samples
+
+
+def run_position_flight(drone: int, vehicle: Vehicle, position_controller, velocity_controller, attitude_controller, mixer, *, home_position_m: tuple[float, float, float], target_offset_m: tuple[float, float, float], target_source=None, takeoff_seconds: float, hover_seconds: float, physics_hz: int, control_hz: int, show_gui: bool, max_total_thrust_n: float, max_tilt_rad: float) -> list[PositionFlightSample]:
+    """Run position-to-velocity-to-attitude control with a shared motor mixer."""
+    dt = 1.0 / physics_hz
+    control_steps = physics_hz // control_hz
+    motor_rpms = [0.0] * 4
+    samples: list[PositionFlightSample] = []
+    target_offset = target_offset_m
+    target_attitude = (0.0, 0.0, 0.0)
+    motor_thrusts = (0.0, 0.0, 0.0, 0.0)
+    position_controller.reset()
+    velocity_controller.reset()
+    attitude_controller.reset()
+    total_steps = None if show_gui else round((takeoff_seconds + hover_seconds) / dt)
+    step = 0
+    while total_steps is None or step < total_steps:
+        if not p.isConnected():
+            break
+        if target_source is not None and step % control_steps == 0:
+            next_target = target_source.read()
+            if next_target is None:
+                break
+            target_offset = next_target
+        position, velocity, attitude, body_rates = read_full_state(drone)
+        if step % control_steps == 0:
+            target_position = tuple(home + offset for home, offset in zip(home_position_m, target_offset))
+            desired_velocity = position_controller.update(target_position, position, velocity, 1.0 / control_hz)
+            desired_acceleration = velocity_controller.update(desired_velocity, velocity, 1.0 / control_hz)
+            collective, target_attitude = acceleration_to_attitude_thrust(desired_acceleration, attitude[2], vehicle.mass_kg, 9.81, max_total_thrust_n, max_tilt_rad)
+            torque, _ = attitude_controller.update_attitude_rate(attitude, body_rates, target_attitude, 1.0 / control_hz)
+            motor_thrusts = mixer.mix(collective, torque)
+        alpha = min(1.0, dt / vehicle.motor_time_constant_s)
+        target_rpms = [(thrust / vehicle.thrust_coefficient) ** 0.5 for thrust in motor_thrusts]
+        motor_rpms[:] = [actual + alpha * (target - actual) for actual, target in zip(motor_rpms, target_rpms)]
+        actual_thrusts = tuple(vehicle.thrust_coefficient * rpm**2 for rpm in motor_rpms)
+        apply_motor_forces(drone, vehicle, actual_thrusts, motor_rpms)
+        p.stepSimulation()
+        next_position, next_velocity, next_attitude, _ = read_full_state(drone)
+        samples.append(PositionFlightSample(step * dt, tuple(value - home for value, home in zip(next_position, home_position_m)), next_velocity, next_attitude))
         if show_gui:
             time.sleep(dt)
         step += 1

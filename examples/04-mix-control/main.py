@@ -34,11 +34,11 @@ ADRC_ALTITUDE_CONTROL_BANDWIDTH = 1.5
 ADRC_ALTITUDE_OBSERVER_BANDWIDTH = 6.0
 ADRC_ALTITUDE_OUTPUT_LIMIT_MPS2 = 5.0
 ADRC_ATTITUDE_B0 = 1.0
-ADRC_ATTITUDE_CONTROL_BANDWIDTH = 3.0
-ADRC_ATTITUDE_OBSERVER_BANDWIDTH = 12.0
+ADRC_ATTITUDE_CONTROL_BANDWIDTH = 1.5
+ADRC_ATTITUDE_OBSERVER_BANDWIDTH = 6.0
 ADRC_RATE_B0 = (1.0 / 0.00348, 1.0 / 0.00348, 1.0 / 0.00396)
-ADRC_RATE_CONTROL_BANDWIDTH = 3.0
-ADRC_RATE_OBSERVER_BANDWIDTH = 12.0
+ADRC_RATE_CONTROL_BANDWIDTH = 1.5
+ADRC_RATE_OBSERVER_BANDWIDTH = 6.0
 
 
 def build_controller(name: str):
@@ -89,8 +89,10 @@ def main() -> None:
         expected_steps = round((TAKEOFF_SECONDS + HOVER_SECONDS) * PHYSICS_HZ)
         if args.self_check:
             final = samples[-1]
+            hover_samples = samples[-2 * PHYSICS_HZ:]
             assert abs(final.altitude_m - TARGET_ALTITUDE_M) < 0.15, final.altitude_m
             assert abs(final.attitude_rad[0]) < 0.2 and abs(final.attitude_rad[1]) < 0.2, final.attitude_rad
+            assert max(max(abs(rate) for rate in sample.body_rates_rad_s) for sample in hover_samples) < 0.2
             print(f"Module 04 self-check passed: final altitude={final.altitude_m:.3f} m")
         elif not args.headless:
             banner = "SIMULATION COMPLETED" if len(samples) == expected_steps else "SIMULATION EXITED BY USER"

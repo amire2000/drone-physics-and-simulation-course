@@ -22,6 +22,7 @@ class Controller(Protocol):
         attitude_rad: tuple[float, float, float],
         body_rates_rad_s: tuple[float, float, float],
         target_altitude_m: float,
+        target_attitude_rad: tuple[float, float, float],
         dt: float,
         mass_kg: float,
         gravity_mps2: float,

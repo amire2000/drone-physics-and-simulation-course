@@ -57,12 +57,17 @@ class Controller:
         for pid in (self.altitude, *self.attitude, *self.rate):
             pid.reset()
 
-    def update(self, position_z_m: float, velocity_z_mps: float, attitude_rad: tuple[float, float, float], body_rates_rad_s: tuple[float, float, float], target_altitude_m: float, dt: float, mass_kg: float, gravity_mps2: float) -> tuple[float, tuple[float, float, float], tuple[float, float, float]]:
+    def update_attitude_rate(self, attitude_rad: tuple[float, float, float], body_rates_rad_s: tuple[float, float, float], target_attitude_rad: tuple[float, float, float], dt: float) -> tuple[tuple[float, float, float], tuple[float, float, float]]:
+        """Return body torque for an externally supplied attitude setpoint."""
+        desired_rates = tuple(pid.update(target - angle, -rate, dt) for pid, target, angle, rate in zip(self.attitude, target_attitude_rad, attitude_rad, body_rates_rad_s))
+        # Body torque: tau = PID(desired_rate - measured_rate).
+        torque = tuple(pid.update(target - measured, 0.0, dt) for pid, target, measured in zip(self.rate, desired_rates, body_rates_rad_s))
+        return torque, desired_rates
+
+    def update(self, position_z_m: float, velocity_z_mps: float, attitude_rad: tuple[float, float, float], body_rates_rad_s: tuple[float, float, float], target_altitude_m: float, target_attitude_rad: tuple[float, float, float], dt: float, mass_kg: float, gravity_mps2: float) -> tuple[float, tuple[float, float, float], tuple[float, float, float]]:
         """Return collective thrust, body torque, and desired angular rates."""
         # Vertical force: T = m(g + a_command), positive along body +Z when level.
         altitude_output = self.altitude.update(target_altitude_m - position_z_m, -velocity_z_mps, dt)
         collective_thrust = clamp(mass_kg * gravity_mps2 + altitude_output, 0.0, self.config.max_total_thrust_n)
-        desired_rates = tuple(pid.update(-angle, -rate, dt) for pid, angle, rate in zip(self.attitude, attitude_rad, body_rates_rad_s))
-        # Body torque: tau = PID(desired_rate - measured_rate).
-        torque = tuple(pid.update(target - measured, 0.0, dt) for pid, target, measured in zip(self.rate, desired_rates, body_rates_rad_s))
+        torque, desired_rates = self.update_attitude_rate(attitude_rad, body_rates_rad_s, target_attitude_rad, dt)
         return collective_thrust, torque, desired_rates
