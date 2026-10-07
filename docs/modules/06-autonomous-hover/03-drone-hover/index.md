@@ -11,7 +11,7 @@
 
 ## Manual takeoff
 
-This capstone uses the complete 650 g drone body, a ground plane, four virtual
+This capstone uses the complete 620 g drone body, a ground plane, four virtual
 motors, and one collective PWM slider. It is manual control: the slider changes
 lift, while attitude hold prevents an unintended spin.
 
@@ -21,7 +21,7 @@ uv run python examples/06-autonomous-hover/manual_takeoff.py
 
 In the PyBullet GUI, raise **Collective PWM (us)** slowly from `1000` toward
 `1500`. The display shows commanded PWM, actual rotor RPM, individual thrust,
-total thrust, attitude, body rate, and the `6.38 N` drone weight.
+total thrust, attitude, body rate, and the `6.08 N` drone weight.
 
 | PWM range | Expected behaviour |
 | --- | --- |
@@ -77,9 +77,9 @@ delayed rotor thrust, not the requested command.
 
 ## Automatic takeoff, hover, yaw, and landing
 
-The automatic example climbs to `3 m`, hovers for two seconds, rotates `180°`,
+The automatic example climbs to `3 m`, hovers for four seconds, rotates `180°`,
 then lands. Conservative vertical gains keep the headless peak altitude below
-`3.25 m`.
+`3.5 m`.
 
 ```bash
 uv run python examples/06-autonomous-hover/auto_takeoff_and_hover.py

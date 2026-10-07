@@ -97,8 +97,11 @@ check.
 
 | Example | What it demonstrates | Run |
 | --- | --- | --- |
+| `00-real-drone-specification/inspect_real_drone.py` | Prints and validates the 5-inch/6S reference vehicle profile. | `uv run python examples/06-autonomous-hover/00-real-drone-specification/inspect_real_drone.py` |
+| `00-real-drone-specification/measure_vehicle.py` | Checks the 240 mm motor geometry and working inertia. | `uv run python examples/06-autonomous-hover/00-real-drone-specification/measure_vehicle.py` |
+| `reduced_order_simulation.py` | Plots real-profile force behavior without PyBullet. | `uv run python examples/06-autonomous-hover/reduced_order_simulation.py --scenario altitude-pid` |
 | `manual_takeoff.py` | Manual collective thrust with shared motor and attitude control. | `uv run python examples/06-autonomous-hover/manual_takeoff.py` |
-| `auto_takeoff_and_hover.py` | Automatic 3 m takeoff, 180° yaw turn, hover, and landing. | `uv run python examples/06-autonomous-hover/auto_takeoff_and_hover.py` |
+| `auto_takeoff_and_hover.py` | Real-profile 3 m takeoff, 180° yaw turn, hover, landing, and optional wind GUI. | `uv run python examples/06-autonomous-hover/auto_takeoff_and_hover.py` |
 | `pid_tuning_hover.py` | Live altitude-PID tuning with optional barometer noise. | `uv run python examples/06-autonomous-hover/pid_tuning_hover.py` |
 
 ### Module 7: Optical navigation

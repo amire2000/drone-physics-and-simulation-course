@@ -48,12 +48,29 @@ nav:
       - Configuration takeoff comparison: modules/03-propeller-aerodynamics/configuration-comparison/index.md
   - "Module 4: Motor mixer and PID": modules/04-motor-mixer-pid/index.md
   - "Module 5: Battery voltage sag": modules/05-battery-voltage-sag/index.md
-  - "Module 6: Complete drone physics engine":
+  - "Module 6: Autonomous takeoff and precision hover":
       - Overview: modules/06-autonomous-hover/index.md
-      - "Step 1: Initialize environment": modules/06-autonomous-hover/01-initialize-environment/index.md
-      - "Step 2: Drone free fall": modules/06-autonomous-hover/02-drone-free-fall/index.md
-      - "Drone hover capstone": modules/06-autonomous-hover/03-drone-hover/index.md
-      - "Step 5: Physics-engine validation": modules/06-autonomous-hover/05-physics-engine-validation/index.md
+      - "Topic 0: Real drone specification": modules/06-autonomous-hover/00-real-drone-specification/index.md
+      - "Topic 1: Initialize environment": modules/06-autonomous-hover/01-initialize-environment/index.md
+      - "Topic 2: Gravity and contact": modules/06-autonomous-hover/02-gravity-and-contact/index.md
+      - "Topic 3: Rotor thrust":
+          - Overview: modules/06-autonomous-hover/03-rotor-thrust/index.md
+          - Motor lag and control response: modules/06-autonomous-hover/03-rotor-thrust/motor-lag/index.md
+      - "Topic 4: Roll and pitch torque": modules/06-autonomous-hover/04-roll-pitch-torque/index.md
+      - "Topic 5: Reaction yaw torque": modules/06-autonomous-hover/05-reaction-yaw-torque/index.md
+      - "Topic 6: Body drag": modules/06-autonomous-hover/06-body-drag/index.md
+      - "Topic 7: Rotor drag": modules/06-autonomous-hover/07-rotor-drag/index.md
+      - "Topic 8: Wind": modules/06-autonomous-hover/08-wind/index.md
+      - "Topic 9: Angular damping": modules/06-autonomous-hover/09-angular-damping/index.md
+      - "Topic 10: Battery and motor dynamics": modules/06-autonomous-hover/10-battery-and-motor-dynamics/index.md
+      - "Topic 11: Control and mixing": modules/06-autonomous-hover/11-control-and-mixing/index.md
+      - "Topic 12: Advanced forces": modules/06-autonomous-hover/12-advanced-forces/index.md
+      - "Topic 13: Physics-engine validation": modules/06-autonomous-hover/13-physics-engine-validation/index.md
+      - "Topic 14: Autonomous flight": modules/06-autonomous-hover/14-autonomous-flight/index.md
+      - "Legacy lesson references":
+          - "Free-fall lesson": modules/06-autonomous-hover/02-drone-free-fall/index.md
+          - "Original hover lesson": modules/06-autonomous-hover/03-drone-hover/index.md
+          - "Original validation lesson": modules/06-autonomous-hover/05-physics-engine-validation/index.md
   - "Module 7: Optical navigation": modules/07-optical-navigation/index.md
   - "Module 8: Betaflight SITL bridge":
       - Overview: modules/08-betaflight-sitl/index.md

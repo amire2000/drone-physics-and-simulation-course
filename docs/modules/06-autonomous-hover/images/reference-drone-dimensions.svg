@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 420" role="img" aria-labelledby="title desc">
+  <title id="title">Reference quadcopter geometry</title>
+  <desc id="desc">Top view of a five-inch X-frame with four rotors, body axes, and a 240 millimeter diagonal.</desc>
+  <rect width="720" height="420" fill="#f8fafc"/>
+  <g stroke="#334155" stroke-width="10" stroke-linecap="round">
+    <line x1="220" y1="90" x2="500" y2="330"/>
+    <line x1="500" y1="90" x2="220" y2="330"/>
+  </g>
+  <rect x="315" y="175" width="90" height="70" rx="8" fill="#1e293b"/>
+  <g fill="#0ea5e9" stroke="#075985" stroke-width="4">
+    <circle cx="220" cy="90" r="28"/><circle cx="500" cy="90" r="28"/>
+    <circle cx="220" cy="330" r="28"/><circle cx="500" cy="330" r="28"/>
+  </g>
+  <g font-family="sans-serif" font-size="22" fill="#0f172a">
+    <text x="196" y="48">M0</text><text x="510" y="48">M1</text>
+    <text x="196" y="378">M2</text><text x="510" y="378">M3</text>
+    <text x="345" y="215" fill="white">CoM</text>
+    <text x="45" y="210">+Y</text><text x="350" y="405">+X / front</text>
+    <text x="532" y="214">240 mm diagonal</text>
+  </g>
+  <g stroke="#dc2626" stroke-width="3" marker-end="url(#arrow)">
+    <line x1="360" y1="210" x2="460" y2="210"/><line x1="360" y1="210" x2="360" y2="110"/>
+  </g>
+  <text x="470" y="205" font-family="sans-serif" font-size="20" fill="#dc2626">+X</text>
+  <text x="365" y="105" font-family="sans-serif" font-size="20" fill="#dc2626">+Y</text>
+  <defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#dc2626"/></marker></defs>
+</svg>

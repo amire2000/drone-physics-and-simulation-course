@@ -29,6 +29,7 @@ content belongs in `docs/`; runnable work belongs in `examples/`.
 
 | Updated | Document | Description | Status |
 | --- | --- | --- | --- |
+| 2026-10-07 | [Autonomous hover capstone module plan](learning/autonomous_hover_capstone_module_plan.md) | Module 6 capstone plan for folder-owned cumulative examples that add each flight behavior to the shared PyBullet loop, including the Topic 0 mass budget and motor-lag subtopic. | Partly implemented |
 | 2026-09-26 | [Learned vertical hover with a NumPy MLP](learning/mlp_vertical_hover_module_plan.md) | Module 9 policy-learning progression from generated data to PyBullet. | Partly implemented |
 
 ## Research

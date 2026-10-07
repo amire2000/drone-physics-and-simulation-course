@@ -390,6 +390,7 @@ dependencies = [
     { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
     { name = "numpy", version = "2.5.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
     { name = "opencv-python" },
+    { name = "pillow" },
     { name = "pybullet" },
     { name = "pyyaml" },
 ]
@@ -401,6 +402,7 @@ requires-dist = [
     { name = "mkdocs-material", specifier = ">=9.7.7" },
     { name = "numpy", specifier = ">=1.26" },
     { name = "opencv-python", specifier = ">=4.10" },
+    { name = "pillow", specifier = ">=12.0" },
     { name = "pybullet", specifier = ">=3.2.7" },
     { name = "pyyaml", specifier = ">=6.0" },
 ]

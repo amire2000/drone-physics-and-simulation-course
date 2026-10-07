@@ -1,4 +1,4 @@
-# Module 6: Complete drone physics engine and validation
+# Module 6: Autonomous takeoff and precision hover
 
 ## By the end, you will be able to
 
@@ -6,6 +6,8 @@
 - Explain where each effect comes from and how it changes flight.
 - Distinguish a physical force from a model property such as mass or inertia.
 - Validate gravity, lift, attitude torque, drag, and wind before tuning a controller.
+- Use graphs and a PyBullet-independent reduced-order model to predict behavior.
+- Run the real-reference drone profile through the final PyBullet flight.
 
 ---
 
@@ -36,7 +38,7 @@ flowchart LR
 ```
 
 The state is position, linear velocity, orientation, and body angular velocity.
-Mass and inertia decide how strongly a given force or torque changes that state.
+**Mass and inertia decide how strongly a given force or torque changes that state**.
 
 ---
 
@@ -126,12 +128,31 @@ the air-relative velocity; it is not an extra force by itself.
 
 ---
 
-## Capstone lessons
+## Topic map
 
-1. [Step 1: Initialize the simulation environment](01-initialize-environment/index.md)
-2. [Step 2: Drone free fall](02-drone-free-fall/index.md)
-3. [Drone hover capstone](03-drone-hover/index.md)
-4. [Step 5: Physics-engine validation](05-physics-engine-validation/index.md)
+0. [Real drone specification](00-real-drone-specification/index.md)
+1. [Initialize the environment](01-initialize-environment/index.md)
+2. [Gravity and contact](02-gravity-and-contact/index.md)
+3. [Rotor thrust](03-rotor-thrust/index.md)
+4. [Roll and pitch torque](04-roll-pitch-torque/index.md)
+5. [Reaction yaw torque](05-reaction-yaw-torque/index.md)
+6. [Body drag](06-body-drag/index.md)
+7. [Rotor drag](07-rotor-drag/index.md)
+8. [Wind](08-wind/index.md)
+9. [Angular damping](09-angular-damping/index.md)
+10. [Battery and motor dynamics](10-battery-and-motor-dynamics/index.md)
+11. [Control and mixing](11-control-and-mixing/index.md)
+12. [Advanced forces](12-advanced-forces/index.md)
+13. [Physics-engine validation](13-physics-engine-validation/index.md)
+14. [Autonomous flight](14-autonomous-flight/index.md)
+
+The reduced-order graphs can be run with:
+
+```bash
+uv run python examples/06-autonomous-hover/reduced_order_simulation.py --scenario altitude-pid --interactive
+```
+
+The final PyBullet flight can be run with `--headless` or `--wind-gui`.
 
 The hover capstone turns this force inventory into a controlled flight. The
 validation lesson tests individual predictions before controller gains are

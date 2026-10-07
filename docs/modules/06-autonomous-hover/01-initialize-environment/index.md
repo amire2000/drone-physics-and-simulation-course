@@ -1,124 +1,173 @@
-# Step 1: Initialize the simulation environment
-
-Before a drone can hover, the simulator needs a predictable world: a clock,
-gravity, a ground plane, and the drone model. This first capstone step loads
-that world and stops before physics advances, so you can inspect its starting
-state.
+# Topic 1: Initialize the environment
 
 ## By the end, you will be able to
 
-- Open the course drone and ground plane in PyBullet.
-- Identify the gravity and 240 Hz clock shared by later flight examples.
-- Read a drone's initial position, velocity, and attitude.
-- Use GUI and headless runs for visual inspection and automated checks.
+- load the reference profile, ground, and URDF;
+- explain how the Topic 0 vehicle becomes a PyBullet world;
+- identify the physics timestep and why the first state is deterministic;
+- inspect the initial state before time advances;
+- run the same initialization in headless and GUI modes.
 
 ```mermaid
 flowchart LR
-    connect[Connect to PyBullet] --> world[create_world]
-    world --> clock[Set gravity and 240 Hz timestep]
-    clock --> assets[Load plane and drone URDF]
-    assets --> state[read_state]
-    state --> inspect[Inspect GUI or print state]
-    inspect --> exit[Q, Esc, or headless exit]
+    profile[Topic 0 real-reference profile] --> world[PyBullet world]
+    world --> ground[Ground plane and gravity]
+    world --> urdf[Load URDF rigid body]
+    ground --> state[Initial pose and velocity]
+    urdf --> state
+    state --> check[Deterministic self-check]
 ```
+
+Topic 0 defined the vehicle. Topic 1 creates the world that will later receive
+gravity, contact, thrust, drag, and control forces.
 
 ---
 
-## Run the environment
+## The intuition: create the stage before adding forces
 
-From the repository root, run:
+PyBullet needs three things before the simulation loop can do useful work:
+
+1. a world with a fixed gravity and timestep;
+2. a ground plane for contact;
+3. the real-reference URDF with its mass, inertia, center of mass, collision
+   geometry, and rotor locations.
+
+At this topic there are no motor forces yet. We only check that the drone is
+loaded in the correct initial pose and that no physics step has accidentally
+changed its state.
+
+---
+
+## The simulation timestep
+
+The physics engine advances in fixed increments:
+
+\[
+\Delta t=\frac{1}{f_{physics}}
+\]
+
+For the course settings:
+
+\[
+\Delta t=\frac{1}{240\,\mathrm{Hz}}=0.00417\,\mathrm{s}
+\]
+
+| Symbol | Meaning | SI unit |
+| --- | --- | --- |
+| \(\Delta t\) | Duration of one physics step | s |
+| \(f_{physics}\) | Physics update frequency | Hz or s⁻¹ |
+| \(t_k\) | Simulation time at step \(k\) | s |
+| \(t_{k+1}\) | Time after one step | s |
+
+The initial-state check happens before calling `p.stepSimulation()`. Therefore
+the vehicle should still be at approximately `(0, 0, 0.05) m` with zero linear
+velocity.
+
+---
+
+## Run the working example
+
+Headless mode prints the state and runs without opening a window:
 
 ```bash
-uv run python examples/06-autonomous-hover/initialize_environment.py
+uv run python examples/06-autonomous-hover/01-initialize-environment/initialize_environment.py --headless
 ```
 
-The GUI shows the plane and the course quadcopter, positioned just above the
-ground. It does **not** call `stepSimulation()`, so gravity has not yet started
-the drone falling. Use the mouse to orbit and zoom, then press `Q` or `Esc` to
-close the example.
-
-For a terminal-only check:
+Self-check mode also asserts the spawn height and zero initial velocity:
 
 ```bash
-uv run python examples/06-autonomous-hover/initialize_environment.py --headless
+uv run python examples/06-autonomous-hover/01-initialize-environment/initialize_environment.py --self-check
 ```
 
-This prints a position close to `(0.0, 0.0, 0.05) m`, zero velocity, and level
-roll, pitch, and yaw.
-
-![alt text](images/env.png)
-
----
-
-## What `create_world()` prepares
-
-The example deliberately reuses `examples/common/pybullet_utils.py` rather
-than copying setup code. That helper is the single shared definition of the
-course environment:
-
-| Setup item | Why it matters |
-| --- | --- |
-| PyBullet connection | Chooses an interactive GUI or invisible headless simulation. |
-| Gravity `(0, 0, -9.81)` | Gives every free object Earth's downward acceleration. |
-| Timestep `1 / 240 s` | Sets the fixed clock used by the physics engine. |
-| `plane.urdf` | Provides a static ground surface for takeoff and landing. |
-| `full_drone.urdf` | Defines the mass, inertia, links, and visual drone frame. |
-
-The helper returns the PyBullet body id for the drone. `read_state(drone)` uses
-that id to read the complete rigid-body state. At this point the important
-values are position and velocity:
-
-$$\mathbf{p}=(x,y,z), \qquad \mathbf{v}=(v_x,v_y,v_z).$$
-
-The initial velocity is zero because loading an object does not simulate time.
-The next tutorial steps will apply forces, call `stepSimulation()`, and observe
-how these values change.
-
----
-
-## The small runnable example
-
-```python
---8<-- "examples/06-autonomous-hover/initialize_environment.py"
-```
-
-`--self-check` is the fast automated version of this lesson. It verifies the
-spawn height and confirms the drone has not moved:
+GUI mode opens PyBullet. Press `Q` or `Esc` to exit:
 
 ```bash
-uv run python examples/06-autonomous-hover/initialize_environment.py --self-check
+uv run python examples/06-autonomous-hover/01-initialize-environment/initialize_environment.py
 ```
 
+The example can also render a deterministic window-style snapshot without
+opening a GUI:
+
+```bash
+uv run python examples/06-autonomous-hover/01-initialize-environment/initialize_environment.py \
+  --snapshot docs/modules/06-autonomous-hover/01-initialize-environment/images/environment-initial-state.png
+```
+
+![Initial PyBullet environment with the real-reference drone and ground plane.](images/environment-initial-state.png)
+
+*Figure: a reproducible camera snapshot of the same initial world used by the
+headless and GUI modes.*
+
+Representative headless output:
+
+```text
+Position: (0.0, 0.0, 0.05) m
+Linear velocity: (0.0, 0.0, 0.0) m/s
+Roll/pitch/yaw: (0.0, -0.0, 0.0) rad
+Body rate: (0.0, 0.0, 0.0) rad/s
+Environment initialization self-check passed
+```
+
+The important evidence is not visual detail. It is that the Topic 0 URDF loads,
+the vehicle begins 5 cm above the plane, and the state has not advanced before
+the first physics step.
+
 ---
 
-## Hands-on: inspect before moving
+## Source excerpts
 
-1. Run the GUI example and orbit around the drone.
-2. Confirm that the frame starts level and that it is slightly above the plane.
-3. Run the headless command and compare the printed state with what you saw.
-4. Explain why the vertical velocity is still `0.0 m/s` even though gravity is
-   already configured.
+The full working example is
+`examples/06-autonomous-hover/01-initialize-environment/initialize_environment.py`.
+
+??? example "Open the cumulative profile-to-world setup"
+
+    ```python
+    profile = load_drone_profile("real_reference")
+    drone = create_world(profile.model, profile.physics_settings)
+    print(format_drone_state(read_state(drone)))
+    ```
+
+This is the cumulative handoff from Topic 0: the world uses the same URDF and
+vehicle profile that were inspected and validated there.
+
+??? example "Open the initial-state check"
+
+    ```python
+    state = read_state(drone)
+    assert abs(state.position_m[2] - 0.05) < 1e-9
+    assert state.linear_velocity_mps == (0.0, 0.0, 0.0)
+    ```
+
+The check is intentionally small. Later topics will add forces and verify how
+this state changes after time advances.
 
 ---
 
-## Review quiz
+## Checkpoint quiz
 
-<form class="quiz" data-answer="b" data-explanation="The helper loads a fixed plane and the course drone, then returns the drone body id.">
-  <fieldset><legend>1. What does <code>create_world()</code> return?</legend>
-    <label><input type="radio" name="environment-q1" value="a"> A motor PWM command</label><br>
-    <label><input type="radio" name="environment-q1" value="b"> The loaded drone's PyBullet body id</label><br>
-    <label><input type="radio" name="environment-q1" value="c"> A camera image</label>
-  </fieldset><button type="button" class="quiz-check">Check answer</button><p class="quiz-result" aria-live="polite"></p>
+<form class="quiz" data-answer="a" data-explanation="The fixed timestep defines how much simulated time advances on each call to p.stepSimulation().">
+  <fieldset><legend>1. What does the physics timestep control?</legend><label><input type="radio" name="topic1-init-q1" value="a"> The simulated time advanced by each physics step</label><br><label><input type="radio" name="topic1-init-q1" value="b"> The drone's mass</label><br><label><input type="radio" name="topic1-init-q1" value="c"> The number of propeller blades</label></fieldset>
+  <button type="button" class="quiz-check">Check answer</button><p class="quiz-result" aria-live="polite"></p>
 </form>
 
-<form class="quiz" data-answer="a" data-explanation="Loading a world only creates state. Physics changes it only after a simulation step.">
-  <fieldset><legend>2. Why is the initial vertical velocity zero?</legend>
-    <label><input type="radio" name="environment-q2" value="a"> No physics step has happened yet</label><br>
-    <label><input type="radio" name="environment-q2" value="b"> Gravity is disabled</label><br>
-    <label><input type="radio" name="environment-q2" value="c"> The plane pushes upward before contact</label>
-  </fieldset><button type="button" class="quiz-check">Check answer</button><p class="quiz-result" aria-live="polite"></p>
+<form class="quiz" data-answer="c" data-explanation="Topic 0's URDF and profile are loaded before later topics add forces to the simulation loop.">
+  <fieldset><legend>2. What is Topic 1 responsible for before thrust is added?</legend><label><input type="radio" name="topic1-init-q2" value="a"> Tuning the altitude PID</label><br><label><input type="radio" name="topic1-init-q2" value="b"> Measuring propeller thrust</label><br><label><input type="radio" name="topic1-init-q2" value="c"> Creating the world, ground, and real-reference rigid body</label></fieldset>
+  <button type="button" class="quiz-check">Check answer</button><p class="quiz-result" aria-live="polite"></p>
+</form>
+
+<form class="quiz" data-answer="b" data-explanation="Before p.stepSimulation() is called, the initialized drone should still have its spawn pose and zero velocity.">
+  <fieldset><legend>3. What should the initial-state check observe?</legend><label><input type="radio" name="topic1-init-q3" value="a"> A completed takeoff</label><br><label><input type="radio" name="topic1-init-q3" value="b"> The spawn pose and zero initial velocity</label><br><label><input type="radio" name="topic1-init-q3" value="c"> Maximum rotor RPM</label></fieldset>
+  <button type="button" class="quiz-check">Check answer</button><p class="quiz-result" aria-live="polite"></p>
 </form>
 
 ---
 
-Prerequisite: [Module 5: Battery voltage sag](../../05-battery-voltage-sag/index.md). Next: [Step 2: Drone free fall](../02-drone-free-fall/index.md).
+## Hands-on exercise
+
+1. Run the self-check and record the initial pose.
+2. Run GUI mode and identify the ground plane, body, and four rotor markers.
+3. Change the spawn height in `create_world` from `0.05` m to `0.20` m.
+4. Predict which output line changes and rerun the self-check.
+5. Explain why no force lesson should be tuned until this initialization check passes.
+
+Previous: [Topic 0](../00-real-drone-specification/index.md). Next: [Topic 2](../02-gravity-and-contact/index.md).
