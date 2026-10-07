@@ -123,7 +123,7 @@ def run_flight(drone: int, vehicle: Vehicle, controller, mixer, *, target_altitu
     return samples
 
 
-def run_position_flight(drone: int, vehicle: Vehicle, position_controller, velocity_controller, attitude_controller, mixer, *, home_position_m: tuple[float, float, float], target_offset_m: tuple[float, float, float], target_source=None, takeoff_seconds: float, hover_seconds: float, physics_hz: int, control_hz: int, show_gui: bool, max_total_thrust_n: float, max_tilt_rad: float, position_control_hz: int | None = None, velocity_control_hz: int | None = None) -> list[PositionFlightSample]:
+def run_position_flight(drone: int, vehicle: Vehicle, position_controller, velocity_controller, attitude_controller, mixer, *, home_position_m: tuple[float, float, float], target_offset_m: tuple[float, float, float], target_source=None, takeoff_seconds: float, hover_seconds: float, physics_hz: int, control_hz: int, show_gui: bool, max_total_thrust_n: float, max_tilt_rad: float, position_control_hz: int | None = None, velocity_control_hz: int | None = None, velocity_command_acceleration_mps2: tuple[float, float, float] | None = None) -> list[PositionFlightSample]:
     """Run position-to-velocity-to-attitude control with a shared motor mixer."""
     dt = 1.0 / physics_hz
     attitude_steps = max(1, round(physics_hz / control_hz))
@@ -137,6 +137,7 @@ def run_position_flight(drone: int, vehicle: Vehicle, position_controller, veloc
     target_offset = target_offset_m
     target_attitude = (0.0, 0.0, 0.0)
     desired_velocity = (0.0, 0.0, 0.0)
+    commanded_velocity = (0.0, 0.0, 0.0)
     desired_acceleration = (0.0, 0.0, 0.0)
     motor_thrusts = (0.0, 0.0, 0.0, 0.0)
     position_controller.reset()
@@ -160,7 +161,14 @@ def run_position_flight(drone: int, vehicle: Vehicle, position_controller, veloc
 
         # ! Module 04 velocity ADRC/PID: update velocity feedback independently of attitude control.
         if step % velocity_steps == 0:
-            desired_acceleration = velocity_controller.update(desired_velocity, velocity, velocity_dt)
+            if velocity_command_acceleration_mps2 is None:
+                commanded_velocity = desired_velocity
+            else:
+                commanded_velocity = tuple(
+                    current + max(-limit * velocity_dt, min(limit * velocity_dt, requested - current))
+                    for current, requested, limit in zip(commanded_velocity, desired_velocity, velocity_command_acceleration_mps2)
+                )
+            desired_acceleration = velocity_controller.update(commanded_velocity, velocity, velocity_dt)
 
         # ! Module 04 attitude/rate ADRC/PID: consume the latest acceleration command at the fast loop rate.
         if step % attitude_steps == 0:

@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="390" viewBox="0 0 1200 390" role="img" aria-labelledby="title desc">
+  <title id="title">ADRC altitude, attitude, rate, thrust, and motor mixer control chain</title>
+  <desc id="desc">The altitude ADRC estimates disturbance and produces collective thrust. The attitude ADRC produces desired rates, the rate ADRC produces torque, and the mixer combines thrust and torque into four motor thrust commands.</desc>
+  <style>
+    text{font-family:Arial,sans-serif;fill:#17202a}
+    .box{stroke:#7b3f00;stroke-width:2;rx:10}
+    .command{fill:#fff3cd;stroke:#24527a}
+    .adrc{fill:#ffe3c2}
+    .mixer{fill:#e8f8f5;stroke:#18745b}
+    .plant{fill:#f2e6ff;stroke:#7040a0}
+    .arrow{stroke:#34495e;stroke-width:2;fill:none;marker-end:url(#arrow)}
+    .feedback{stroke:#8e44ad;stroke-width:2;fill:none;stroke-dasharray:7 5;marker-end:url(#arrow-purple)}
+    .label{font-size:14px;font-weight:bold}
+    .small{font-size:12px}
+    .branch{font-size:13px;font-weight:bold;fill:#52616b}
+  </style>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#34495e"/></marker>
+    <marker id="arrow-purple" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#8e44ad"/></marker>
+  </defs>
+  <text class="branch" x="40" y="35">Altitude / thrust branch</text>
+  <rect class="box command" x="40" y="55" width="145" height="62"/>
+  <text class="label" x="112" y="81" text-anchor="middle">Target altitude</text><text class="small" x="112" y="101" text-anchor="middle">z target (m)</text>
+  <rect class="box adrc" x="240" y="55" width="145" height="62"/>
+  <text class="label" x="312" y="81" text-anchor="middle">ADRC altitude</text><text class="small" x="312" y="101" text-anchor="middle">ESO → accel. (m/s²)</text>
+  <rect class="box command" x="440" y="55" width="165" height="62"/>
+  <text class="label" x="522" y="81" text-anchor="middle">Collective thrust</text><text class="small" x="522" y="101" text-anchor="middle">total thrust (N)</text>
+  <path class="arrow" d="M185 86h55M385 86h55"/>
+  <text class="branch" x="40" y="175">Attitude / rate branch</text>
+  <rect class="box command" x="40" y="195" width="145" height="62"/>
+  <text class="label" x="112" y="221" text-anchor="middle">Target attitude</text><text class="small" x="112" y="241" text-anchor="middle">roll, pitch, yaw (rad)</text>
+  <rect class="box adrc" x="240" y="195" width="145" height="62"/>
+  <text class="label" x="312" y="221" text-anchor="middle">ADRC attitude</text><text class="small" x="312" y="241" text-anchor="middle">ESO → rates (rad/s)</text>
+  <rect class="box adrc" x="440" y="195" width="145" height="62"/>
+  <text class="label" x="512" y="221" text-anchor="middle">ADRC rate</text><text class="small" x="512" y="241" text-anchor="middle">ESO → torque (N·m)</text>
+  <path class="arrow" d="M185 226h55M385 226h55"/>
+  <rect class="box mixer" x="680" y="125" width="165" height="82"/>
+  <text class="label" x="762" y="157" text-anchor="middle">Motor mixer</text><text class="small" x="762" y="178" text-anchor="middle">thrust (N)</text><text class="small" x="762" y="194" text-anchor="middle">+ torque (N·m)</text>
+  <rect class="box plant" x="940" y="125" width="200" height="82"/>
+  <text class="label" x="1040" y="157" text-anchor="middle">Four motor thrusts</text><text class="small" x="1040" y="178" text-anchor="middle">motor thrusts (N)</text><text class="small" x="1040" y="194" text-anchor="middle">PyBullet drone</text>
+  <path class="arrow" d="M605 86H650V145H680M585 226H650V187H680M845 166h95"/>
+  <path class="feedback" d="M1040 125V20H312V55"/>
+  <path class="feedback" d="M1040 207V300H312V257"/>
+  <path class="feedback" d="M1040 207V330H512V257"/>
+  <text class="small" x="690" y="16" text-anchor="middle">measured altitude (altimeter / position, m)</text>
+  <text class="small" x="670" y="294" text-anchor="middle">measured attitude (quaternion / estimate, rad)</text>
+  <text class="small" x="765" y="324" text-anchor="middle">measured body rates (gyro / angular velocity, rad/s)</text>
+</svg>
