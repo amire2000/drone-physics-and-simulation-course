@@ -1,10 +1,10 @@
-"""Pure X-frame motor mixer for Module 04."""
+"""Pure X-frame motor mixer shared by PID and ADRC controllers."""
 
 from dataclasses import dataclass
 
 import numpy as np
 
-from controller import clamp
+from common.control import clamp
 
 
 @dataclass(frozen=True)

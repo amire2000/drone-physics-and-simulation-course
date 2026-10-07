@@ -1,4 +1,4 @@
-"""PyBullet world and motor/force integration for Module 04."""
+"""PyBullet world and motor/force integration shared by Module 04 controllers."""
 
 from dataclasses import dataclass
 from pathlib import Path
@@ -6,6 +6,7 @@ import time
 
 import pybullet as p
 import pybullet_data
+
 
 @dataclass(frozen=True)
 class Vehicle:
@@ -66,13 +67,15 @@ def apply_motor_forces(drone: int, vehicle: Vehicle, motor_thrusts_n: tuple[floa
 
 
 def run_flight(drone: int, vehicle: Vehicle, controller, mixer, *, target_altitude_m: float, takeoff_seconds: float, hover_seconds: float, physics_hz: int, control_hz: int, show_gui: bool) -> list[FlightSample]:
-    """Run the takeoff and hover experiment while applying the local controller output."""
+    """Run the takeoff and hover experiment with either injected controller."""
     dt = 1.0 / physics_hz
     control_steps = physics_hz // control_hz
     motor_rpms = [0.0] * 4
     samples: list[FlightSample] = []
     controller.reset()
-    for step in range(round((takeoff_seconds + hover_seconds) / dt)):
+    total_steps = None if show_gui else round((takeoff_seconds + hover_seconds) / dt)
+    step = 0
+    while total_steps is None or step < total_steps:
         if not p.isConnected():
             break
         altitude, attitude, body_rates = read_state(drone)
@@ -89,4 +92,5 @@ def run_flight(drone: int, vehicle: Vehicle, controller, mixer, *, target_altitu
         samples.append(sample)
         if show_gui:
             time.sleep(dt)
+        step += 1
     return samples

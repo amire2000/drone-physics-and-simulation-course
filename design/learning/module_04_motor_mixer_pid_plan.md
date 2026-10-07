@@ -1,4 +1,4 @@
-# Module 04 motor mixer and PID controller
+# Module 04 motor mixer with PID and ADRC controllers
 
 Date: 2026-10-07
 
@@ -7,18 +7,18 @@ Status: Implemented
 ## Description
 
 Module 04 is a standalone PyBullet control example. It teaches the signal path
-from altitude and attitude targets through cascaded PID loops and an X-frame
-motor mixer to rotor thrusts.
+from altitude and attitude targets through interchangeable cascaded PID or
+linear ADRC loops and an X-frame motor mixer to rotor thrusts.
 
 ```mermaid
 flowchart LR
-    target[3 m altitude and level attitude] --> altitude[Altitude PID]
+    target[3 m altitude and level attitude] --> altitude[PID or ADRC altitude loop]
     altitude --> thrust[Collective thrust]
-    attitude[Measured attitude] --> attitude_pid[Attitude PID]
-    attitude_pid --> rates[Desired body rates]
-    rates --> rate_pid[Rate PID]
-    measured[Measured body rates] --> rate_pid
-    rate_pid --> mixer[X-frame mixer]
+    attitude[Measured attitude] --> attitude_loop[PID or ADRC attitude loop]
+    attitude_loop --> rates[Desired body rates]
+    rates --> rate_loop[PID or ADRC rate loop]
+    measured[Measured body rates] --> rate_loop
+    rate_loop --> mixer[X-frame mixer]
     thrust --> mixer
     mixer --> motors[Motor lag and rotor forces]
     motors --> bullet[PyBullet state]
@@ -31,11 +31,13 @@ flowchart LR
 
 - Keep the example in `examples/04-mix-control/` instead of changing the
   shared physics engine or the later cumulative module-06 examples.
+- Keep the mixer and PyBullet simulation in `common/`; expose PID and ADRC as
+  interchangeable controller packages selected by `--controller`.
 - Load mass, inertia, and rotor positions from the existing
   `full_drone.urdf`; keep teaching gains and actuator limits as constants in
   `main.py`.
 - Use a bounded step target to 3 m, then hold it for six seconds.
-- Keep mixer and controller calculations separate from PyBullet integration.
+- Keep mixer, controller calculations, and PyBullet integration separate.
 
 ## Related files
 
