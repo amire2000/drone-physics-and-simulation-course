@@ -7,7 +7,8 @@
 - use the URDF inertia to estimate angular acceleration;
 - compare PyBullet and reduced-order attitude response;
 - identify where the new torque method enters the cumulative loop;
-- observe bounded roll/pitch oscillation from an alternating thrust imbalance.
+- use altitude and attitude PID to keep the vehicle near hover;
+- apply a latched roll/pitch disturbance and compare it with controller correction.
 
 An equal four-rotor thrust command produces lift. If one side produces more
 thrust than the other, the force no longer acts through the center of mass. The
@@ -85,8 +86,9 @@ imbalance is driven by:
 Delta T(t)=Acosleft(\frac{2\pi t}{P}\right)
 ]
 
-The sign changes every (P/2) seconds. This makes the drone receive torque in
-both directions instead of accelerating continuously in one direction.
+In headless runs the sign changes every (P/2) seconds. In the interactive run,
+the `Roll torque` and `Pitch torque` buttons latch a constant disturbance until
+clicked again.
 
 ---
 
@@ -99,10 +101,10 @@ The vehicle uses body \(+x\) forward, body \(+y\) left, and body \(+z\) up.
 - The resulting torque is applied in the body frame.
 - Rotor reaction torque is deferred to Topic 5.
 
-Topic 3 collective thrust remains active. In this topic it is applied at the
-center of mass so equal lift cannot create an accidental arm torque. Topic 4
-then computes the deliberate torque from a virtual unequal-thrust pattern,
-isolating the rotational response.
+Topic 3 collective thrust remains active. Topic 4 now adds a small altitude and
+attitude stabilizer around that thrust. The deliberate unequal-thrust pattern
+is still applied as a separate disturbance, so the graph can compare the new
+torque with the requested controller correction.
 
 ---
 
@@ -133,32 +135,33 @@ provides live run controls:
   frames, then press `Start` again.
 - `Quit`: stop the topic and close the PyBullet session.
 
-Interactive PyBullet ticks are paced in real time, so the alternating roll
-direction is visible in the window. Headless and reduced-order runs remain
+Interactive PyBullet ticks are paced in real time. Press `Start`, then latch
+`Roll torque` or `Pitch torque` to disturb the hover; click the same button to
+release it and observe recovery. Headless and reduced-order runs remain
 uncapped for fast experiments.
 
 Interactive PyBullet runs are not limited by `--seconds`; they continue until
 the Tk control window is closed. The `--seconds` value still limits headless,
 reduced-order, self-check, and output-generation runs.
 
-As the drone rolls, its body-up thrust vector tilts and creates horizontal
-acceleration. Reversing the roll torque reverses the acceleration tendency, but
-it does not erase the velocity already accumulated. Therefore the open-loop
-drone is expected to trace a curved drifting trajectory, not automatically
-return to its original position. Position control comes later.
+The Topic 4 controller holds altitude and attitude. It does not yet close the
+outer X/Y position loop, so a tilted drone may still accumulate horizontal
+drift. Full position correction is introduced with the later controller topic.
 
 Use a bounded headless run when generating a graph or testing a longer case:
 
 ```bash
-uv run python examples/06-autonomous-hover/04-roll-pitch-torque/roll_pitch_torque.py --seconds 10
+uv run python examples/06-autonomous-hover/04-roll-pitch-torque/roll_pitch_torque.py \
+  --seconds 1 --output docs/modules/06-autonomous-hover/04-roll-pitch-torque/images/topic-04-disturbance-recovery
 ```
 
-The graph records torque, angular rate, and attitude:
+The generated graph overlays disturbance torque and requested controller
+correction, then shows attitude and altitude response:
 
-![Topic 4 roll and pitch torque response](images/topic-04-roll-pitch-torque.png)
+![Topic 4 disturbance and controller response](images/topic-04-disturbance-recovery.png)
 
 The recorded data is available at
-[topic-04-roll-pitch-torque.csv](images/topic-04-roll-pitch-torque.csv).
+[topic-04-disturbance-recovery.csv](images/topic-04-disturbance-recovery.csv).
 
 Try a slower, larger oscillation:
 
@@ -192,13 +195,21 @@ Complete implementation: `examples/06-autonomous-hover/04-roll-pitch-torque/roll
 The cumulative PyBullet loop is:
 
 ```python
-motor_rpms, battery_state = advance_motor_state(profile, battery, motor_rpms, args.pwm)
+state = read_state(drone)
+pwm_us, controller_torque_nm, pid_terms = controller_command(
+    profile, altitude_pid, attitude_controller, state.position_m[2],
+    state.linear_velocity_mps[2], read_imu(drone), START_HEIGHT_M,
+    bus_voltage_v,
+)
+motor_rpms, battery_state = advance_motor_state(profile, battery, motor_rpms, pwm_us)
 apply_gravity(drone, profile)
 motor_thrusts = apply_rotor_thrust(drone, profile, motor_rpms)
-# ! TOPIC 4 NEW FORCE CALL: alternating torque follows previous forces before integration.
-_, torque_body_nm = apply_roll_pitch_torque(
-        drone, profile, np.mean(motor_thrusts), args.roll_delta, args.pitch_delta
+# ! TOPIC 4 NEW FORCE CALL: disturbance follows previous forces before correction.
+_, disturbance_torque_nm = apply_roll_pitch_torque(
+        drone, profile, np.mean(motor_thrusts), roll_delta, pitch_delta
 )
+# ! TOPIC 4 STABILIZATION CALL: PID correction follows the new disturbance.
+p.applyExternalTorque(drone, -1, controller_torque_nm, p.LINK_FRAME)
 p.stepSimulation()
 ```
 
@@ -213,11 +224,11 @@ The reduced-order loop uses the same torque equation and integrates:
 
 ## Exercise
 
-1. Run the default roll case and identify where the roll rate changes sign.
+1. Run the default roll case and compare disturbance torque with controller torque.
 2. Set `--roll-delta 0 --pitch-delta 0.0005` and compare pitch with roll.
 3. Change the inertia in the drone profile and predict the rate slope change.
-4. Set both deltas to zero and confirm the torque and angular-rate changes
-   disappear while near-hover collective thrust remains.
+4. Set both deltas to zero and confirm the disturbance and correction curves
+   disappear while near-hover altitude remains stable.
 
 ---
 
@@ -244,13 +255,15 @@ The cross product \(\mathbf{r}\times\mathbf{F}\) converts the rotor lever arm
 and thrust difference into body torque. The inertia then determines angular
 acceleration.
 
-The graph connects three results: alternating applied torque, angular-rate
-response, and accumulated roll or pitch angle. With the near-hover baseline,
-the expected result is a bounded rocking response: the torque changes sign,
-the angular rate turns around, and the attitude moves in both directions.
-The response is not a stabilized hover yet; damping and PID control come later.
+The graph connects four results: the injected disturbance, the requested PID
+correction, the attitude response, and the altitude response. The correction
+curve should oppose the disturbance or the resulting attitude error. The
+vehicle is expected to keep altitude and bounded attitude, while some
+horizontal drift remains because XY position control comes later.
 
-The important baseline is that Topic 4 applies roll and pitch torque only.
+The important baseline is that Topic 4 applies roll and pitch torque as the
+new disturbance while preserving gravity, thrust, motor lag, and a simple
+altitude/attitude stabilization loop.
 Rotor reaction torque around body z is not part of this lesson; Topic 5 adds
 that yaw effect. The cumulative model now contains gravity, contact, collective
 thrust, motor lag, and attitude torque.

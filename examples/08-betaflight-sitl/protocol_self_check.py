@@ -18,19 +18,16 @@ def pack_fdm_packet(
     angular_velocity_body_rad_s: tuple[float, float, float],
     specific_force_body_mps2: tuple[float, float, float],
     orientation_wxyz: tuple[float, float, float, float],
-    velocity_enu_mps: tuple[float, float, float],
-    position_lon_lat_alt: tuple[float, float, float],
     pressure_pa: float,
 ) -> bytes:
-    """Pack one 2026.6.2 FDM packet for UDP port 9003 in little-endian order."""
+    """Pack sensors and six reserved zeros for the course's patched SITL."""
     return struct.pack(
         FDM_FORMAT,
         timestamp_s,
         *angular_velocity_body_rad_s,
         *specific_force_body_mps2,
         *orientation_wxyz,
-        *velocity_enu_mps,
-        *position_lon_lat_alt,
+        *(0.0,) * 6,
         pressure_pa,
     )
 
@@ -61,13 +58,12 @@ def main() -> None:
         (0.0, 0.0, 0.0),
         (0.0, 0.0, 9.81),
         (1.0, 0.0, 0.0, 0.0),
-        (0.0, 0.0, 0.0),
-        (35.0, 32.0, 10.0),
         101_325.0,
     )
     rc = pack_rc_packet(1.25, (1500, 1500, 1000, 1500) + (1000,) * 12)
     motors = unpack_motor_packet(struct.pack(MOTOR_FORMAT, 0.0, 0.25, 0.5, 1.0))
     assert len(fdm) == FDM_PACKET_BYTES
+    assert struct.unpack(FDM_FORMAT, fdm)[11:17] == (0.0,) * 6
     assert len(rc) == RC_PACKET_BYTES
     assert motors == (0.0, 0.25, 0.5, 1.0)
     print(f"FDM packet: {len(fdm)} bytes ({FDM_FORMAT})")

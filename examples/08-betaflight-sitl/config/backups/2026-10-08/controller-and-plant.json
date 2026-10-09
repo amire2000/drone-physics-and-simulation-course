@@ -1,0 +1,60 @@
+{
+  "snapshot_date": "2026-10-08",
+  "firmware": {
+    "tag": "2026.6.2",
+    "commit": "e0b7bb01b17b21351057e9ead2d1ab39dd44fa16",
+    "build": "make TARGET=SITL",
+    "source_worktree": "clean",
+    "binary_sha256_on_test_machine": "ec0baa94d990bd0b5b9c604ec78fc87df518bc696ba608f0a37fd0205f3379ea"
+  },
+  "cli_config_sha256": "596583213075b39838218a2c51b194e746e92aaca344f10b5deedbc54d250fff",
+  "uv_lock_sha256": "d2eb2df71562309dc4a8beaebbdccf4478d5de96e15293692128dc98761cbf94",
+  "outer_pid": {
+    "position_gains": [[0.8, 0.0, 0.0], [0.8, 0.0, 0.0], [1.2, 0.0, 0.0]],
+    "velocity_gains": [[1.5, 0.0, 0.0], [1.5, 0.0, 0.0], [3.0, 0.0, 0.0]],
+    "velocity_limits_mps": [2.0, 2.0, 1.5],
+    "acceleration_limits_mps2": [5.0, 5.0, 5.0],
+    "position_integral_limit": 1.0,
+    "velocity_integral_limit": 1.0,
+    "max_tilt_rad": 0.35,
+    "max_total_thrust_n": 25.506,
+    "hover_throttle": 0.5,
+    "throttle_per_newton": 0.05,
+    "max_angle_mode_tilt_rad": 0.35,
+    "yaw_gains": [0.15, 0.0, 0.02],
+    "yaw_integral_limit": 0.5,
+    "prearm_delay_s": 1.0,
+    "arming_delay_s": 1.0,
+    "position_hz": 30,
+    "velocity_hz": 60
+  },
+  "plant": {
+    "urdf": "examples/common/assets/full_drone.urdf",
+    "mass_kg": 0.65,
+    "gravity_mps2": 9.81,
+    "base_inertia_kg_m2": [0.00348, 0.00348, 0.00396],
+    "world_spawn_m": [0.0, 0.0, 0.05],
+    "max_thrust_per_motor_n": 6.3765,
+    "motor_time_constant_s": 0.05,
+    "motor_yaw_signs_urdf_order": [1, -1, -1, 1],
+    "betaflight_to_urdf_rotor": [3, 1, 2, 0],
+    "physics_hz": 240,
+    "rc_hz": 50,
+    "motor_timeout_s": 0.1,
+    "aerodynamic_drag": false
+  },
+  "last_successful_run": {
+    "command": "uv run python examples/08-betaflight-sitl/hover_self_check.py",
+    "duration_s": 30,
+    "home_target_m": [0.0, 0.0, 3.0],
+    "yaw_target_rad": 0.0,
+    "yaw_disturbance_time_s": 15,
+    "yaw_disturbance_rad_s": 0.5,
+    "measurement_start_s": 12,
+    "max_altitude_error_m_rounded": 0.016,
+    "max_horizontal_error_m_rounded": 0.026,
+    "max_tilt_rad_rounded": 0.002,
+    "final_yaw_rad_rounded": 0.012,
+    "result": "passed"
+  }
+}

@@ -1,10 +1,21 @@
 # Dual controller API: PyBullet or Betaflight
 
-**Last updated:** 2026-09-27
+**Last updated:** 2026-10-08
 **Status:** Planned
-**Description:** Boundary for selecting the local or Betaflight low-level controller.
+**Description:** Future common backend API; distinct from the verified standalone Module 8 bridge.
 
 ## Goal
+
+The current implementation is the standalone bridge described in
+[Betaflight SITL bridge](betaflight_sitl_bridge.md), with
+`position_bridge_demo.py`, `slider_bridge_demo.py`, and a verified
+`hover_self_check.py`. It already supports outer XYZ/yaw targets and a GUI.
+There is no `controller_switch_demo.py`, shared `FlightController` protocol,
+or `PhysicsEngine.step_motor_commands` implementation yet. The proposed APIs
+and restrictions below concern that future shared-engine work, not the
+working standalone bridge. Use the
+[machine setup guide](../../docs/betaflight/setup-on-another-machine.md) to
+reproduce the last flight, including its AUX1 Arm/Angle wiring and yaw tuning.
 
 Support two selectable low-level controller backends in one future Module 8
 demo without changing existing Module 6 examples:
@@ -72,7 +83,7 @@ Add `examples/common/betaflight_api.py` for the pinned 2026.6.2 wire protocol:
 | Link | Behavior |
 | --- | --- |
 | UDP `9003` | Send FDM sensor data at the 240 Hz physics cadence. |
-| UDP `9004` | Send AETR/AUX virtual RC data at 50 Hz. AUX1 arms; AUX2 selects Angle mode. |
+| UDP `9004` | Proposed AETR/AUX virtual RC at 50 Hz; future AUX1 Arm and AUX2 Angle wiring must be tested separately. The current verified config ties both modes to AUX1. |
 | UDP `9002` | Receive four normalized motor commands. |
 | TCP `5761` | MSP lifecycle, setup, status, and diagnostics only—not real-time flight commands. |
 

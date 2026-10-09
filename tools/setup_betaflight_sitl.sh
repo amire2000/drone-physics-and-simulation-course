@@ -5,6 +5,8 @@ set -euo pipefail
 readonly RELEASE_TAG="2026.6.2"
 readonly RELEASE_COMMIT="e0b7bb0"
 readonly REPOSITORY_URL="https://github.com/betaflight/betaflight.git"
+repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+course_patch="$repo_root/tools/patches/betaflight-sitl-external-barometer.patch"
 source_dir="${1:-.sitl/betaflight-source}"
 
 if ! command -v git >/dev/null || ! command -v make >/dev/null; then
@@ -25,7 +27,14 @@ if [[ "$actual_commit" != "$RELEASE_COMMIT"* ]]; then
     exit 1
 fi
 
-make -C "$source_dir" TARGET=SITL -j"$(nproc)"
+if git -C "$source_dir" apply --check "$course_patch" 2>/dev/null; then
+    git -C "$source_dir" apply "$course_patch"
+elif ! git -C "$source_dir" apply --reverse --check "$course_patch"; then
+    echo "Course sensor patch conflicts with local firmware changes: $course_patch" >&2
+    exit 1
+fi
+
+make -C "$source_dir" TARGET=SITL EXTRA_FLAGS="-DSITL_EXTERNAL_BAROMETER" -j"$(nproc)"
 binary="$source_dir/obj/main/betaflight_SITL.elf"
 if [[ ! -x "$binary" ]]; then
     echo "SITL build completed without $binary" >&2

@@ -59,6 +59,10 @@ class Sample:
     pid_i_n: float | None = None
     pid_d_n: float | None = None
     controller_output_n: float | None = None
+    disturbance_roll_torque_nm: float | None = None
+    disturbance_pitch_torque_nm: float | None = None
+    controller_roll_torque_nm: float | None = None
+    controller_pitch_torque_nm: float | None = None
 
 
 SCALAR_FIELDS = (
@@ -91,6 +95,10 @@ SCALAR_FIELDS = (
     "pid_i_n",
     "pid_d_n",
     "controller_output_n",
+    "disturbance_roll_torque_nm",
+    "disturbance_pitch_torque_nm",
+    "controller_roll_torque_nm",
+    "controller_pitch_torque_nm",
 )
 VECTOR_FIELDS = {
     "position_world_m": 3,
@@ -146,6 +154,7 @@ def save_results(
     profile: DroneProfile,
     graph_fields: tuple[str, ...],
     title: str,
+    graph_panels: tuple[tuple[str, ...], ...] | None = None,
 ) -> None:
     """Save the complete telemetry CSV and selected topic graph panels."""
     import matplotlib.pyplot as plt
@@ -157,18 +166,20 @@ def save_results(
         writer.writerows(_rows(samples))
 
     times = [sample.time_s for sample in samples]
-    figure, axes = plt.subplots(len(graph_fields), 1, figsize=(8, 2 * len(graph_fields)), sharex=True, squeeze=False)
-    for axis, field_name in zip(axes[:, 0], graph_fields):
-        values = [_plot_value(sample, field_name) for sample in samples]
-        axis.plot(times, values, label=field_name)
-        if field_name == "total_thrust_n":
-            axis.axhline(
-                profile.model.mass_kg * abs(profile.physics_settings.gravity_z_mps2),
-                color="black",
-                linestyle=":",
-                label="weight",
-            )
-        axis.set_ylabel(field_name.replace("_", " "))
+    panels = graph_panels or tuple((field_name,) for field_name in graph_fields)
+    figure, axes = plt.subplots(len(panels), 1, figsize=(8, 2 * len(panels)), sharex=True, squeeze=False)
+    for axis, panel in zip(axes[:, 0], panels):
+        for field_name in panel:
+            values = [_plot_value(sample, field_name) for sample in samples]
+            axis.plot(times, values, label=field_name)
+            if field_name == "total_thrust_n":
+                axis.axhline(
+                    profile.model.mass_kg * abs(profile.physics_settings.gravity_z_mps2),
+                    color="black",
+                    linestyle=":",
+                    label="weight",
+                )
+        axis.set_ylabel("value" if len(panel) > 1 else panel[0].replace("_", " "))
         axis.grid(True, alpha=0.3)
         axis.legend()
     axes[-1, 0].set_xlabel("Time (s)")

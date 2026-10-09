@@ -339,7 +339,7 @@ just output decoration.
 | 1 | Initial position, velocity, attitude, and coordinate-frame diagram |
 | 2 | Altitude, vertical velocity, acceleration, and contact-force timeline |
 | 3 | PWM/throttle → RPM → thrust curve with the hover-weight line |
-| 4 | Applied roll/pitch torque, angular rate, and attitude versus time |
+| 4 | Disturbance roll/pitch torque versus requested PID correction, attitude, and altitude |
 | 5 | CW/CCW thrust difference, reaction yaw torque, and yaw rate versus time |
 | 6 | Body velocity and quadratic drag force with drag enabled/disabled |
 | 7 | Total rotor speed, rotor drag, and terminal-velocity comparison |
@@ -604,7 +604,11 @@ Teach the lever-arm relationship:
 \]
 
 Use rotor positions and unequal thrust to create and validate roll and pitch
-torque. Compare measured body rates with the URDF inertia response.
+torque. Compare measured body rates with the URDF inertia response. Add the
+first bounded stabilization loop: altitude PID controls collective thrust and
+attitude PID keeps roll and pitch near level while the Topic 4 torque is
+latched as an external disturbance. The lesson graph overlays disturbance and
+requested controller torque before showing the resulting attitude and altitude.
 
 ### 5. Rotor reaction yaw torque
 

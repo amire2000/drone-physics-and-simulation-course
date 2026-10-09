@@ -29,6 +29,8 @@ def run_topic(
     summary_title: str,
     graph_title: str,
     gif_fps: int = 12,
+    topic_actions: tuple[tuple[str, str], ...] = (),
+    graph_panels: tuple[tuple[str, ...], ...] | None = None,
 ) -> None:
     """Run one topic while leaving its physics loops and validation topic-owned."""
     profile = load_drone_profile("real_reference")
@@ -47,11 +49,11 @@ def run_topic(
         drone, profile = create_world(profile)
         frames: list[object] | None = [] if args.gif else None
         if not args.headless and not args.self_check:
-            controls = TkSimulationControls(summary_title)
+            controls = TkSimulationControls(summary_title, topic_actions)
         samples = run_pybullet(drone, profile, args, frames, controls)
         print_summary(samples, summary_title)
         if args.output:
-            save_results(samples, args.output, profile, graph_fields, graph_title)
+            save_results(samples, args.output, profile, graph_fields, graph_title, graph_panels)
             print(f"Saved graph: {args.output}")
         if args.gif:
             save_gif(frames or [], args.gif, gif_fps)

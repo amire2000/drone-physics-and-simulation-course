@@ -16,8 +16,10 @@ if str(EXAMPLES_ROOT) not in sys.path:
 
 from common.battery import BatteryModel, BatteryState
 from common.cli import parse_args
-from common.drone_model import DroneProfile, DroneState
-from common.pybullet_sensors import read_state
+from common.drone_model import DroneProfile, DroneState, ImuReading
+from common.flight_control import AttitudeController
+from common.pid import PID
+from common.pybullet_sensors import read_imu, read_state
 from common.pybullet_utils import create_world, reset_drone
 from common.runner import run_topic
 from common.safety import FlightSafetyLimits, safety_reason
@@ -31,6 +33,9 @@ DEFAULT_PWM_US = 1290.0
 DEFAULT_ROLL_DELTA_N = 0.0005
 DEFAULT_PITCH_DELTA_N = 0.0
 DEFAULT_OSCILLATION_PERIOD_S = 0.8
+ALTITUDE_GAINS = (1.5, 0.05, 2.5)
+ATTITUDE_GAINS = (0.05, 0.0, 0.02)
+MAX_CORRECTION_TORQUE_NM = 0.01
 GIF_FPS = 12
 GROUND_STIFFNESS_N_PER_M = 2000.0
 GROUND_DAMPING_N_S_PER_M = 50.0
@@ -169,6 +174,9 @@ def capture_sample(
     motor_thrusts: tuple[float, float, float, float],
     battery_state: BatteryState,
     torque_body_nm: np.ndarray,
+    controller_torque_nm: tuple[float, float, float],
+    pid_terms: tuple[float, float, float],
+    target_altitude_m: float,
     state: DroneState | ReducedAttitudeState,
     reduced_state: ReducedState | None = None,
 ) -> Sample:
@@ -196,6 +204,16 @@ def capture_sample(
             roll_torque_nm=float(torque_body_nm[0]),
             pitch_torque_nm=float(torque_body_nm[1]),
             yaw_torque_nm=float(torque_body_nm[2]),
+            target_altitude_m=target_altitude_m,
+            altitude_error_m=target_altitude_m - pybullet_state.position_m[2],
+            pid_p_n=pid_terms[0],
+            pid_i_n=pid_terms[1],
+            pid_d_n=pid_terms[2],
+            controller_output_n=sum(pid_terms),
+            disturbance_roll_torque_nm=float(torque_body_nm[0]),
+            disturbance_pitch_torque_nm=float(torque_body_nm[1]),
+            controller_roll_torque_nm=controller_torque_nm[0],
+            controller_pitch_torque_nm=controller_torque_nm[1],
             position_world_m=pybullet_state.position_m,
             velocity_world_mps=pybullet_state.linear_velocity_mps,
             orientation_quaternion=pybullet_state.orientation_quaternion,
@@ -226,6 +244,16 @@ def capture_sample(
         roll_torque_nm=float(torque_body_nm[0]),
         pitch_torque_nm=float(torque_body_nm[1]),
         yaw_torque_nm=float(torque_body_nm[2]),
+        target_altitude_m=target_altitude_m,
+        altitude_error_m=target_altitude_m - reduced_state.position_m[2],
+        pid_p_n=pid_terms[0],
+        pid_i_n=pid_terms[1],
+        pid_d_n=pid_terms[2],
+        controller_output_n=sum(pid_terms),
+        disturbance_roll_torque_nm=float(torque_body_nm[0]),
+        disturbance_pitch_torque_nm=float(torque_body_nm[1]),
+        controller_roll_torque_nm=controller_torque_nm[0],
+        controller_pitch_torque_nm=controller_torque_nm[1],
         position_world_m=tuple(float(value) for value in reduced_state.position_m),
         velocity_world_mps=tuple(float(value) for value in reduced_state.velocity_mps),
         motor_command_us=(pwm_us,) * 4,
@@ -239,6 +267,49 @@ def capture_sample(
 # endregion
 
 # region Topic 4 simulation loops
+
+
+def controller_command(
+    profile: DroneProfile,
+    altitude_pid: PID,
+    attitude_controller: AttitudeController,
+    altitude_m: float,
+    vertical_velocity_mps: float,
+    imu,
+    target_altitude_m: float,
+    bus_voltage_v: float,
+) -> tuple[float, tuple[float, float, float], tuple[float, float, float]]:
+    """Return collective PWM, attitude correction, and altitude PID terms."""
+    time_step = profile.physics_settings.time_step_s
+    pid_terms = altitude_pid.update_terms(target_altitude_m - altitude_m, vertical_velocity_mps, time_step)
+    hover_thrust_n = profile.model.mass_kg * abs(profile.physics_settings.gravity_z_mps2)
+    collective_thrust_n = clamp(hover_thrust_n + sum(pid_terms), 0.0, profile.model.max_thrust_per_motor_n * 4.0)
+    voltage_scale = bus_voltage_v / profile.model.battery.nominal_voltage_v
+    motor_thrust_n = collective_thrust_n / 4.0 / max(voltage_scale**2, 1e-6)
+    pwm_us = 1000.0 + 1000.0 * np.sqrt(motor_thrust_n / profile.model.max_thrust_per_motor_n)
+    requested_torque_nm = attitude_controller.update(imu, 0.0)
+    controller_torque_nm = tuple(clamp(value, -MAX_CORRECTION_TORQUE_NM, MAX_CORRECTION_TORQUE_NM) for value in requested_torque_nm)
+    return pwm_us, controller_torque_nm, pid_terms
+
+
+def create_attitude_controller() -> AttitudeController:
+    """Create the deliberately modest Topic 4 roll and pitch stabilizer."""
+    controller = AttitudeController(pitch_gains=ATTITUDE_GAINS)
+    controller.roll_pid = PID(*ATTITUDE_GAINS)
+    return controller
+
+
+def disturbance_deltas(args: argparse.Namespace, step: int, time_step: float, controls: TkSimulationControls | None) -> tuple[float, float]:
+    """Return the latched GUI disturbance or the deterministic headless disturbance."""
+    if controls is not None:
+        return (
+            args.roll_delta if controls.action_active("roll_torque") else 0.0,
+            args.pitch_delta if controls.action_active("pitch_torque") else 0.0,
+        )
+    return (
+        alternating_thrust_delta(args.roll_delta, step * time_step, args.oscillation_period),
+        alternating_thrust_delta(args.pitch_delta, step * time_step, args.oscillation_period),
+    )
 
 
 def run_experiment(
@@ -257,6 +328,9 @@ def run_experiment(
     time_step = profile.physics_settings.time_step_s
     total_steps = None if controls is not None else round(args.seconds / time_step)
     safety_limits = FlightSafetyLimits()
+    altitude_pid = PID(*ALTITUDE_GAINS, integral_limit=0.4)
+    attitude_controller = create_attitude_controller()
+    bus_voltage_v = profile.model.battery.cell_count * profile.model.battery.cell_voltage_full_v
     while True:
         reset_drone(drone, (0.0, 0.0, START_HEIGHT_M))
         if frames is not None:
@@ -264,6 +338,10 @@ def run_experiment(
         samples: list[Sample] = []
         battery = BatteryModel(profile.model.battery)
         motor_rpms = prime_motor_state(profile, args.pwm)
+        altitude_pid.reset()
+        attitude_controller.reset()
+        if controls is not None:
+            controls.clear_actions()
         step = 0
         while total_steps is None or step < total_steps:
             if controls is not None:
@@ -275,15 +353,28 @@ def run_experiment(
                 if action == "pause":
                     time.sleep(1 / 60)
                     continue
-            motor_rpms, battery_state = advance_motor_state(profile, battery, motor_rpms, args.pwm)
+            state = read_state(drone)
+            pwm_us, controller_torque_nm, pid_terms = controller_command(
+                profile,
+                altitude_pid,
+                attitude_controller,
+                state.position_m[2],
+                state.linear_velocity_mps[2],
+                read_imu(drone),
+                START_HEIGHT_M,
+                bus_voltage_v,
+            )
+            motor_rpms, battery_state = advance_motor_state(profile, battery, motor_rpms, pwm_us)
+            bus_voltage_v = battery_state.bus_voltage_v
             apply_gravity(drone, profile)
             motor_thrusts = apply_rotor_thrust(drone, profile, motor_rpms)
-            roll_delta = alternating_thrust_delta(args.roll_delta, step * time_step, args.oscillation_period)
-            pitch_delta = alternating_thrust_delta(args.pitch_delta, step * time_step, args.oscillation_period)
-            # ! TOPIC 4 NEW FORCE CALL: apply alternating roll/pitch torque after previous forces and before integration.
-            _, torque_body_nm = apply_roll_pitch_torque(drone, profile, float(np.mean(motor_thrusts)), roll_delta, pitch_delta)
+            roll_delta, pitch_delta = disturbance_deltas(args, step, time_step, controls)
+            # ! TOPIC 4 NEW FORCE CALL: apply roll/pitch disturbance after previous forces and before correction.
+            _, disturbance_torque_nm = apply_roll_pitch_torque(drone, profile, float(np.mean(motor_thrusts)), roll_delta, pitch_delta)
+            # ! TOPIC 4 STABILIZATION CALL: apply requested PID attitude correction after the new disturbance.
+            p.applyExternalTorque(drone, -1, controller_torque_nm, p.LINK_FRAME)
             p.stepSimulation()
-            sample = capture_sample(profile, step, args.pwm, motor_rpms, motor_thrusts, battery_state, torque_body_nm, read_state(drone))
+            sample = capture_sample(profile, step, pwm_us, motor_rpms, motor_thrusts, battery_state, disturbance_torque_nm, controller_torque_nm, pid_terms, START_HEIGHT_M, read_state(drone))
             samples.append(sample)
             if controls is not None:
                 reason = safety_reason(sample.altitude_m, sample.roll_rad or 0.0, sample.pitch_rad or 0.0, sample.roll_rate_rad_s or 0.0, sample.pitch_rate_rad_s or 0.0, safety_limits)
@@ -305,18 +396,36 @@ def run_reduced_order(profile: DroneProfile, args: argparse.Namespace) -> list[S
     attitude = ReducedAttitudeState()
     battery = BatteryModel(profile.model.battery)
     motor_rpms = prime_motor_state(profile, args.pwm)
+    altitude_pid = PID(*ALTITUDE_GAINS, integral_limit=0.4)
+    attitude_controller = create_attitude_controller()
+    bus_voltage_v = profile.model.battery.cell_count * profile.model.battery.cell_voltage_full_v
     time_step = profile.physics_settings.time_step_s
     inertia = np.array(profile.model.inertia_kg_m2[:2])
     samples: list[Sample] = []
     for step in range(round(args.seconds / time_step)):
-        motor_rpms, battery_state = advance_motor_state(profile, battery, motor_rpms, args.pwm)
+        pwm_us, controller_torque_nm, pid_terms = controller_command(
+            profile,
+            altitude_pid,
+            attitude_controller,
+            state.position_m[2],
+            state.velocity_mps[2],
+            ImuReading(
+                (attitude.roll_rad, attitude.pitch_rad, 0.0),
+                (attitude.roll_rate_rad_s, attitude.pitch_rate_rad_s, 0.0),
+            ),
+            START_HEIGHT_M,
+            bus_voltage_v,
+        )
+        motor_rpms, battery_state = advance_motor_state(profile, battery, motor_rpms, pwm_us)
+        bus_voltage_v = battery_state.bus_voltage_v
         motor_thrusts = tuple(profile.model.thrust_coefficient * rpm**2 for rpm in motor_rpms)
         gravity = gravity_force(profile)
         contact = ground_contact_force(state, profile)
         thrust = np.array((0.0, 0.0, sum(motor_thrusts)))
         roll_delta = alternating_thrust_delta(args.roll_delta, step * time_step, args.oscillation_period)
         pitch_delta = alternating_thrust_delta(args.pitch_delta, step * time_step, args.oscillation_period)
-        _, torque_body_nm = apply_roll_pitch_torque_reduced(profile, float(np.mean(motor_thrusts)), roll_delta, pitch_delta)
+        _, disturbance_torque_nm = apply_roll_pitch_torque_reduced(profile, float(np.mean(motor_thrusts)), roll_delta, pitch_delta)
+        torque_body_nm = disturbance_torque_nm + np.array(controller_torque_nm)
         acceleration = integrate_reduced_state(state, gravity + contact + thrust, profile.model.mass_kg, time_step)
         angular_acceleration = torque_body_nm[:2] / inertia
         attitude.roll_rate_rad_s += angular_acceleration[0] * time_step
@@ -326,7 +435,7 @@ def run_reduced_order(profile: DroneProfile, args: argparse.Namespace) -> list[S
         state.position_m[2] = max(0.0, state.position_m[2])
         if state.position_m[2] == 0.0 and state.velocity_mps[2] < 0.0:
             state.velocity_mps[2] = 0.0
-        samples.append(capture_sample(profile, step, args.pwm, motor_rpms, motor_thrusts, battery_state, torque_body_nm, attitude, state))
+        samples.append(capture_sample(profile, step, pwm_us, motor_rpms, motor_thrusts, battery_state, disturbance_torque_nm, controller_torque_nm, pid_terms, START_HEIGHT_M, attitude, state))
     return samples
 
 
@@ -371,6 +480,9 @@ def validate_results(samples: list[Sample], profile: DroneProfile, args: argpars
     assert safety_reason(1.0, np.deg2rad(50.0), 0.0, 0.0, 0.0) is not None
     assert np.sign(torque) == expected_sign, "Torque sign should follow the selected thrust imbalance"
     assert np.sign(rate) == expected_sign, "Angular-rate sign should follow the applied torque"
+    assert abs(samples[-1].altitude_m - START_HEIGHT_M) < 0.15
+    assert samples[-1].controller_roll_torque_nm is not None
+    assert samples[-1].controller_pitch_torque_nm is not None
     if args.backend == "pybullet":
         reduced = run_reduced_order(profile, args)
         reduced_response = next(sample for sample in reduced if abs(getattr(sample, rate_field)) > 1e-6)
@@ -387,10 +499,17 @@ def main() -> None:
         run_pybullet=run_pybullet_topic,
         run_reduced=run_reduced_topic,
         validate=validate_results,
-        graph_fields=("roll_torque_nm", "pitch_torque_nm", "roll_rate_rad_s", "pitch_rate_rad_s", "roll_rad", "pitch_rad"),
+        graph_fields=("disturbance_roll_torque_nm", "controller_roll_torque_nm", "disturbance_pitch_torque_nm", "controller_pitch_torque_nm", "roll_rad", "pitch_rad", "altitude_m", "target_altitude_m"),
+        graph_panels=(
+            ("disturbance_roll_torque_nm", "controller_roll_torque_nm"),
+            ("disturbance_pitch_torque_nm", "controller_pitch_torque_nm"),
+            ("roll_rad", "pitch_rad"),
+            ("altitude_m", "target_altitude_m"),
+        ),
         summary_title="Roll and pitch torque summary",
         graph_title="Topic 4: roll and pitch torque",
         gif_fps=GIF_FPS,
+        topic_actions=(("Roll torque", "roll_torque"), ("Pitch torque", "pitch_torque")),
     )
 
 

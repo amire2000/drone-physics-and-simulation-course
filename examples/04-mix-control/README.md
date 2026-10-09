@@ -122,3 +122,9 @@ uv run python examples/04-mix-control/position_hold.py --controller hybrid --hea
 
 All examples use the shared vehicle URDF and motor mixer. Controller tuning
 constants are declared near the top of `main.py` and `position_hold.py`.
+
+
+---
+
+## Reference
+- [adrc on drone](https://www.youtube.com/@EngineeringRobotic)

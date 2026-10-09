@@ -61,6 +61,8 @@ cumulative force order.
 Interactive PyBullet runs use the shared `examples/common/tk_controls.py`
 external Tk window for Start, Pause, Restart, and Quit. The runner owns the window
 lifecycle; each topic loop polls it and owns the reset of its physics state.
+Topics may register named latched disturbance buttons; those buttons only expose
+action state, while the topic loop applies the corresponding force or torque.
 Do not put Tk calls in force methods or duplicate control windows in topics.
 
 Interactive topics may use `examples/common/safety.py` for conservative
